@@ -155,7 +155,9 @@ button:disabled {
   color: #111;
 }
 
-#output {
+/* Single shell surface: PRINT output + in-place INPUT (Amiga CLI feel). */
+.console {
+  position: relative;
   flex: 1;
   margin: 0;
   padding: 0.6rem 0.75rem;
@@ -166,46 +168,68 @@ button:disabled {
   background: var(--out-bg);
   color: var(--out-fg);
   white-space: pre-wrap;
+  word-break: break-word;
+  cursor: text;
 }
 
-.input-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.55rem;
-  border-top: 2px solid #222;
-  background: #002244;
+.console:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--wb-orange);
 }
 
-.input-row[hidden] {
-  display: none !important;
+.console.awaiting-input:focus,
+.console.awaiting-input:focus-within {
+  box-shadow: inset 0 0 0 2px var(--wb-orange);
 }
 
-.input-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--wb-orange);
-  letter-spacing: 0.04em;
+.console-output {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-#console-input {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--font-code);
-  font-size: 0.9rem;
-  padding: 0.25rem 0.4rem;
-  border: 2px solid #6688aa;
-  background: #001122;
+.live-input {
+  display: inline;
   color: #eeffee;
 }
 
-#console-input:focus {
-  outline: none;
-  border-color: var(--wb-orange);
+.caret {
+  display: inline-block;
+  width: 0.55em;
+  margin-left: 1px;
+  background: var(--out-fg);
+  vertical-align: text-bottom;
+  height: 1.05em;
+  animation: caret-blink 1s step-end infinite;
 }
 
-#console-input:disabled {
-  opacity: 0.45;
+.caret[hidden] {
+  display: none !important;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Mirror field for IME / mobile; typed text is shown in .live-input. */
+.console-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  clip: rect(0 0 0 0);
+  overflow: hidden;
 }
 
 .status {

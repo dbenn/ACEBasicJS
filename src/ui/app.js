@@ -1,24 +1,42 @@
-/* ACEBasicJS host UI — picker + always-visible editable source + INPUT. */
+/* ACEBasicJS host UI — picker + always-visible editable source + unified console. */
 (function () {
   "use strict";
 
   const picker = document.getElementById("program-picker");
   const source = document.getElementById("source");
+  const consoleEl = document.getElementById("console");
   const output = document.getElementById("output");
+  const liveInput = document.getElementById("live-input");
+  const caret = document.getElementById("caret");
+  const consoleInput = document.getElementById("console-input");
   const status = document.getElementById("status");
   const runBtn = document.getElementById("run");
   const stopBtn = document.getElementById("stop");
-  const inputRow = document.getElementById("input-row");
-  const consoleInput = document.getElementById("console-input");
 
   let runToken = 0;
+  let awaitingInput = false;
+
+  function syncLiveInput() {
+    liveInput.textContent = consoleInput.value;
+  }
+
+  function scrollConsoleToEnd() {
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
 
   function setInputEnabled(on) {
-    inputRow.hidden = !on;
+    awaitingInput = on;
     consoleInput.disabled = !on;
+    caret.hidden = !on;
+    consoleEl.classList.toggle("awaiting-input", on);
     if (on) {
       consoleInput.value = "";
+      syncLiveInput();
       consoleInput.focus();
+      scrollConsoleToEnd();
+    } else {
+      consoleInput.value = "";
+      syncLiveInput();
     }
   }
 
@@ -104,9 +122,12 @@
   }
 
   function submitConsoleInput() {
-    if (consoleInput.disabled) return;
-    runtime.provideInput(consoleInput.value);
+    if (!awaitingInput || consoleInput.disabled) return;
+    const line = consoleInput.value;
     consoleInput.value = "";
+    syncLiveInput();
+    runtime.provideInput(line);
+    scrollConsoleToEnd();
   }
 
   picker.addEventListener("change", function () {
@@ -119,12 +140,31 @@
     runCurrent();
   });
   stopBtn.addEventListener("click", stopCurrent);
+
+  consoleEl.addEventListener("mousedown", function (ev) {
+    if (!awaitingInput) return;
+    if (ev.target === consoleInput) return;
+    ev.preventDefault();
+    consoleInput.focus();
+  });
+
+  consoleInput.addEventListener("input", function () {
+    syncLiveInput();
+    scrollConsoleToEnd();
+  });
+
   consoleInput.addEventListener("keydown", function (ev) {
     if (ev.key === "Enter") {
       ev.preventDefault();
       submitConsoleInput();
     }
   });
+
+  // Keep typed characters visible in the shell line; mirror field stays for IME/mobile.
+  const mo = typeof MutationObserver !== "undefined"
+    ? new MutationObserver(scrollConsoleToEnd)
+    : null;
+  if (mo) mo.observe(output, { childList: true, characterData: true, subtree: true });
 
   loadManifest()
     .then(function () {
