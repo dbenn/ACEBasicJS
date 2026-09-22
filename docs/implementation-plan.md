@@ -96,23 +96,20 @@ No C subtree in the default product path. Optional `vendor/ace-c/` only if neede
 
 ### Phase 1 — Spec harvest
 
-- Extract a construct checklist from the Programmer’s Guide + Language Reference
-- Seed `examples/` with a **tiny** ordered suite (not all 180+ `prgs/` files)
-- Skim vidarh `parse*.c` / `codegen.c` only to resolve ambiguities — do not port yet
+- ~~Extract a construct checklist from the Programmer’s Guide + Language Reference~~ → [`docs/construct-checklist.md`](construct-checklist.md)
+- ~~Seed `examples/` with a **tiny** ordered suite~~ → `hello`, `loops`, `sieve`, `ackermann` (see [`examples/README.md`](../examples/README.md))
+- C `parse*.c` / `codegen.c` remain reference-only (not ported)
 
-**Suggested first fixtures** (from vidarh `prgs/`, simplest first):
+**Seed suite (actual):**
 
 | Example | Why |
 |---|---|
-| `prgs/Library/hello.b` | Trivial compile/run smoke test |
-| `prgs/IO/print.b` | PRINT / console path |
-| `prgs/BenchMarks/loops.b` | Control flow without OS chrome |
-| `prgs/BenchMarks/sieve.b` | Arrays + loops; still mostly logic |
-| `prgs/BenchMarks/Ackermann.b` | Recursion / SUB pressure |
+| `examples/hello.b` | Phase 0 `PRINT` smoke test (vidarh `Library/hello.b` needs `LIBRARY dos` — deferred) |
+| `examples/loops.b` | Nested `FOR` / `WHILE` / `REPEAT`, `CONST`, `TIMER` |
+| `examples/sieve.b` | `DIM`, `IF`, `GOTO`, line numbers |
+| `examples/ackermann.b` | `SUB`, recursion, `EXIT SUB` |
 
-Graphics, GUI, audio, and file examples come later.
-
-**Done when:** a written construct checklist exists and the seed examples are in-repo (or clearly referenced with expected behaviour notes).
+**Done when:** ~~a written construct checklist exists and the seed examples are in-repo with expected-behaviour notes.~~
 
 ### Phase 2 — Minimal JS compiler
 
@@ -120,11 +117,12 @@ Subset grammar, hand-written recursive descent (mirroring ACE’s shape, not its
 
 - Program structure, statements, expressions
 - Variables / simple types as needed by the seed examples
-- Control flow: `IF`/`THEN`/`ELSE`, `FOR`/`NEXT`, `WHILE`/`WEND`
-- `SUB` / `FUNCTION` + `CALL` as required by Ackermann-class examples
+- Control flow: `IF`/`THEN`/`ELSE`, `FOR`/`NEXT`, `WHILE`/`WEND`, `REPEAT`/`UNTIL`
+- `GOTO` + line numbers as required by `sieve.b`
+- `SUB` + call / return / `EXIT SUB` as required by `ackermann.b`
 - Codegen emits plain JS calling `runtime.*`
 
-Defer: `GOTO`/`GOSUB` until an accepted example forces them; prefer structured control flow first.
+Follow the ordered Phase 2 entry criteria in [`construct-checklist.md`](construct-checklist.md).
 
 **Done when:** seed logic examples compile to readable JS and execute in the browser with correct numeric/string results (no Intuition yet).
 
@@ -178,8 +176,8 @@ The C compiler is a reference oracle during development, not the acceptance comp
 1. ~~Expand `README.md` with project one-liner + links to design, this plan, and ACE docs~~
 2. ~~Add Phase 0 host page: picker + always-visible editor + stub `src/compiler` / `src/runtime`~~
 3. ~~Seed `examples/` for the picker (`hello.b` + vidarh benchmarks)~~
-4. Start Phase 1 construct checklist from the Programmer’s Guide and Language Reference
-5. Grow the JS compiler past `PRINT "..."` toward `loops.b` / control flow
+4. ~~Phase 1 construct checklist + expected-behaviour notes~~
+5. Phase 2: grow the JS compiler past `PRINT "..."` toward `loops.b` / control flow (see checklist entry criteria)
 
 ---
 

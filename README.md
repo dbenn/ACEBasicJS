@@ -32,5 +32,7 @@ Site URL: `https://dbenn.github.io/ACEBasicJS/`
 
 - Design: [`docs/design_deac.md`](docs/design_deac.md)
 - Implementation plan: [`docs/implementation-plan.md`](docs/implementation-plan.md)
+- Construct checklist (Phase 1): [`docs/construct-checklist.md`](docs/construct-checklist.md)
+- Seed expectations: [`examples/README.md`](examples/README.md)
 - ACE docs (v2.3): https://dbenn.github.io/docs/doc_index.html
 - Reference fork / examples: https://github.com/vidarh/ACE
