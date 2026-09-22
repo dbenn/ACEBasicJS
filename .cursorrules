@@ -4,8 +4,12 @@
 
 Port **ACE Basic** — a recursive descent, peephole-optimising Amiga BASIC compiler
 originally written by David Benn (1991–1996) — to run natively in a web browser.
-Rather than emulating Amiga hardware, the approach targets the AmigaOS API surface
-that ACE programs actually used, reimplementing it in JavaScript.
+Rather than emulating Amiga hardware, **simulate** the AmigaOS API surface that ACE
+programs actually used, reimplementing it in JavaScript.
+
+**Motivation:** reproduce what ACE did in as simple an environment as possible.
+Why emulate if simulation will suffice? Prefer the smallest stack that runs real
+ACE programs. Overly complex environments and solutions are rejected.
 
 David Benn is the original author of ACE and is the primary developer of this project.
 
@@ -13,38 +17,44 @@ David Benn is the original author of ACE and is the primary developer of this pr
 
 ## Core Strategy
 
-**Modify ACE's compiler backend to emit JavaScript instead of 68000 assembly.**
-Pair this with a JavaScript runtime that implements the AmigaOS API surface ACE
-programs depend on. The result: `.b` / `.bas` ACE source files compile and run
-in a browser with an authentic Amiga look and feel.
+**Pure client-side JS:** a JavaScript compiler (grammar/semantics reverse-engineered
+from the original recursive-descent C compiler, docs, and examples) emits readable
+JavaScript. A JavaScript runtime implements the AmigaOS API surface ACE programs
+depend on. The C ACE codebase is a **spec**, not the shipped toolchain.
 
-This is NOT hardware emulation. It is API-level emulation at the AmigaOS layer.
+The result: `.b` / `.bas` ACE source files compile and run in a browser with an
+authentic Amiga look and feel.
+
+This is NOT hardware emulation. It is API-level **simulation** at the AmigaOS layer.
+
+### Host UX (non-negotiable)
+
+- **Program picker** to load existing examples (and later user files)
+- ACE source is **always visible** while a program runs
+- ACE source is **always editable**; edit → compile → run is the normal loop
+- Keep the UI minimal: picker, editor, run/stop, output/canvas
 
 ---
 
 ## Starting Point
 
-- **Base**: [vidarh's Linux fork of ACE 2.4](https://github.com/vidarh/ACE)
-- vidarh ported ACE to compile and run on Linux (still targeting M68k output)
-- vidarh did partial retargeting cleanup in `codegen.c|h` with a view to x86 — 
-  useful groundwork for the JS backend
+- **Language / semantics reference**: original ACE docs + David Benn’s intent
+- **Parser/codegen reference**: [vidarh's Linux fork of ACE 2.4](https://github.com/vidarh/ACE)
+  (`parse*.c`, `codegen.c|h`, `prgs/` examples) — reverse-engineer, do not ship
 - All semantic authority rests with David Benn as original author — if anything
   is ambiguous, the original intent takes precedence over the fork
 
 ---
 
-## Compiler Backend: JS Emission
+## Compiler: JS front-end (product path)
 
-### The Key File: `codegen.c` / `codegen.h`
+Implement a **JavaScript** lexer/parser/codegen that emits JavaScript calling the
+runtime. Use the C recursive-descent compiler to recover grammar and edge cases;
+use the Programmer’s Guide, Language Reference, and examples as the acceptance
+oracle.
 
-ACE is a recursive descent parser with code generation interleaved. However,
-`codegen.c|h` provides a defined set of `gen_` functions that the parser calls.
-The JS backend is implemented by reimplementing these functions to emit JavaScript
-instead of 68k assembly text.
-
-### Taxonomy of `gen_` Functions (primary work item)
-
-The gen_ functions fall into roughly four categories:
+The C `gen_` taxonomy remains a useful **checklist** of constructs to cover, not
+the implementation vehicle:
 
 | Category | JS Backend Treatment |
 |---|---|

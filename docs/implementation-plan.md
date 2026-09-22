@@ -4,15 +4,34 @@
 
 ---
 
+## Motivation
+
+Reproduce what ACE did in **as simple an environment as possible**. Simulation of the AmigaOS API surface that ACE programs actually used is enough; full hardware emulation is not. Prefer the smallest stack that still runs real ACE programs faithfully.
+
+Complexity is a defect. Avoid build systems, frameworks, and layers that do not earn their keep.
+
+---
+
 ## Goal
 
 Ship a **pure client-side** ACE experience in the browser:
 
-1. Load or edit `.b` / `.bas` source in the page
-2. Compile it **in the browser** to readable JavaScript
-3. Run that JS against a small AmigaOS-inspired runtime (Canvas, Web Audio, Speech, IndexedDB)
+1. Pick an existing program from a **program picker** (curated examples, later user files)
+2. **Always see** the ACE source alongside the running program — source is never hidden behind “run only”
+3. **Edit** that source in place, recompile, and run again
+4. Compile **in the browser** to readable JavaScript
+5. Run that JS against a small AmigaOS-inspired runtime (Canvas, Web Audio, Speech, IndexedDB)
 
 No native toolchain required for end users. No Amiga hardware emulation.
+
+### Host UI invariants
+
+| Invariant | Meaning |
+|---|---|
+| Source always visible | Editor (or equivalent) remains on screen while the program runs |
+| Source always editable | User can change `.b` / `.bas` text at any time |
+| Picker-first loading | Built-in examples load from a simple picker; optional file open later |
+| Minimal chrome | Picker + editor + run/stop + output/canvas — nothing else until needed |
 
 ---
 
@@ -52,11 +71,11 @@ Keep the tree small until something earns its place:
 
 ```text
 docs/                 design + this plan
-examples/             curated .b fixtures (vendored or linked from vidarh)
+examples/             curated .b fixtures for the program picker
 src/
   compiler/           lexer, parser, codegen → JS string
   runtime/            AmigaOS-ish API (console → intuition → gfx → audio → …)
-  ui/                 minimal host page (editor, run, canvas)
+  ui/                 picker + always-visible editor + run/stop + canvas
 public/               static assets (Topaz later)
 ```
 
@@ -68,11 +87,12 @@ No C subtree in the default product path. Optional `vendor/ace-c/` only if neede
 
 ### Phase 0 — Skeleton (now → next)
 
-- Static page that loads compiler + runtime modules
-- “Compile” and “Run” hooks with stub implementations
+- Static page: **program picker** + **always-visible editable source** + Run/Stop + output area
+- Picker loads a stub example into the editor (source stays visible after Run)
+- Compiler/runtime stubs behind Compile/Run
 - README points at design, plan, and ACE docs
 
-**Done when:** opening `public/index.html` (or equivalent) shows UI and can run a hard-coded `console.log` through the runtime stub.
+**Done when:** opening the host page lets you pick a stub program, see and edit its source, and run a hard-coded path that prints via the runtime stub.
 
 ### Phase 1 — Spec harvest
 
@@ -143,8 +163,10 @@ The C compiler is a reference oracle during development, not the acceptance comp
 
 ## Explicit Non-Goals (near term)
 
-- Full hardware emulation (UAE/WASM Amiga)
+- Full hardware emulation (UAE/WASM Amiga) — simulation of the OS API is the point
 - Shipping the C ACE compiler (native or WASM) as the product compiler
+- SPA frameworks, bundler mazes, or “platform” scaffolding without a concrete need
+- Hide-the-source / run-only modes
 - Joystick support
 - Cycle-exact graphics/audio
 - 100% Language Reference coverage before the seed suite passes
@@ -153,8 +175,8 @@ The C compiler is a reference oracle during development, not the acceptance comp
 
 ## Immediate Next Actions
 
-1. Expand `README.md` with project one-liner + links to design, this plan, and ACE docs
-2. Add Phase 0 host page + stub `src/compiler` / `src/runtime`
+1. ~~Expand `README.md` with project one-liner + links to design, this plan, and ACE docs~~
+2. Add Phase 0 host page: picker + always-visible editor + stub `src/compiler` / `src/runtime`
 3. Vendor or copy the five seed examples into `examples/` with short expected-behaviour notes
 4. Start Phase 1 construct checklist from the Programmer’s Guide and Language Reference
 
