@@ -176,9 +176,10 @@ The C compiler is a reference oracle during development, not the acceptance comp
 ## Immediate Next Actions
 
 1. ~~Expand `README.md` with project one-liner + links to design, this plan, and ACE docs~~
-2. Add Phase 0 host page: picker + always-visible editor + stub `src/compiler` / `src/runtime`
-3. Vendor or copy the five seed examples into `examples/` with short expected-behaviour notes
+2. ~~Add Phase 0 host page: picker + always-visible editor + stub `src/compiler` / `src/runtime`~~
+3. ~~Seed `examples/` for the picker (`hello.b` + vidarh benchmarks)~~
 4. Start Phase 1 construct checklist from the Programmer’s Guide and Language Reference
+5. Grow the JS compiler past `PRINT "..."` toward `loops.b` / control flow
 
 ---
 

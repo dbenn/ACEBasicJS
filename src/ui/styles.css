@@ -1,0 +1,213 @@
+:root {
+  --wb-blue: #0055aa;
+  --wb-blue-deep: #003366;
+  --wb-grey: #aaaaaa;
+  --wb-grey-light: #dddddd;
+  --wb-orange: #ff8800;
+  --wb-ink: #111111;
+  --panel: #c0c0c0;
+  --editor-bg: #f4f4f0;
+  --out-bg: #001133;
+  --out-fg: #88ff88;
+  --font-ui: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --font-code: "IBM Plex Mono", "Consolas", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font-family: var(--font-ui);
+  color: var(--wb-ink);
+  background:
+    linear-gradient(180deg, var(--wb-blue) 0%, var(--wb-blue-deep) 100%);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.65rem 1rem;
+  background: var(--panel);
+  border-bottom: 3px solid #666;
+  box-shadow: inset 0 1px 0 #fff;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: 1.05rem;
+}
+
+.brand span {
+  color: var(--wb-blue-deep);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+label {
+  font-size: 0.85rem;
+}
+
+select,
+button {
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+}
+
+select {
+  min-width: 12rem;
+  padding: 0.25rem 0.4rem;
+  border: 2px solid #444;
+  background: #fff;
+}
+
+button {
+  padding: 0.3rem 0.85rem;
+  border: 2px solid #333;
+  background: var(--wb-grey-light);
+  cursor: pointer;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #777;
+}
+
+button:active {
+  box-shadow: inset 1px 1px 0 #777;
+}
+
+button.primary {
+  background: var(--wb-orange);
+  font-weight: 600;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 0.6rem;
+  padding: 0.6rem;
+  min-height: 0;
+}
+
+.panel {
+  background: var(--panel);
+  border: 2px solid #222;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.panel-title {
+  margin: 0;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: var(--wb-blue);
+  color: #fff;
+  border-bottom: 2px solid #222;
+}
+
+.editor-panel {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-height: 42vh;
+}
+
+.output-panel {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-height: 28vh;
+}
+
+#source {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  resize: none;
+  padding: 0.6rem 0.75rem;
+  font-family: var(--font-code);
+  font-size: 0.92rem;
+  line-height: 1.4;
+  background: var(--editor-bg);
+  color: #111;
+}
+
+#output {
+  flex: 1;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  overflow: auto;
+  font-family: var(--font-code);
+  font-size: 0.9rem;
+  line-height: 1.35;
+  background: var(--out-bg);
+  color: var(--out-fg);
+  white-space: pre-wrap;
+}
+
+.status {
+  padding: 0.35rem 1rem 0.55rem;
+  font-size: 0.8rem;
+  color: #e8e8ff;
+}
+
+.status[data-kind="error"] {
+  color: #ffcc88;
+}
+
+@media (min-width: 900px) {
+  .main {
+    grid-template-columns: 1.2fr 0.8fr;
+    grid-template-rows: 1fr;
+  }
+
+  .editor-panel {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 0;
+  }
+
+  .output-panel {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    align-items: stretch;
+  }
+
+  .controls {
+    width: 100%;
+  }
+
+  select {
+    flex: 1;
+    min-width: 0;
+  }
+}
