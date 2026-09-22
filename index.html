@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ACEBasicJS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="src/ui/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">ACEBasic<span>JS</span></div>
+      <div class="controls">
+        <label for="program-picker">Program</label>
+        <select id="program-picker" aria-label="Program picker"></select>
+        <button type="button" class="primary" id="run">Run</button>
+        <button type="button" id="stop" disabled>Stop</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="panel editor-panel" aria-label="ACE source">
+        <h1 class="panel-title">ACE source (always visible · editable)</h1>
+        <textarea id="source" spellcheck="false" aria-label="ACE program source"></textarea>
+      </section>
+      <section class="panel output-panel" aria-label="Program output">
+        <h2 class="panel-title">Output</h2>
+        <pre id="output"></pre>
+      </section>
+    </main>
+
+    <div class="status" id="status" role="status"></div>
+
+    <script src="src/runtime/runtime.js"></script>
+    <script src="src/compiler/compiler.js"></script>
+    <script src="src/ui/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "hello",
+    "title": "Hello (PRINT)",
+    "path": "examples/hello.b",
+    "notes": "Phase 0 seed — trivial PRINT."
+  },
+  {
+    "id": "loops",
+    "title": "Loops benchmark",
+    "path": "examples/loops.b",
+    "notes": "From vidarh/ACE prgs/BenchMarks — control flow later."
+  },
+  {
+    "id": "sieve",
+    "title": "Sieve benchmark",
+    "path": "examples/sieve.b",
+    "notes": "From vidarh/ACE — arrays + GOTO later."
+  },
+  {
+    "id": "ackermann",
+    "title": "Ackermann",
+    "path": "examples/ackermann.b",
+    "notes": "From vidarh/ACE — SUB / recursion later."
+  }
+]
