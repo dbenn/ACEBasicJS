@@ -6,21 +6,27 @@
     "notes": "PRINT smoke test — see examples/README.md"
   },
   {
+    "id": "input",
+    "title": "INPUT demo",
+    "path": "examples/input.b",
+    "notes": "Phase 3 — interactive INPUT"
+  },
+  {
     "id": "loops",
     "title": "Loops benchmark",
     "path": "examples/loops.b",
-    "notes": "FOR / WHILE / REPEAT — Phase 2 target"
+    "notes": "FOR / WHILE / REPEAT"
   },
   {
     "id": "sieve",
     "title": "Sieve benchmark",
     "path": "examples/sieve.b",
-    "notes": "DIM / GOTO / IF — Phase 2 target"
+    "notes": "DIM / GOTO / IF"
   },
   {
     "id": "ackermann",
     "title": "Ackermann",
     "path": "examples/ackermann.b",
-    "notes": "SUB / recursion — Phase 2 target"
+    "notes": "SUB / recursion"
   }
 ]

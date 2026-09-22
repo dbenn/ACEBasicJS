@@ -121,9 +121,9 @@ Verify: `node tests/phase2-smoke.js`
 
 ### Phase 3 — Console I/O runtime
 
-~~`PRINT` + async `INPUT`~~ (separate INPUT row under the Output `<pre>`; `inputLines` for tests; demo `examples/input.b`). Shipped on the Phase 3 PR path.
+~~`PRINT`, `INPUT` on a simple terminal surface~~ — `PRINT` separators/padding (Phase 2 follow-up) plus async `INPUT` with a host input row and `inputLines` for tests. Demo: `examples/input.b`.
 
-**Done when:** ~~interactive `INPUT` works in-page; smoke tests cover prompt / `? ` / comma forms.~~
+**Done when:** ~~`hello.b` / `print.b`-class programs run end-to-end in-page.~~ ~~Interactive `INPUT` works in-page; smoke tests cover prompt / `? ` / comma forms.~~
 
 Verify: `node tests/phase2-smoke.js` (includes INPUT cases).
 
@@ -185,9 +185,10 @@ The C compiler is a reference oracle during development, not the acceptance comp
 3. ~~Seed examples…~~
 4. ~~Phase 1 construct checklist…~~
 5. ~~Phase 2: JS compiler for seed suite (`hello` / `loops` / `sieve` / `ackermann`)~~
-6. ~~Phase 3: console `INPUT` (async host prompt + smoke tests)~~ — merge when ready
+6. ~~Phase 3: console `INPUT` (async host prompt + smoke tests)~~
 7. **Phase 3.5: unified console / shell I/O** (print + input on one surface; Amiga CLI feel)
 8. Phase 4: Intuition basics (`WINDOW` / `SCREEN`) and/or grow corpus (`LINE INPUT`, `CLS`, string `$` functions as examples demand)
+
 ---
 
 ## References

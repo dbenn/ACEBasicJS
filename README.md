@@ -14,7 +14,7 @@ python3 -m http.server 8080
 
 Open http://localhost:8080/ — pick a program, edit the ACE source (always visible), Run.
 
-Phase 0 only had `PRINT "..."`; Phase 2 compiles control flow, arrays/`GOTO`, and `SUB` recursion for the seed suite.
+Phase 2 compiles control flow, arrays/`GOTO`, and `SUB` recursion. Phase 3 adds interactive `INPUT` (host prompt row under Output; pick **INPUT demo**).
 
 ## GitHub Pages
 

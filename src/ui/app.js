@@ -1,4 +1,4 @@
-/* ACEBasicJS host UI — picker + always-visible editable source. */
+/* ACEBasicJS host UI — picker + always-visible editable source + INPUT. */
 (function () {
   "use strict";
 
@@ -8,10 +8,31 @@
   const status = document.getElementById("status");
   const runBtn = document.getElementById("run");
   const stopBtn = document.getElementById("stop");
+  const inputRow = document.getElementById("input-row");
+  const consoleInput = document.getElementById("console-input");
 
-  const runtime = ACE.createRuntime({ output: output });
+  let runToken = 0;
+
+  function setInputEnabled(on) {
+    inputRow.hidden = !on;
+    consoleInput.disabled = !on;
+    if (on) {
+      consoleInput.value = "";
+      consoleInput.focus();
+    }
+  }
+
+  const runtime = ACE.createRuntime({
+    output: output,
+    onInputRequest: function () {
+      setInputEnabled(true);
+    },
+    onInputDone: function () {
+      setInputEnabled(false);
+    },
+  });
+
   let manifest = [];
-  let running = false;
 
   function setStatus(message, kind) {
     status.textContent = message || "";
@@ -19,9 +40,9 @@
   }
 
   function setRunning(isRunning) {
-    running = isRunning;
     runBtn.disabled = isRunning;
     stopBtn.disabled = !isRunning;
+    if (!isRunning) setInputEnabled(false);
   }
 
   async function loadManifest() {
@@ -48,9 +69,11 @@
     setStatus("Loaded " + entry.path + (entry.notes ? " — " + entry.notes : ""), "info");
   }
 
-  function runCurrent() {
+  async function runCurrent() {
+    const token = ++runToken;
     runtime.reset();
     setRunning(true);
+    setStatus("Running…", "info");
     try {
       const compiled = ACE.compile(source.value);
       if (!compiled.ok) {
@@ -61,20 +84,29 @@
         setStatus("Compile failed.", "error");
         return;
       }
-      ACE.run(compiled, runtime);
-      setStatus("Ran successfully.", "info");
+      await ACE.run(compiled, runtime);
+      if (token !== runToken) return;
+      setStatus(runtime.stopped ? "Stopped." : "Ran successfully.", "info");
     } catch (err) {
+      if (token !== runToken) return;
       runtime.print(String(err && err.message ? err.message : err));
       setStatus("Run failed.", "error");
     } finally {
-      setRunning(false);
+      if (token === runToken) setRunning(false);
     }
   }
 
   function stopCurrent() {
+    runToken++;
     runtime.stop();
     setRunning(false);
     setStatus("Stopped.", "info");
+  }
+
+  function submitConsoleInput() {
+    if (consoleInput.disabled) return;
+    runtime.provideInput(consoleInput.value);
+    consoleInput.value = "";
   }
 
   picker.addEventListener("change", function () {
@@ -83,8 +115,16 @@
     });
   });
 
-  runBtn.addEventListener("click", runCurrent);
+  runBtn.addEventListener("click", function () {
+    runCurrent();
+  });
   stopBtn.addEventListener("click", stopCurrent);
+  consoleInput.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      submitConsoleInput();
+    }
+  });
 
   loadManifest()
     .then(function () {

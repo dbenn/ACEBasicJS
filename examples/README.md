@@ -9,6 +9,7 @@ expectations below (observable results in the host output / runtime).
 | Id | File | Origin | Why it is here | Expected when supported |
 |---|---|---|---|---|
 | `hello` | `hello.b` | ACEBasicJS Phase 0 | Trivial `PRINT` smoke test | Two lines: `Hello from ACEBasicJS` then `Edit me, then Run again.` |
+| `input` | `input.b` | ACEBasicJS Phase 3 | Interactive `INPUT` (prompt + `? `, string and number) | Asks for name then number; echoes greeting and double. Enter answers in the INPUT row under Output. |
 | `loops` | `loops.b` | vidarh `prgs/BenchMarks/loops.b` | Nested `FOR`, `WHILE`, `REPEAT` / `UNTIL`, `CONST`, `TIMER` | Prints timing lines for FOR / WHILE / REPEAT (five passes). Exact seconds may differ; structure and labels matter. |
 | `sieve` | `sieve.b` | vidarh `prgs/BenchMarks/sieve.b` | `DIM`, `FOR`, `IF`, `GOTO`, line numbers | Banner about byte sieve; runs five passes over flags; prints timing. |
 | `ackermann` | `ackermann.b` | vidarh `prgs/BenchMarks/Ackermann.b` | `SUB`, recursion, `EXIT SUB`, return via name | Computes Ackermann values for the printed table; recursive depth must work. |
@@ -22,5 +23,5 @@ expectations below (observable results in the host output / runtime).
 
 ## Notes
 
-- Comments starting with `'..` or `REM` are ignored by the Phase 0 stub.
-- When a seed still has unsupported lines, the stub lists them in the output and keeps the source editable — that is expected until the matching checklist rows move off `next`.
+- Comments starting with `'..` or `REM` are ignored.
+- Node smoke tests feed `INPUT` via `inputLines` on the runtime; the browser uses the OUTPUT panel’s INPUT row (Enter to submit).

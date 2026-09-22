@@ -15,25 +15,26 @@ C ACE (`parse*.c` / `codegen.c` in [vidarh/ACE](https://github.com/vidarh/ACE)) 
 
 ## Priority for seed programs
 
-| Construct | hello | loops | sieve | ackermann | Status |
-|---|---|---|---|---|---|
-| `PRINT` string literal | ✓ | ✓ | ✓ | ✓ | done (Phase 2) |
-| `PRINT` expressions | | ✓ | ✓ | ✓ | done |
-| Comments (`'` / `REM` / `{*…*}`) | ✓ | | ✓ | ✓ | done |
-| `CONST` | | ✓ | | | done |
-| Type defaults (`DEFINT` / `DEFLNG` / `SINGLE`…) | | ✓ | ✓ | ✓ | done (accepted; JS numbers) |
-| Assignment | | ✓ | ✓ | ✓ | done |
-| `FOR` / `NEXT` (+ optional `STEP`) | | ✓ | ✓ | ✓ | done |
-| `WHILE` / `WEND` | | ✓ | | | done |
-| `REPEAT` / `UNTIL` | | ✓ | | | done |
-| `IF` / `THEN` / `ELSE` / `END IF` | | | ✓ | ✓ | done |
-| `GOTO` + line numbers | | | ✓ | | done |
-| `DIM` arrays | | | ✓ | | done |
-| `SUB` / `END SUB` + call / return value | | | | ✓ | done |
-| `EXIT SUB` | | | | ✓ | done |
-| `TIMER` | | ✓ | ✓ | ✓ | done |
-| Nested calls / recursion | | | | ✓ | done |
-| `++var` increment | | ✓ | | | done (ACE extension used in loops.b) |
+| Construct | hello | loops | sieve | ackermann | input | Status |
+|---|---|---|---|---|---|---|
+| `PRINT` string literal | ✓ | ✓ | ✓ | ✓ | ✓ | done (Phase 2) |
+| `PRINT` expressions | | ✓ | ✓ | ✓ | ✓ | done |
+| `INPUT` (prompt / `? ` / `,`) | | | | | ✓ | done (Phase 3) |
+| Comments (`'` / `REM` / `{*…*}`) | ✓ | | ✓ | ✓ | | done |
+| `CONST` | | ✓ | | | | done |
+| Type defaults (`DEFINT` / `DEFLNG` / `SINGLE`…) | | ✓ | ✓ | ✓ | | done (accepted; JS numbers) |
+| Assignment | | ✓ | ✓ | ✓ | | done |
+| `FOR` / `NEXT` (+ optional `STEP`) | | ✓ | ✓ | ✓ | | done |
+| `WHILE` / `WEND` | | ✓ | | | | done |
+| `REPEAT` / `UNTIL` | | ✓ | | | | done |
+| `IF` / `THEN` / `ELSE` / `END IF` | | | ✓ | ✓ | | done |
+| `GOTO` + line numbers | | | ✓ | | | done |
+| `DIM` arrays | | | ✓ | | | done |
+| `SUB` / `END SUB` + call / return value | | | | ✓ | | done |
+| `EXIT SUB` | | | | ✓ | | done |
+| `TIMER` | | ✓ | ✓ | ✓ | | done |
+| Nested calls / recursion | | | | ✓ | | done |
+| `++var` increment | | ✓ | | | | done (ACE extension used in loops.b) |
 
 ---
 
@@ -131,8 +132,9 @@ Precedence from the Programmer’s Guide (high → low):
 
 | Item | Status |
 |---|---|
-| `PRINT` / `PRINTS` | `stub` → `next` (expressions, multiple args, separators) |
-| `INPUT` / `LINE INPUT` / `INPUT$` / `INKEY$` | Phase 3 |
+| `PRINT` / `PRINTS` | done (`PRINT`; `PRINTS` later) |
+| `INPUT` | done (Phase 3 — async prompt; string/`$` vs numeric) |
+| `LINE INPUT` / `INPUT$` / `INKEY$` | Phase 3+ / as examples demand |
 | `CLS` / `LOCATE` / `CSRLIN` / `POS` / `TAB` / `SPC` | Phase 3+ |
 | `ASC` `CHR$` `LEFT$` `RIGHT$` `MID$` `LEN` `VAL` `STR$` `UCASE$` … | As examples demand |
 | `DATA` / `READ` / `RESTORE` | `later` |
