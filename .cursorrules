@@ -163,6 +163,13 @@ Source: David Benn's ACE distribution (examples/ directory)
 
 ---
 
+## Feature demos (in-repo)
+
+Save screenshots and short screen recordings of new user-visible features under
+`demos/<phase-or-feature>/` as you verify them (see [`demos/README.md`](demos/README.md)).
+Do not leave walkthrough media only in ephemeral agent artifact storage — commit it
+to the repo in the same PR when practical.
+
 ## Key Decisions Log
 
 | Decision | Rationale |
@@ -172,6 +179,7 @@ Source: David Benn's ACE distribution (examples/ directory)
 | JS compiler in-browser | Pure client-side; C ACE is a spec, not the product |
 | JS output not WASM | DOM access from WASM requires JS glue anyway; JS is debuggable |
 | Source always visible + editable | Load from picker, see ACE source, edit freely — core product loop |
+| Demos in-repo under `demos/` | Keep feature screenshots/videos with the code for review and history |
 | Canvas for Intuition | Natural mapping; gives authentic Amiga window chrome |
 | IndexedDB for AmigaDOS | Persistent, async-friendly, browser-native |
 | Web Speech API for SAY | Direct equivalent; no custom synthesis needed |
