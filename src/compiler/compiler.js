@@ -338,32 +338,45 @@
   Parser.prototype.parsePrint = function () {
     this.expect("KW", "PRINT");
     const parts = [];
-    if (this.at("EOL") || this.at("EOF") || this.atKw("ELSE") || this.atKw("UNTIL")) {
-      return { type: "Print", parts: parts };
+    const after = [];
+    if (this.at("EOL") || this.at("EOF") || this.atKw("ELSE") || this.atKw("UNTIL") || this.at("COLON")) {
+      return { type: "Print", parts: parts, after: after };
     }
-    // PRINT expr [;|,] expr ...
+    // PRINT expr [{;|,} expr ...] [{;|,}]
     for (;;) {
       if (this.at("EOL") || this.at("EOF") || this.atKw("ELSE") || this.atKw("UNTIL") || this.at("COLON")) break;
-      if (this.at("SEMI") || this.at("COMMA")) {
+      // lonely trailing separators before first expr — ignore
+      if ((this.at("SEMI") || this.at("COMMA")) && parts.length === 0) {
         this.eat();
         continue;
       }
       parts.push(this.parseExpr());
-      // adjacent string/expr without separator still concatenates
-      if (this.at("SEMI") || this.at("COMMA")) {
+      if (this.at("SEMI")) {
         this.eat();
-        if (this.at("EOL") || this.at("EOF")) break;
+        after.push(";");
+        if (this.at("EOL") || this.at("EOF") || this.at("COLON") || this.atKw("ELSE") || this.atKw("UNTIL")) break;
         continue;
       }
-      if (this.at("EOL") || this.at("EOF") || this.at("COLON") || this.atKw("ELSE") || this.atKw("UNTIL")) break;
-      // juxtaposition
+      if (this.at("COMMA")) {
+        this.eat();
+        after.push(",");
+        if (this.at("EOL") || this.at("EOF") || this.at("COLON") || this.atKw("ELSE") || this.atKw("UNTIL")) break;
+        continue;
+      }
+      if (this.at("EOL") || this.at("EOF") || this.at("COLON") || this.atKw("ELSE") || this.atKw("UNTIL")) {
+        after.push(null);
+        break;
+      }
+      // juxtaposition (e.g. "WHILE:"t1) — treat like ';'
       if (this.at("STRING") || this.at("NUMBER") || this.at("IDENT") || this.at("LPAREN") || this.atKw("TIMER") ||
           (this.at("OP") && this.peek().value === "-")) {
+        after.push(";");
         continue;
       }
+      after.push(null);
       break;
     }
-    return { type: "Print", parts: parts };
+    return { type: "Print", parts: parts, after: after };
   };
 
   Parser.prototype.parseAssignOrCall = function () {
@@ -755,8 +768,11 @@
       case "LabelOnly":
         return "";
       case "Print": {
-        const args = stmt.parts.map(this.expr.bind(this)).join(", ");
-        return ind + "rt.print(" + args + ");";
+        const args = "[" + stmt.parts.map(this.expr.bind(this)).join(", ") + "]";
+        const after = "[" + (stmt.after || []).map(function (s) {
+          return s === null || s === undefined ? "null" : JSON.stringify(s);
+        }).join(", ") + "]";
+        return ind + "rt.printParts(" + args + ", " + after + ");";
       }
       case "Assign":
         return ind + jsName(stmt.name) + " = " + this.expr(stmt.expr) + ";";
