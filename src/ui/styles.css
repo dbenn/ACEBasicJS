@@ -167,8 +167,6 @@ button:disabled {
   line-height: 1.35;
   background: var(--out-bg);
   color: var(--out-fg);
-  white-space: pre-wrap;
-  word-break: break-word;
   cursor: text;
 }
 
@@ -197,6 +195,7 @@ button:disabled {
 .live-input {
   display: inline;
   color: #eeffee;
+  white-space: pre-wrap;
 }
 
 .caret {
