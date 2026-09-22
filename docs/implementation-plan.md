@@ -121,10 +121,11 @@ Verify: `node tests/phase2-smoke.js`
 
 ### Phase 3 — Console I/O runtime
 
-- `PRINT`, `INPUT` on a simple terminal surface (canvas or DOM pre)
-- Enough to replace hard-coded expected output checks with interactive demos
+~~`PRINT`, `INPUT` on a simple terminal surface~~ — `PRINT` separators/padding (Phase 2 follow-up) plus async `INPUT` with a host input row and `inputLines` for tests. Demo: `examples/input.b`.
 
-**Done when:** `hello.b` / `print.b`-class programs run end-to-end in-page.
+**Done when:** ~~`hello.b` / `print.b`-class programs run end-to-end in-page.~~ Interactive `INPUT` works in-page; smoke tests cover prompt / `? ` / comma forms.
+
+Verify: `node tests/phase2-smoke.js` (includes INPUT cases).
 
 ### Phase 4 — Intuition basics + UX chrome
 
@@ -171,7 +172,8 @@ The C compiler is a reference oracle during development, not the acceptance comp
 3. ~~Seed examples…~~
 4. ~~Phase 1 construct checklist…~~
 5. ~~Phase 2: JS compiler for seed suite (`hello` / `loops` / `sieve` / `ackermann`)~~
-6. Phase 3: richer console I/O (`INPUT`, formatting) and/or grow corpus beyond seeds
+6. ~~Phase 3: console `INPUT` (async host prompt + smoke tests)~~
+7. Phase 4: Intuition basics (`WINDOW` / `SCREEN`) and/or grow corpus (`LINE INPUT`, `CLS`, string `$` functions as examples demand)
 
 ---
 

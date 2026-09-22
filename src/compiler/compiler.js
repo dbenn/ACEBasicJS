@@ -584,8 +584,66 @@
     return { type: "Goto", line: Number(t.value) };
   };
 
+  /**
+   * INPUT [<prompt>] [;|,] var [[;|,] var...]
+   * Semicolon before a var → show "? " (appended after prompt if any).
+   * Comma before a var → no "? ".
+   * Bare INPUT var → "? ".
+   */
+  Parser.prototype.parseInput = function () {
+    this.expect("KW", "INPUT");
+    let promptStr = null;
+    if (this.at("STRING")) {
+      promptStr = this.eat().value;
+    }
+    const reads = [];
+    let first = true;
+    for (;;) {
+      let sep = ";"; // default when omitted before first var
+      if (this.at("SEMI")) {
+        sep = ";";
+        this.eat();
+      } else if (this.at("COMMA")) {
+        sep = ",";
+        this.eat();
+      } else if (!first || !this.at("IDENT")) {
+        break;
+      }
+      if (!this.at("IDENT")) {
+        throw new CompileError("Expected variable after INPUT", this.peek());
+      }
+      const nameTok = this.eat();
+      const name = nameTok.value;
+      const asString = /\$/.test(name);
+      let prompt;
+      if (first && promptStr !== null) {
+        prompt = promptStr + (sep === ";" ? "? " : "");
+      } else {
+        prompt = sep === ";" ? "? " : "";
+      }
+      reads.push({ name: name, prompt: prompt, asString: asString });
+      first = false;
+      if (!(this.at("SEMI") || this.at("COMMA") || this.at("IDENT"))) break;
+      if (this.at("IDENT") && !this.at("SEMI") && !this.at("COMMA")) {
+        // next IDENT without sep — stop (shouldn't happen often)
+        break;
+      }
+    }
+    if (!reads.length) throw new CompileError("INPUT needs a variable", this.peek());
+    if (reads.length === 1) {
+      return { type: "Input", name: reads[0].name, prompt: reads[0].prompt, asString: reads[0].asString };
+    }
+    return {
+      type: "Block",
+      body: reads.map(function (r) {
+        return { type: "Input", name: r.name, prompt: r.prompt, asString: r.asString };
+      }),
+    };
+  };
+
   Parser.prototype.parseStatementContent = function () {
     if (this.atKw("PRINT")) return this.parsePrint();
+    if (this.atKw("INPUT")) return this.parseInput();
     if (this.atKw("IF")) return this.parseIf();
     if (this.atKw("FOR")) return this.parseFor();
     if (this.atKw("WHILE")) return this.parseWhile();
@@ -774,6 +832,11 @@
         }).join(", ") + "]";
         return ind + "rt.printParts(" + args + ", " + after + ");";
       }
+      case "Input": {
+        const raw = "await rt.input(" + JSON.stringify(stmt.prompt || "") + ")";
+        const rhs = stmt.asString ? raw : ("rt.toNumber(" + raw + ")");
+        return ind + jsName(stmt.name) + " = " + rhs + ";";
+      }
       case "Assign":
         return ind + jsName(stmt.name) + " = " + this.expr(stmt.expr) + ";";
       case "AssignIndex":
@@ -927,7 +990,8 @@
       if (Array.isArray(node)) { node.forEach(scan); return; }
       if (typeof node !== "object") return;
       if (node.type === "Var" || node.type === "Assign" || node.type === "Inc" || node.type === "Dim" ||
-          node.type === "AssignIndex" || node.type === "For" || node.type === "CallStmt") {
+          node.type === "AssignIndex" || node.type === "For" || node.type === "CallStmt" ||
+          node.type === "Input") {
         if (node.name) names[jsName(node.name)] = 1;
       }
       if (node.type === "Const") {
@@ -1021,7 +1085,7 @@
       if (typeof n !== "object") return;
       if (n.type === "Var" && n.name) names[jsName(n.name)] = 1;
       if ((n.type === "Assign" || n.type === "Inc" || n.type === "Dim" || n.type === "AssignIndex" ||
-           n.type === "LFor" || n.type === "LNext" || n.type === "CallStmt") && n.name) {
+           n.type === "LFor" || n.type === "LNext" || n.type === "CallStmt" || n.type === "Input") && n.name) {
         names[jsName(n.name)] = 1;
       }
       Object.keys(n).forEach(function (k) { if (k !== "type") scan(n[k]); });
@@ -1120,7 +1184,7 @@
 
       diagnostics.push.apply(diagnostics, cg.diagnostics);
       const js =
-        "(function (rt) {\n" +
+        "(async function (rt) {\n" +
         "\"use strict\";\n" +
         bodyJs +
         "})";
@@ -1139,7 +1203,7 @@
       });
       return {
         ok: false,
-        js: "(function (rt) { rt.print(" + JSON.stringify("Compile error: " + (err.message || err)) + "); })",
+        js: "(async function (rt) { rt.print(" + JSON.stringify("Compile error: " + (err.message || err)) + "); })",
         diagnostics: diagnostics,
         statementCount: 0,
       };
@@ -1149,7 +1213,7 @@
   function run(compiled, runtime) {
     if (!compiled || !compiled.js) throw new Error("Nothing to run");
     const fn = new Function("return " + compiled.js)();
-    fn(runtime);
+    return Promise.resolve(fn(runtime));
   }
 
   global.ACE = global.ACE || {};

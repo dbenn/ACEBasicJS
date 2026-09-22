@@ -1,17 +1,20 @@
-/* ACEBasicJS runtime — console I/O + TIMER. */
+/* ACEBasicJS runtime — console I/O, TIMER, INPUT. */
 (function (global) {
   "use strict";
 
   function createRuntime(options) {
     const output = options && options.output;
+    const onInputRequest = options && options.onInputRequest;
+    const onInputDone = options && options.onInputDone;
+    let inputLines = (options && options.inputLines) ? options.inputLines.slice() : null;
     let stopped = false;
     const startMs = Date.now();
+    let pendingInput = null;
 
     function write(text) {
       if (stopped) return;
       if (output) output.textContent += text;
       else if (typeof console !== "undefined") {
-        // Without a DOM sink, buffer incomplete lines for console.log
         write._buf = (write._buf || "") + text;
         const parts = write._buf.split("\n");
         write._buf = parts.pop();
@@ -28,21 +31,12 @@
       if (v === undefined || v === null) return "";
       if (typeof v === "number" && isFinite(v)) {
         // AmigaBASIC / ACE PRINT#: leading space (or '-') and trailing space.
-        // ';' inserts nothing; the trailing space is why
-        // PRINT "in";0.1;"seconds" → "in 0.1 seconds"
         const body = (v >= 0 ? " " : "") + String(v);
         return body + " ";
       }
       return String(v);
     }
 
-    /**
-     * ACE PRINT semantics (Language Reference):
-     * - after[i] === ';' → no gap; if last, suppress newline before next PRINT
-     * - after[i] === ',' → emit TAB; if last, suppress newline
-     * - after[i] == null → end of statement → newline (when last)
-     * - bare PRINT (no parts) → newline
-     */
     function printParts(parts, after) {
       if (stopped) return;
       const ps = parts || [];
@@ -52,14 +46,12 @@
         text += formatValue(ps[i]);
         const sep = seps[i];
         if (sep === ",") text += "\t";
-        // ';' adds nothing
       }
       const lastSep = ps.length ? seps[ps.length - 1] : null;
       const newline = ps.length === 0 || (lastSep !== ";" && lastSep !== ",");
       write(text + (newline ? "\n" : ""));
     }
 
-    /** Convenience: PRINT args... always ends with newline. */
     function print() {
       const parts = [];
       const after = [];
@@ -70,16 +62,64 @@
       printParts(parts, after);
     }
 
+    function toNumber(raw) {
+      const n = parseFloat(String(raw).trim());
+      return isFinite(n) ? n : 0;
+    }
+
+    /**
+     * ACE INPUT: write prompt (often "? "), wait for one line.
+     * Resolves with the raw line (no newline). Auto-feeds options.inputLines when set.
+     */
+    function input(prompt) {
+      const p = prompt == null ? "" : String(prompt);
+      write(p);
+      if (inputLines && inputLines.length) {
+        const line = String(inputLines.shift());
+        write(line + "\n");
+        return Promise.resolve(line);
+      }
+      return new Promise(function (resolve, reject) {
+        if (stopped) {
+          resolve("");
+          return;
+        }
+        pendingInput = {
+          resolve: function (line) {
+            pendingInput = null;
+            if (onInputDone) onInputDone();
+            resolve(line);
+          },
+          reject: reject,
+        };
+        if (onInputRequest) onInputRequest(p);
+      });
+    }
+
+    function provideInput(line) {
+      const text = line == null ? "" : String(line);
+      write(text + "\n");
+      if (pendingInput) pendingInput.resolve(text);
+    }
+
     function timer() {
       return (Date.now() - startMs) / 1000;
     }
 
     function stop() {
       stopped = true;
+      if (pendingInput) {
+        const p = pendingInput;
+        pendingInput = null;
+        if (onInputDone) onInputDone();
+        p.resolve("");
+      }
     }
 
     function reset() {
       stopped = false;
+      pendingInput = null;
+      if (options && options.inputLines) inputLines = options.inputLines.slice();
       clear();
     }
 
@@ -87,12 +127,18 @@
       print: print,
       printParts: printParts,
       formatValue: formatValue,
+      toNumber: toNumber,
+      input: input,
+      provideInput: provideInput,
       timer: timer,
       clear: clear,
       stop: stop,
       reset: reset,
       get stopped() {
         return stopped;
+      },
+      get awaitingInput() {
+        return !!pendingInput;
       },
     };
   }

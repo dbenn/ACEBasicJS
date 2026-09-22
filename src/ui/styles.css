@@ -168,6 +168,46 @@ button:disabled {
   white-space: pre-wrap;
 }
 
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  border-top: 2px solid #222;
+  background: #002244;
+}
+
+.input-row[hidden] {
+  display: none !important;
+}
+
+.input-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--wb-orange);
+  letter-spacing: 0.04em;
+}
+
+#console-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-code);
+  font-size: 0.9rem;
+  padding: 0.25rem 0.4rem;
+  border: 2px solid #6688aa;
+  background: #001122;
+  color: #eeffee;
+}
+
+#console-input:focus {
+  outline: none;
+  border-color: var(--wb-orange);
+}
+
+#console-input:disabled {
+  opacity: 0.45;
+}
+
 .status {
   padding: 0.35rem 1rem 0.55rem;
   font-size: 0.8rem;
