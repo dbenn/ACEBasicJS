@@ -132,6 +132,19 @@ check("PRINT trailing comma suppresses newline after tab", function () {
   if (r.text !== "A\tB\n") throw new Error(JSON.stringify(r.text));
 });
 
+check("PRINT number padding with semicolon", function () {
+  // AmigaBASIC-style: leading + trailing space on numbers; ';' adds no extra gap.
+  const r = runSource(ACE, 'PRINT "in";0.1;"seconds"\n');
+  if (r.error) throw r.error;
+  if (r.text !== "in 0.1 seconds\n") throw new Error(JSON.stringify(r.text));
+});
+
+check("PRINT negative number padding", function () {
+  const r = runSource(ACE, 'PRINT "x";-3.2;"y"\n');
+  if (r.error) throw r.error;
+  if (r.text !== "x-3.2 y\n") throw new Error(JSON.stringify(r.text));
+});
+
 if (failed) {
   console.error(failed + " failed");
   process.exit(1);

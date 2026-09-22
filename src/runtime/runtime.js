@@ -27,8 +27,11 @@
     function formatValue(v) {
       if (v === undefined || v === null) return "";
       if (typeof v === "number" && isFinite(v)) {
-        // AmigaBASIC-ish: leading space for non-negative numbers
-        return (v >= 0 ? " " : "") + String(v);
+        // AmigaBASIC / ACE PRINT#: leading space (or '-') and trailing space.
+        // ';' inserts nothing; the trailing space is why
+        // PRINT "in";0.1;"seconds" → "in 0.1 seconds"
+        const body = (v >= 0 ? " " : "") + String(v);
+        return body + " ";
       }
       return String(v);
     }
