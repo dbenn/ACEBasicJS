@@ -121,10 +121,24 @@ Verify: `node tests/phase2-smoke.js`
 
 ### Phase 3 — Console I/O runtime
 
-- `PRINT`, `INPUT` on a simple terminal surface (canvas or DOM pre)
-- Enough to replace hard-coded expected output checks with interactive demos
+~~`PRINT` + async `INPUT`~~ (separate INPUT row under the Output `<pre>`; `inputLines` for tests; demo `examples/input.b`). Shipped on the Phase 3 PR path.
 
-**Done when:** `hello.b` / `print.b`-class programs run end-to-end in-page.
+**Done when:** ~~interactive `INPUT` works in-page; smoke tests cover prompt / `? ` / comma forms.~~
+
+Verify: `node tests/phase2-smoke.js` (includes INPUT cases).
+
+### Phase 3.5 — Unified console / shell I/O (UX)
+
+Closer to the Amiga CLI / shell experience: **one** console surface where `PRINT` writes and `INPUT` is typed **in place** (caret on the console after the prompt), not a detached text box under Output.
+
+- Same DOM (or canvas) terminal: program output + current input line + echo of submitted lines
+- Focus/keyboard: type into the console while a program awaits `INPUT`; Enter submits the line
+- Keep source picker/editor invariants; Stop still cancels pending input
+- Headless tests unchanged (`inputLines` / programmatic `provideInput`)
+
+**Done when:** `examples/input.b` (and similar) feel like a single shell session; the detached INPUT row is gone or unused.
+
+**Why a half-step, not a full phase:** no new language constructs — only host UX. Do this **before** Phase 4 Intuition so CLI-style programs stay authentic, and windowed I/O can later reuse the same “text in a surface” ideas.
 
 ### Phase 4 — Intuition basics + UX chrome
 
@@ -171,8 +185,9 @@ The C compiler is a reference oracle during development, not the acceptance comp
 3. ~~Seed examples…~~
 4. ~~Phase 1 construct checklist…~~
 5. ~~Phase 2: JS compiler for seed suite (`hello` / `loops` / `sieve` / `ackermann`)~~
-6. Phase 3: richer console I/O (`INPUT`, formatting) and/or grow corpus beyond seeds
-
+6. ~~Phase 3: console `INPUT` (async host prompt + smoke tests)~~ — merge when ready
+7. **Phase 3.5: unified console / shell I/O** (print + input on one surface; Amiga CLI feel)
+8. Phase 4: Intuition basics (`WINDOW` / `SCREEN`) and/or grow corpus (`LINE INPUT`, `CLS`, string `$` functions as examples demand)
 ---
 
 ## References

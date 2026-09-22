@@ -209,8 +209,10 @@ FOR/NEXT, WHILE/WEND, IF/THEN/ELSE, GOSUB/RETURN. Get a non-trivial pure-logic
 program running in the browser with no OS calls.
 
 ### Phase 4 — Console I/O
-PRINT and INPUT working in a simple terminal canvas. Enough to run classic
-"Hello, World" and input-driven examples.
+PRINT and INPUT working in a simple terminal surface. Enough to run classic
+"Hello, World" and input-driven examples. Prefer a **unified console** (output and
+typed input on the same shell-like surface) over a detached input field — closer
+to Amiga CLI / shell behaviour; see implementation-plan Phase 3.5.
 
 ### Phase 5 — Intuition Basics
 WINDOW, SCREEN, basic text output in windows. The Amiga UX becomes visible here
