@@ -113,18 +113,11 @@ No C subtree in the default product path. Optional `vendor/ace-c/` only if neede
 
 ### Phase 2 — Minimal JS compiler
 
-Subset grammar, hand-written recursive descent (mirroring ACE’s shape, not its C):
+~~Subset grammar…~~ Implemented in `src/compiler/compiler.js` (structured codegen + linear/`GOTO` mode).
 
-- Program structure, statements, expressions
-- Variables / simple types as needed by the seed examples
-- Control flow: `IF`/`THEN`/`ELSE`, `FOR`/`NEXT`, `WHILE`/`WEND`, `REPEAT`/`UNTIL`
-- `GOTO` + line numbers as required by `sieve.b`
-- `SUB` + call / return / `EXIT SUB` as required by `ackermann.b`
-- Codegen emits plain JS calling `runtime.*`
+**Done when:** ~~seed logic examples compile to readable JS and execute in the browser with correct numeric/string results (no Intuition yet).~~
 
-Follow the ordered Phase 2 entry criteria in [`construct-checklist.md`](construct-checklist.md).
-
-**Done when:** seed logic examples compile to readable JS and execute in the browser with correct numeric/string results (no Intuition yet).
+Verify: `node tests/phase2-smoke.js`
 
 ### Phase 3 — Console I/O runtime
 
@@ -173,11 +166,12 @@ The C compiler is a reference oracle during development, not the acceptance comp
 
 ## Immediate Next Actions
 
-1. ~~Expand `README.md` with project one-liner + links to design, this plan, and ACE docs~~
-2. ~~Add Phase 0 host page: picker + always-visible editor + stub `src/compiler` / `src/runtime`~~
-3. ~~Seed `examples/` for the picker (`hello.b` + vidarh benchmarks)~~
-4. ~~Phase 1 construct checklist + expected-behaviour notes~~
-5. Phase 2: grow the JS compiler past `PRINT "..."` toward `loops.b` / control flow (see checklist entry criteria)
+1. ~~Expand `README.md`…~~
+2. ~~Phase 0 host…~~
+3. ~~Seed examples…~~
+4. ~~Phase 1 construct checklist…~~
+5. ~~Phase 2: JS compiler for seed suite (`hello` / `loops` / `sieve` / `ackermann`)~~
+6. Phase 3: richer console I/O (`INPUT`, formatting) and/or grow corpus beyond seeds
 
 ---
 

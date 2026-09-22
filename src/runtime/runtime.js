@@ -1,22 +1,36 @@
-/* ACEBasicJS runtime — Phase 0 stub (console I/O only). */
+/* ACEBasicJS runtime — console I/O + TIMER (Phase 2). */
 (function (global) {
   "use strict";
 
   function createRuntime(options) {
     const output = options && options.output;
     let stopped = false;
+    const startMs = Date.now();
 
     function clear() {
       if (output) output.textContent = "";
     }
 
+    /** AmigaBASIC-ish PRINT: join parts, then newline. */
     function print() {
-      if (stopped || !output) return;
+      if (stopped) return;
       const parts = [];
       for (let i = 0; i < arguments.length; i++) {
-        parts.push(String(arguments[i]));
+        const v = arguments[i];
+        if (v === undefined || v === null) parts.push("");
+        else if (typeof v === "number" && isFinite(v)) {
+          // AmigaBASIC-ish: leading space for non-negative numbers
+          parts.push((v >= 0 ? " " : "") + String(v));
+        } else parts.push(String(v));
       }
-      output.textContent += parts.join("") + "\n";
+      const line = parts.join("");
+      if (output) output.textContent += line + "\n";
+      else if (typeof console !== "undefined") console.log(line);
+    }
+
+    /** Seconds since runtime start (deltas match ACE TIMER usage in benchmarks). */
+    function timer() {
+      return (Date.now() - startMs) / 1000;
     }
 
     function stop() {
@@ -30,6 +44,7 @@
 
     return {
       print: print,
+      timer: timer,
       clear: clear,
       stop: stop,
       reset: reset,
