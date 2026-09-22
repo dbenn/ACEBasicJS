@@ -28,20 +28,29 @@
         <h1 class="panel-title">ACE source (always visible · editable)</h1>
         <textarea id="source" spellcheck="false" aria-label="ACE program source"></textarea>
       </section>
-      <section class="panel output-panel" aria-label="Program output">
-        <h2 class="panel-title">Output</h2>
-        <pre id="output"></pre>
-        <div class="input-row" id="input-row" hidden>
-          <label class="input-label" for="console-input">INPUT</label>
-          <input
+      <section class="panel output-panel" aria-label="Program console">
+        <h2 class="panel-title">Console</h2>
+        <div
+          id="console"
+          class="console"
+          tabindex="0"
+          role="log"
+          aria-label="Program console"
+          aria-live="polite"
+        ><pre id="output" class="console-output"></pre><span
+            id="live-input"
+            class="live-input"
+            aria-hidden="true"
+          ></span><span id="caret" class="caret" hidden aria-hidden="true"></span><input
             id="console-input"
+            class="console-input"
             type="text"
             autocomplete="off"
             spellcheck="false"
-            aria-label="Program input"
+            aria-label="Console input"
+            tabindex="-1"
             disabled
-          />
-        </div>
+          /></div>
       </section>
     </main>
 
