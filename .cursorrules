@@ -1,0 +1,173 @@
+# ACE-in-Browser: Design & Architecture
+
+## Project Overview
+
+Port **ACE Basic** — a recursive descent, peephole-optimising Amiga BASIC compiler
+originally written by David Benn (1991–1996) — to run natively in a web browser.
+Rather than emulating Amiga hardware, the approach targets the AmigaOS API surface
+that ACE programs actually used, reimplementing it in JavaScript.
+
+David Benn is the original author of ACE and is the primary developer of this project.
+
+---
+
+## Core Strategy
+
+**Modify ACE's compiler backend to emit JavaScript instead of 68000 assembly.**
+Pair this with a JavaScript runtime that implements the AmigaOS API surface ACE
+programs depend on. The result: `.b` / `.bas` ACE source files compile and run
+in a browser with an authentic Amiga look and feel.
+
+This is NOT hardware emulation. It is API-level emulation at the AmigaOS layer.
+
+---
+
+## Starting Point
+
+- **Base**: [vidarh's Linux fork of ACE 2.4](https://github.com/vidarh/ACE)
+- vidarh ported ACE to compile and run on Linux (still targeting M68k output)
+- vidarh did partial retargeting cleanup in `codegen.c|h` with a view to x86 — 
+  useful groundwork for the JS backend
+- All semantic authority rests with David Benn as original author — if anything
+  is ambiguous, the original intent takes precedence over the fork
+
+---
+
+## Compiler Backend: JS Emission
+
+### The Key File: `codegen.c` / `codegen.h`
+
+ACE is a recursive descent parser with code generation interleaved. However,
+`codegen.c|h` provides a defined set of `gen_` functions that the parser calls.
+The JS backend is implemented by reimplementing these functions to emit JavaScript
+instead of 68k assembly text.
+
+### Taxonomy of `gen_` Functions (primary work item)
+
+The gen_ functions fall into roughly four categories:
+
+| Category | JS Backend Treatment |
+|---|---|
+| **68k housekeeping** | Register assignment, stack frames, calling conventions — likely **no-ops** in JS |
+| **Control flow** | FOR/NEXT, WHILE/WEND, IF/THEN, GOTO, GOSUB — map to **JS control flow** |
+| **AmigaOS API calls** | WINDOW, SCREEN, PRINT, PLAY, SAY etc — map to **JS runtime functions** |
+| **I/O and string ops** | File I/O, string manipulation — map to **JS/IndexedDB equivalents** |
+
+The high-level gen_ functions (closer to ACE constructs) are the most valuable —
+they map almost directly to JS runtime calls. The low-level 68k housekeeping
+gen_ functions are likely no-ops since JS manages its own memory and call stack.
+
+### Output Format
+
+The compiler emits **JavaScript source text** (not WASM). Rationale:
+- AmigaOS API calls (Intuition, Graphics, Audio) all live in JS/DOM land —
+  WASM cannot call these directly without JS glue anyway
+- JS output is readable and debuggable in browser devtools
+- ACE programs are not compute-bound; JS has enormous performance headroom
+- Single-language stack: compiler output + runtime are both JS
+
+---
+
+## JS Runtime Layer
+
+Reimplements the AmigaOS API surface that ACE programs actually used.
+ACE programs called AmigaOS via shared libraries (bmap mechanism) rather than
+banging hardware registers directly — this makes the API surface bounded and clear.
+
+### Runtime Components
+
+#### Intuition → Canvas-based UI
+- Windows with Amiga-style title bars, depth/close/resize gadgets
+- Menus (triggered by right mouse button)
+- Requesters and alerts
+- Topaz font (recreated as web font) throughout
+- Workbench 2.0 colour palette (blue/grey/orange)
+- Screen dragging behaviour
+
+#### Graphics.library → Canvas 2D
+- BitMap operations
+- RastPort drawing (lines, rectangles, circles, flood fill)
+- Planar → chunky conversion for any graphics assets
+- Colour palette management
+
+#### Paula (audio) → Web Audio API
+- 4-channel sample playback
+- Tracker/module music playback
+- SOUND and WAVE commands
+
+#### Speech → Web Speech API
+- SAY command mapped to SpeechSynthesis
+- Amiga-style voice parameters where possible
+
+#### AmigaDOS → IndexedDB + JS
+- Sequential file I/O (OPEN, CLOSE, INPUT#, PRINT#, WRITE#)
+- Directory operations
+- Environment variables
+
+#### ACE Runtime Library (`db.lib` / `ami.lib` equivalents)
+- Startup and shutdown scaffolding
+- String handling
+- Math functions
+- Type coercion semantics faithful to ACE's original behaviour
+
+### Input Devices
+- **Keyboard**: full support
+- **Mouse**: full support (pointer lock where needed)
+- Joystick: out of scope
+
+---
+
+## AmigaOS UX Feel
+
+A key goal is that programs feel like they're running on an Amiga:
+- Topaz 8 / Topaz 11 font
+- Workbench 1.3 or 2.0 window chrome
+- Correct colour palette
+- Intuition window behaviour (drag by title bar, depth arrangement)
+- Right-mouse-button menu activation
+
+---
+
+## Example Programs (Acceptance Targets)
+
+ACE ships with example programs in the distribution. These serve as the primary
+acceptance test suite. A program "works" when it compiles via the modified ACE
+and runs in the browser with behaviour equivalent to the original Amiga execution.
+
+Source: David Benn's ACE distribution (examples/ directory)
+
+---
+
+## Development Phases (Suggested)
+
+1. **Taxonomy** — catalogue all `gen_` functions, classify into the four categories above
+2. **JS backend skeleton** — implement `codegen_js.c` with stubs for all gen_ functions,
+   confirm compiler builds and emits JS scaffolding
+3. **Control flow** — get loops, conditionals, GOTO/GOSUB working
+4. **Console I/O** — PRINT, INPUT working in a simple terminal canvas
+5. **Intuition basics** — WINDOW, SCREEN, basic drawing
+6. **Audio** — SOUND, WAVE, PLAY
+7. **Speech** — SAY
+8. **File I/O** — sequential file operations via IndexedDB
+9. **Example programs running** — work through the distribution examples
+
+---
+
+## Key Decisions Log
+
+| Decision | Rationale |
+|---|---|
+| JS output not WASM | DOM access from WASM requires JS glue anyway; JS is debuggable |
+| API emulation not hardware emulation | ACE used AmigaOS APIs, not bare hardware |
+| vidarh fork as base | Working Linux build; retargeting groundwork done |
+| Canvas for Intuition | Natural mapping; gives authentic Amiga window chrome |
+| IndexedDB for AmigaDOS | Persistent, async-friendly, browser-native |
+| Web Speech API for SAY | Direct equivalent; no custom synthesis needed |
+
+---
+
+## References
+
+- Original ACE documentation: https://dbenn.github.io/docs/projects.html#ace
+- vidarh's Linux fork: https://github.com/vidarh/ACE
+- ACE v2.3 Programmer's Guide: http://www.users.on.net/~dbenn/docs/ace.html
