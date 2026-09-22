@@ -137,10 +137,11 @@ Verify: `node tests/phase2-smoke.js` (includes INPUT cases).
 
 ### Phase 4 — Intuition basics + UX chrome
 
-- `WINDOW` / `SCREEN`, text in windows
-- Topaz, Workbench palette, title-bar chrome, RMB menus (as needed by chosen GUI examples)
+~~`WINDOW` / `SCREEN`, text in windows~~ — custom screen host in the Display panel, Amiga-style title-bar chrome (close / depth / drag), `PRINT` into the current window, close-gadget ≈ ACE `-w` (stops the program). Demo: `examples/window.b`.
 
-**Done when:** one small windowed example matches the Amiga UX intent closely enough to iterate.
+**Done when:** ~~one small windowed example matches the Amiga UX intent closely enough to iterate.~~
+
+Still deferred within Phase 4+: `MENU` / `GADGET`, full `PALETTE` / `COLOR` / `LOCATE`, RMB menus, Topaz webfont.
 
 ### Phase 5+ — Graphics, audio, speech, files, corpus climb
 
@@ -182,7 +183,8 @@ The C compiler is a reference oracle during development, not the acceptance comp
 5. ~~Phase 2: JS compiler for seed suite (`hello` / `loops` / `sieve` / `ackermann`)~~
 6. ~~Phase 3: console `INPUT` (async host prompt + smoke tests)~~
 7. ~~Phase 3.5: unified console / shell I/O~~ (print + input on one surface; Amiga CLI feel)
-8. **Phase 4: Intuition basics** (`WINDOW` / `SCREEN`) and/or grow corpus (`LINE INPUT`, `CLS`, string `$` functions as examples demand)
+8. ~~Phase 4: Intuition basics~~ (`WINDOW` / `SCREEN` + chrome; see `examples/window.b`)
+9. **Phase 4+ / 5:** grow corpus (`LOCATE`, `COLOR`, `PALETTE`, `INKEY$` demos) and/or RastPort graphics as examples demand
 
 ---
 

@@ -6,6 +6,12 @@
     "notes": "PRINT smoke test — see examples/README.md"
   },
   {
+    "id": "window",
+    "title": "WINDOW / SCREEN",
+    "path": "examples/window.b",
+    "notes": "Phase 4 — Intuition window chrome; close gadget quits"
+  },
+  {
     "id": "input",
     "title": "INPUT demo",
     "path": "examples/input.b",

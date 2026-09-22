@@ -7,12 +7,13 @@
   "use strict";
 
   const KEYWORDS = {
-    AND: 1, AS: 1, CALL: 1, CONST: 1, DATA: 1, DEFINT: 1, DEFLNG: 1, DEFSNG: 1,
+    AND: 1, AS: 1, CALL: 1, CLOSE: 1, CONST: 1, DATA: 1, DEFINT: 1, DEFLNG: 1, DEFSNG: 1,
     DEFSTR: 1, DEFDBL: 1, DIM: 1, ELSE: 1, ELSEIF: 1, END: 1, EXIT: 1, FOR: 1,
     GOTO: 1, GOSUB: 1, IF: 1, INPUT: 1, LET: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1,
-    PRINT: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SHARED: 1,
-    SINGLE: 1, SHORTINT: 1, LONGINT: 1, STEP: 1, SUB: 1, THEN: 1, TO: 1,
-    UNTIL: 1, WEND: 1, WHILE: 1, XOR: 1, TIMER: 1, FUNCTION: 1, LIBRARY: 1,
+    OUTPUT: 1, PRINT: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1,
+    SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, LONGINT: 1, STEP: 1, SUB: 1, THEN: 1,
+    TO: 1, UNTIL: 1, WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1, FUNCTION: 1,
+    LIBRARY: 1,
   };
 
   function isIdentStart(c) {
@@ -322,15 +323,32 @@
       this.eat();
       return { type: "Timer" };
     }
+    if (this.atKw("WINDOW")) {
+      this.eat();
+      this.expect("LPAREN");
+      const arg = this.parseExpr();
+      this.expect("RPAREN");
+      return { type: "WindowFunc", arg: arg };
+    }
+    if (this.atKw("SCREEN")) {
+      this.eat();
+      this.expect("LPAREN");
+      const arg = this.parseExpr();
+      this.expect("RPAREN");
+      return { type: "ScreenFunc", arg: arg };
+    }
+    if (this.at("IDENT")) {
+      const t = this.eat();
+      const name = t.value;
+      const upper = name.toUpperCase();
+      if (upper === "INKEY$") return { type: "Inkey" };
+      return { type: "Var", name: name };
+    }
     if (this.at("LPAREN")) {
       this.eat();
       const e = this.parseExpr();
       this.expect("RPAREN");
       return e;
-    }
-    if (this.at("IDENT")) {
-      const t = this.eat();
-      return { type: "Var", name: t.value };
     }
     throw new CompileError("Unexpected token in expression: " + this.peek().type + " " + this.peek().value, this.peek());
   };
@@ -641,9 +659,112 @@
     };
   };
 
+  /** Rectangle: (x1,y1)-(x2,y2) */
+  Parser.prototype.parseRectangle = function () {
+    this.expect("LPAREN");
+    const x1 = this.parseExpr();
+    this.expect("COMMA");
+    const y1 = this.parseExpr();
+    this.expect("RPAREN");
+    this.expect("OP", "-");
+    this.expect("LPAREN");
+    const x2 = this.parseExpr();
+    this.expect("COMMA");
+    const y2 = this.parseExpr();
+    this.expect("RPAREN");
+    return { x1: x1, y1: y1, x2: x2, y2: y2 };
+  };
+
+  /**
+   * WINDOW CLOSE id | WINDOW OUTPUT id |
+   * WINDOW id[,title],(x1,y1)-(x2,y2)[,type][,screen-id]
+   */
+  Parser.prototype.parseWindow = function () {
+    this.expect("KW", "WINDOW");
+    if (this.atKw("CLOSE")) {
+      this.eat();
+      return { type: "WindowClose", id: this.parseExpr() };
+    }
+    if (this.atKw("OUTPUT")) {
+      this.eat();
+      return { type: "WindowOutput", id: this.parseExpr() };
+    }
+    const id = this.parseExpr();
+    this.expect("COMMA");
+    let title = { type: "String", value: "" };
+    if (this.at("COMMA")) {
+      // omitted title: WINDOW 1,,(0,0)-(…)
+      this.eat();
+    } else {
+      title = this.parseExpr();
+      this.expect("COMMA");
+    }
+    const rect = this.parseRectangle();
+    let wtype = { type: "Number", value: 31 };
+    let screenId = { type: "Number", value: -1 };
+    if (this.at("COMMA")) {
+      this.eat();
+      wtype = this.parseExpr();
+      if (this.at("COMMA")) {
+        this.eat();
+        screenId = this.parseExpr();
+      }
+    }
+    return {
+      type: "WindowOpen",
+      id: id,
+      title: title,
+      x1: rect.x1,
+      y1: rect.y1,
+      x2: rect.x2,
+      y2: rect.y2,
+      wtype: wtype,
+      screenId: screenId,
+    };
+  };
+
+  /** SCREEN CLOSE id | SCREEN id,width,height,depth,mode */
+  Parser.prototype.parseScreen = function () {
+    this.expect("KW", "SCREEN");
+    if (this.atKw("CLOSE")) {
+      this.eat();
+      return { type: "ScreenClose", id: this.parseExpr() };
+    }
+    const id = this.parseExpr();
+    this.expect("COMMA");
+    const width = this.parseExpr();
+    this.expect("COMMA");
+    const height = this.parseExpr();
+    this.expect("COMMA");
+    const depth = this.parseExpr();
+    this.expect("COMMA");
+    const mode = this.parseExpr();
+    return {
+      type: "ScreenOpen",
+      id: id,
+      width: width,
+      height: height,
+      depth: depth,
+      mode: mode,
+    };
+  };
+
+  Parser.prototype.parseSleep = function () {
+    this.expect("KW", "SLEEP");
+    // SLEEP FOR n — accept and ignore duration for Phase 4 (still yields a tick)
+    if (this.atKw("FOR")) {
+      this.eat();
+      this.parseExpr();
+    }
+    return { type: "Sleep" };
+  };
+
   Parser.prototype.parseStatementContent = function () {
     if (this.atKw("PRINT")) return this.parsePrint();
     if (this.atKw("INPUT")) return this.parseInput();
+    if (this.atKw("WINDOW")) return this.parseWindow();
+    if (this.atKw("SCREEN")) return this.parseScreen();
+    if (this.atKw("SLEEP")) return this.parseSleep();
     if (this.atKw("IF")) return this.parseIf();
     if (this.atKw("FOR")) return this.parseFor();
     if (this.atKw("WHILE")) return this.parseWhile();
@@ -758,6 +879,9 @@
       case "String": return JSON.stringify(node.value);
       case "Var": return jsName(node.name);
       case "Timer": return "rt.timer()";
+      case "Inkey": return "rt.inkey()";
+      case "WindowFunc": return "rt.windowFunc(" + this.expr(node.arg) + ")";
+      case "ScreenFunc": return "rt.screenFunc(" + this.expr(node.arg) + ")";
       case "Unary":
         if (node.op === "-") return "(-(" + this.expr(node.expr) + "))";
         if (node.op === "NOT") return "(((" + this.expr(node.expr) + ")===0)?-1:0)";
@@ -837,6 +961,21 @@
         const rhs = stmt.asString ? raw : ("rt.toNumber(" + raw + ")");
         return ind + jsName(stmt.name) + " = " + rhs + ";";
       }
+      case "ScreenOpen":
+        return ind + "rt.openScreen(" + this.expr(stmt.id) + ", " + this.expr(stmt.width) + ", " +
+          this.expr(stmt.height) + ", " + this.expr(stmt.depth) + ", " + this.expr(stmt.mode) + ");";
+      case "ScreenClose":
+        return ind + "rt.closeScreen(" + this.expr(stmt.id) + ");";
+      case "WindowOpen":
+        return ind + "rt.openWindow(" + this.expr(stmt.id) + ", " + this.expr(stmt.title) + ", " +
+          this.expr(stmt.x1) + ", " + this.expr(stmt.y1) + ", " + this.expr(stmt.x2) + ", " +
+          this.expr(stmt.y2) + ", " + this.expr(stmt.wtype) + ", " + this.expr(stmt.screenId) + ");";
+      case "WindowClose":
+        return ind + "rt.closeWindow(" + this.expr(stmt.id) + ");";
+      case "WindowOutput":
+        return ind + "rt.windowOutput(" + this.expr(stmt.id) + ");";
+      case "Sleep":
+        return ind + "await rt.sleep();";
       case "Assign":
         return ind + jsName(stmt.name) + " = " + this.expr(stmt.expr) + ";";
       case "AssignIndex":
@@ -870,7 +1009,7 @@
       }
       case "While":
         return (
-          ind + "while (" + this.truthy(stmt.cond) + ") {\n" +
+          ind + "while (" + this.truthy(stmt.cond) + " && !rt.stopped) {\n" +
           this.emitBlock(stmt.body, ind + "  ") + "\n" +
           ind + "}"
         );

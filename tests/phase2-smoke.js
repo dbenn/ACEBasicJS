@@ -20,6 +20,8 @@ function loadAce() {
     isFinite: isFinite,
     parseFloat: parseFloat,
     Promise: Promise,
+    setTimeout: setTimeout,
+    clearTimeout: clearTimeout,
   };
   vm.createContext(ctx);
   vm.runInContext(runtimeSrc, ctx);
@@ -166,6 +168,34 @@ async function main() {
     if (!r.text.startsWith("NameZed\n") && r.text !== "NameZed\n") {
       // prompt "Name" without "? ", then echo Zed\n, then PRINT n$\n
       if (r.text !== "NameZed\nZed\n") throw new Error(JSON.stringify(r.text));
+    }
+  });
+
+  await check("WINDOW text captured while open", async function () {
+    const src =
+      'SCREEN 1,320,200,3,1\n' +
+      'WINDOW 1,"Hi",(10,10)-(220,120),31,1\n' +
+      'PRINT "Hello window"\n' +
+      'PRINT "Line two";\n';
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    await ACE.run(compiled, rt);
+    const text = rt.windowText(1);
+    if (!/Hello window\n/.test(text)) throw new Error("missing hello: " + JSON.stringify(text));
+    if (!/Line two/.test(text)) throw new Error("missing line two: " + JSON.stringify(text));
+    if (sink.textContent !== "") throw new Error("PRINT leaked to console: " + JSON.stringify(sink.textContent));
+    if (rt.windowFunc(2) !== 210) throw new Error("width " + rt.windowFunc(2));
+    if (rt.windowFunc(3) !== 110) throw new Error("height " + rt.windowFunc(3));
+  });
+
+  await check("examples/window.b compiles", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/window.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/openScreen/.test(compiled.js) || !/openWindow/.test(compiled.js)) {
+      throw new Error("missing screen/window calls");
     }
   });
 

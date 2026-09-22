@@ -28,8 +28,15 @@
         <h1 class="panel-title">ACE source (always visible · editable)</h1>
         <textarea id="source" spellcheck="false" aria-label="ACE program source"></textarea>
       </section>
-      <section class="panel output-panel" aria-label="Program console">
-        <h2 class="panel-title">Console</h2>
+      <section class="panel output-panel" aria-label="Program display">
+        <h2 class="panel-title">Display</h2>
+        <div
+          id="screens"
+          class="screens"
+          hidden
+          aria-hidden="true"
+          aria-label="Intuition screens"
+        ></div>
         <div
           id="console"
           class="console"
