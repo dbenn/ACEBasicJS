@@ -167,9 +167,11 @@ Source: David Benn's ACE distribution (examples/ directory)
 
 | Decision | Rationale |
 |---|---|
+| Simulation not emulation | ACE used AmigaOS APIs; hardware UAE is unnecessary complexity |
+| Simplest environment that works | Abhor overly complex stacks; add layers only when forced by examples |
+| JS compiler in-browser | Pure client-side; C ACE is a spec, not the product |
 | JS output not WASM | DOM access from WASM requires JS glue anyway; JS is debuggable |
-| API emulation not hardware emulation | ACE used AmigaOS APIs, not bare hardware |
-| vidarh fork as base | Working Linux build; retargeting groundwork done |
+| Source always visible + editable | Load from picker, see ACE source, edit freely — core product loop |
 | Canvas for Intuition | Natural mapping; gives authentic Amiga window chrome |
 | IndexedDB for AmigaDOS | Persistent, async-friendly, browser-native |
 | Web Speech API for SAY | Direct equivalent; no custom synthesis needed |
