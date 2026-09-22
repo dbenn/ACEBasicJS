@@ -53,23 +53,16 @@
     setRunning(true);
     try {
       const compiled = ACE.compile(source.value);
-      if (compiled.diagnostics.length) {
+      if (!compiled.ok) {
         compiled.diagnostics.forEach(function (d) {
-          runtime.print("Line " + d.line + ": " + d.message);
-          runtime.print("  " + d.text);
+          runtime.print("Line " + (d.line || "?") + ": " + d.message);
+          if (d.text) runtime.print("  " + d.text);
         });
+        setStatus("Compile failed.", "error");
+        return;
       }
       ACE.run(compiled, runtime);
-      if (compiled.ok) {
-        setStatus("Ran " + compiled.statementCount + " PRINT statement(s).", "info");
-      } else {
-        setStatus(
-          "Ran stub with " +
-            compiled.diagnostics.length +
-            " unsupported line(s). Source remains editable.",
-          "error"
-        );
-      }
+      setStatus("Ran successfully.", "info");
     } catch (err) {
       runtime.print(String(err && err.message ? err.message : err));
       setStatus("Run failed.", "error");

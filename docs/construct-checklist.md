@@ -17,22 +17,23 @@ C ACE (`parse*.c` / `codegen.c` in [vidarh/ACE](https://github.com/vidarh/ACE)) 
 
 | Construct | hello | loops | sieve | ackermann | Status |
 |---|---|---|---|---|---|
-| `PRINT` string literal | ✓ | ✓ | ✓ | ✓ | `stub` (strings only) |
-| `PRINT` expressions | | ✓ | ✓ | ✓ | `next` |
-| Comments (`'` / `REM` / `{*…*}`) | ✓ | | ✓ | ✓ | `stub` (skip) |
-| `CONST` | | ✓ | | | `next` |
-| Type defaults (`DEFINT` / `DEFLNG` / `SINGLE`…) | | ✓ | ✓ | ✓ | `next` |
-| Assignment | | ✓ | ✓ | ✓ | `next` |
-| `FOR` / `NEXT` (+ optional `STEP`) | | ✓ | ✓ | ✓ | `next` |
-| `WHILE` / `WEND` | | ✓ | | | `next` |
-| `REPEAT` / `UNTIL` | | ✓ | | | `next` |
-| `IF` / `THEN` / `ELSE` / `END IF` | | | ✓ | ✓ | `next` |
-| `GOTO` + line numbers | | | ✓ | | `next` (sieve) |
-| `DIM` arrays | | | ✓ | | `next` |
-| `SUB` / `END SUB` + call / return value | | | | ✓ | `next` |
-| `EXIT SUB` | | | | ✓ | `next` |
-| `TIMER` | | ✓ | ✓ | ✓ | `next` (runtime) |
-| Nested calls / recursion | | | | ✓ | `next` |
+| `PRINT` string literal | ✓ | ✓ | ✓ | ✓ | done (Phase 2) |
+| `PRINT` expressions | | ✓ | ✓ | ✓ | done |
+| Comments (`'` / `REM` / `{*…*}`) | ✓ | | ✓ | ✓ | done |
+| `CONST` | | ✓ | | | done |
+| Type defaults (`DEFINT` / `DEFLNG` / `SINGLE`…) | | ✓ | ✓ | ✓ | done (accepted; JS numbers) |
+| Assignment | | ✓ | ✓ | ✓ | done |
+| `FOR` / `NEXT` (+ optional `STEP`) | | ✓ | ✓ | ✓ | done |
+| `WHILE` / `WEND` | | ✓ | | | done |
+| `REPEAT` / `UNTIL` | | ✓ | | | done |
+| `IF` / `THEN` / `ELSE` / `END IF` | | | ✓ | ✓ | done |
+| `GOTO` + line numbers | | | ✓ | | done |
+| `DIM` arrays | | | ✓ | | done |
+| `SUB` / `END SUB` + call / return value | | | | ✓ | done |
+| `EXIT SUB` | | | | ✓ | done |
+| `TIMER` | | ✓ | ✓ | ✓ | done |
+| Nested calls / recursion | | | | ✓ | done |
+| `++var` increment | | ✓ | | | done (ACE extension used in loops.b) |
 
 ---
 
