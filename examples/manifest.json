@@ -30,6 +30,12 @@
     "notes": "Phase 5 — RastPort LINE / BOX / CIRCLE / PSET / PALETTE"
   },
   {
+    "id": "sound",
+    "title": "SOUND / WAVE",
+    "path": "examples/sound.b",
+    "notes": "Phase 6 — Web Audio tones (click Run; unmute tab)"
+  },
+  {
     "id": "lines",
     "title": "Lines benchmark",
     "path": "examples/lines.b",

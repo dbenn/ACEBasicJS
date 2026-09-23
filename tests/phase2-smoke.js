@@ -351,6 +351,39 @@ async function main() {
     await runPromise;
   });
 
+  await check("SOUND / WAVE SIN compile and log", async function () {
+    const src =
+      "WAVE 0,SIN\n" +
+      "SOUND 300,1,64,0\n" +
+      "SOUND 200,1,,1\n" +
+      "BEEP\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/rt\.waveSin\(0\)/.test(compiled.js)) throw new Error("missing waveSin: " + compiled.js);
+    if (!/await rt\.sound\(/.test(compiled.js)) throw new Error("missing sound: " + compiled.js);
+    if (!/await rt\.beep\(/.test(compiled.js)) throw new Error("missing beep");
+    await ACE.run(compiled, rt);
+    if (rt.soundLog.length < 3) throw new Error("expected >=3 sound events: " + JSON.stringify(rt.soundLog));
+    if (Math.abs(rt.soundLog[0].freq - rt.periodToHz(300)) > 0.01) {
+      throw new Error("freq " + rt.soundLog[0].freq);
+    }
+    if (rt.soundLog[1].voice !== 1) throw new Error("voice " + rt.soundLog[1].voice);
+  });
+
+  await check("examples/sound.b runs", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/sound.b"), "utf8");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    await ACE.run(compiled, rt);
+    if (!/ACE Phase 6 sound/.test(sink.textContent)) throw new Error(sink.textContent);
+    if (!/Done/.test(sink.textContent)) throw new Error(sink.textContent);
+    if (rt.soundLog.length < 5) throw new Error("too few sounds: " + rt.soundLog.length);
+  });
+
   if (failed) {
     console.error(failed + " failed");
     process.exit(1);

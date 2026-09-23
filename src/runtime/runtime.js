@@ -1010,6 +1010,143 @@
       return getIndex(win, Number(x), Number(y));
     }
 
+    // --- Phase 6: Paula-ish SOUND / WAVE via Web Audio ---
+    // ACE sine table is 32 bytes; period → Hz: 3579546 / (period * length)
+    const PAULA_CLOCK = 3579546;
+    const SINE_LEN = 32;
+    let audioCtx = null;
+    const voiceWave = [null, null, null, null]; // AudioBuffer or 'sin'
+    const soundLog = []; // test/observability: {period,duration,volume,voice,freq}
+
+    function ensureAudio() {
+      if (audioCtx) return audioCtx;
+      const AC = (typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext)) ||
+        (typeof globalThis !== "undefined" && globalThis.AudioContext);
+      if (!AC) return null;
+      audioCtx = new AC();
+      return audioCtx;
+    }
+
+    function makeSineBuffer(ctx) {
+      const buf = ctx.createBuffer(1, SINE_LEN, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < SINE_LEN; i++) {
+        data[i] = Math.sin((i / SINE_LEN) * Math.PI * 2);
+      }
+      return buf;
+    }
+
+    function waveSin(voice) {
+      const v = voice == null ? 0 : (voice | 0);
+      if (v < 0 || v > 3) return;
+      voiceWave[v] = "sin";
+    }
+
+    function waveMem(voice, addr, count) {
+      // ALLOC/POKE waveforms deferred; remember intent for diagnostics.
+      const v = voice == null ? 0 : (voice | 0);
+      if (v < 0 || v > 3) return;
+      voiceWave[v] = { mode: "mem", addr: addr, count: count | 0 };
+    }
+
+    function periodToHz(period, waveLen) {
+      let p = Number(period);
+      if (!isFinite(p) || p < 124) p = 124;
+      if (p > 32767) p = 32767;
+      const len = waveLen || SINE_LEN;
+      return PAULA_CLOCK / (p * len);
+    }
+
+    function durationToSeconds(duration) {
+      const d = Number(duration);
+      if (!isFinite(d) || d <= 0) return 0;
+      return d / 18.2;
+    }
+
+    function voicePan(voice) {
+      // 0 & 3 left, 1 & 2 right (ACE Programmer's Guide)
+      const v = voice | 0;
+      if (v === 0 || v === 3) return -1;
+      if (v === 1 || v === 2) return 1;
+      return 0;
+    }
+
+    /**
+     * SOUND period,duration[,volume][,voice] — await until tone ends.
+     * Volume 0..64 (default 64). Blocks the BASIC program like a long note.
+     */
+    function sound(period, duration, volume, voice) {
+      if (stopped) return Promise.resolve();
+      const v = voice == null || voice === undefined ? 0 : (voice | 0);
+      let vol = volume == null || volume === undefined ? 64 : Number(volume);
+      if (!isFinite(vol)) vol = 64;
+      if (vol < 0) vol = 0;
+      if (vol > 64) vol = 64;
+      const secs = durationToSeconds(duration);
+      const freq = periodToHz(period, SINE_LEN);
+      soundLog.push({
+        period: Number(period),
+        duration: Number(duration),
+        volume: vol,
+        voice: v,
+        freq: freq,
+        seconds: secs,
+      });
+
+      const ctx = ensureAudio();
+      if (!ctx || secs <= 0) {
+        // Headless / silent: still yield so busy-wait programs don't freeze hard.
+        if (secs <= 0) return Promise.resolve();
+        return new Promise(function (resolve) {
+          setTimeout(function () {
+            resolve();
+          }, Math.min(secs * 1000, 50));
+        });
+      }
+
+      return ctx.resume().then(function () {
+        if (stopped) return;
+        const wave = voiceWave[v] || "sin";
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const panNode = (ctx.createStereoPanner && ctx.createStereoPanner()) || null;
+        // Default / WAVE SIN → sine oscillator at computed Hz (matches 32-byte table).
+        if (wave === "sin" || !wave || wave.mode === "mem") {
+          // mem path without ALLOC: fall back to sine so SOUND still audibly works
+          osc.type = "sine";
+          osc.frequency.value = freq;
+        }
+        const peak = (vol / 64) * 0.35;
+        const now = ctx.currentTime;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(peak, now + 0.01);
+        gain.gain.setValueAtTime(peak, now + Math.max(0.02, secs - 0.03));
+        gain.gain.linearRampToValueAtTime(0, now + secs);
+        osc.connect(gain);
+        if (panNode) {
+          panNode.pan.value = voicePan(v);
+          gain.connect(panNode);
+          panNode.connect(ctx.destination);
+        } else {
+          gain.connect(ctx.destination);
+        }
+        osc.start(now);
+        osc.stop(now + secs + 0.02);
+        return new Promise(function (resolve) {
+          const ms = Math.max(0, secs * 1000);
+          setTimeout(function () {
+            try { osc.disconnect(); } catch (e) { /* ignore */ }
+            resolve();
+          }, ms);
+        });
+      });
+    }
+
+    function beep() {
+      // Brief pulse ≈ SOUND 300, 2 (≈0.11s) at full volume on voice 0.
+      return sound(300, 2, 64, 0);
+    }
+
     /** SLEEP — wake on IntuiTick (~0.1s), key, close, or stop. */
     function sleep() {
       if (stopped) return Promise.resolve();
@@ -1024,6 +1161,25 @@
         }
         sleepWaiters.push(finish);
         setTimeout(finish, 100);
+      });
+    }
+
+    /** SLEEP FOR n — wait about n seconds (yields to the event loop). */
+    function sleepFor(seconds) {
+      if (stopped) return Promise.resolve();
+      const s = Number(seconds);
+      const ms = (!isFinite(s) || s <= 0) ? 100 : s * 1000;
+      return new Promise(function (resolve) {
+        let done = false;
+        function finish() {
+          if (done) return;
+          done = true;
+          const i = sleepWaiters.indexOf(finish);
+          if (i >= 0) sleepWaiters.splice(i, 1);
+          resolve();
+        }
+        sleepWaiters.push(finish);
+        setTimeout(finish, ms);
       });
     }
 
@@ -1123,6 +1279,13 @@
       circle: circle,
       point: point,
       sleep: sleep,
+      sleepFor: sleepFor,
+      sound: sound,
+      beep: beep,
+      waveSin: waveSin,
+      waveMem: waveMem,
+      soundLog: soundLog,
+      periodToHz: periodToHz,
       inkey: inkey,
       pushKey: pushKey,
       windowText: windowText,

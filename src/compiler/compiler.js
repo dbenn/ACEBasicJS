@@ -7,13 +7,14 @@
   "use strict";
 
   const KEYWORDS = {
-    AND: 1, AS: 1, CALL: 1, CIRCLE: 1, CLOSE: 1, CLS: 1, COLOR: 1, CONST: 1, DATA: 1,
+    AND: 1, AS: 1, BEEP: 1, CALL: 1, CIRCLE: 1, CLOSE: 1, CLS: 1, COLOR: 1, CONST: 1, DATA: 1,
     DEFINT: 1, DEFLNG: 1, DEFSNG: 1, DEFSTR: 1, DEFDBL: 1, DIM: 1, ELSE: 1, ELSEIF: 1,
     END: 1, EXIT: 1, FOR: 1, GOTO: 1, GOSUB: 1, IF: 1, INPUT: 1, LET: 1, LINE: 1,
     LOCATE: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1, OUTPUT: 1, PALETTE: 1, PRINT: 1,
     PSET: 1, RANDOMIZE: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1,
-    SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, LONGINT: 1, STEP: 1, SUB: 1, THEN: 1,
-    TO: 1, UNTIL: 1, WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1, FUNCTION: 1, LIBRARY: 1,
+    SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, SOUND: 1, LONGINT: 1, STEP: 1, SUB: 1,
+    THEN: 1, TO: 1, UNTIL: 1, WAVE: 1, WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1,
+    FUNCTION: 1, LIBRARY: 1,
   };
 
   /**
@@ -808,17 +809,67 @@
 
   Parser.prototype.parseSleep = function () {
     this.expect("KW", "SLEEP");
-    // SLEEP FOR n — accept and ignore duration for Phase 4 (still yields a tick)
+    // SLEEP FOR n — n is seconds (stun.b / sound demos); bare SLEEP yields one tick.
+    let seconds = null;
     if (this.atKw("FOR")) {
       this.eat();
-      this.parseExpr();
+      seconds = this.parseExpr();
     }
-    return { type: "Sleep" };
+    return { type: "Sleep", seconds: seconds };
   };
 
   Parser.prototype.parseCls = function () {
     this.expect("KW", "CLS");
     return { type: "Cls" };
+  };
+
+  /** BEEP — brief speaker pulse. */
+  Parser.prototype.parseBeep = function () {
+    this.expect("KW", "BEEP");
+    return { type: "Beep" };
+  };
+
+  /**
+   * SOUND period,duration[,volume][,voice]
+   * Period is Paula AUDxPER (124..32767); duration 18.2 ≈ 1s; volume 0..64; voice 0..3.
+   */
+  Parser.prototype.parseSound = function () {
+    this.expect("KW", "SOUND");
+    const period = this.parseExpr();
+    this.expect("COMMA");
+    const duration = this.parseExpr();
+    let volume = null;
+    let voice = null;
+    if (this.at("COMMA")) {
+      this.eat();
+      // SOUND p,d,,voice  — omitted volume
+      if (!this.at("COMMA") && !this.at("EOL") && !this.at("EOF") && !this.at("COLON")) {
+        volume = this.parseExpr();
+      }
+      if (this.at("COMMA")) {
+        this.eat();
+        voice = this.parseExpr();
+      }
+    }
+    return { type: "Sound", period: period, duration: duration, volume: volume, voice: voice };
+  };
+
+  /**
+   * WAVE voice,SIN | WAVE voice,addr,count
+   * Phase 6: SIN path; addr,count accepted for later ALLOC/POKE demos.
+   */
+  Parser.prototype.parseWave = function () {
+    this.expect("KW", "WAVE");
+    const voice = this.parseExpr();
+    this.expect("COMMA");
+    if (this.at("IDENT") && /^SIN$/i.test(this.peek().value)) {
+      this.eat();
+      return { type: "Wave", voice: voice, mode: "sin", addr: null, count: null };
+    }
+    const addr = this.parseExpr();
+    this.expect("COMMA");
+    const count = this.parseExpr();
+    return { type: "Wave", voice: voice, mode: "mem", addr: addr, count: count };
   };
 
   /** RANDOMIZE [expression] — seed RNG (RANDOMIZE TIMER is common). */
@@ -1007,6 +1058,9 @@
     if (this.atKw("WINDOW")) return this.parseWindow();
     if (this.atKw("SCREEN")) return this.parseScreen();
     if (this.atKw("SLEEP")) return this.parseSleep();
+    if (this.atKw("BEEP")) return this.parseBeep();
+    if (this.atKw("SOUND")) return this.parseSound();
+    if (this.atKw("WAVE")) return this.parseWave();
     if (this.atKw("CLS")) return this.parseCls();
     if (this.atKw("RANDOMIZE")) return this.parseRandomize();
     if (this.atKw("COLOR")) return this.parseColor();
@@ -1236,7 +1290,24 @@
       case "WindowOutput":
         return ind + "rt.windowOutput(" + this.expr(stmt.id) + ");";
       case "Sleep":
+        if (stmt.seconds) {
+          return ind + "await rt.sleepFor(" + this.expr(stmt.seconds) + ");";
+        }
         return ind + "await rt.sleep();";
+      case "Beep":
+        return ind + "await rt.beep();";
+      case "Sound": {
+        const vol = stmt.volume ? this.expr(stmt.volume) : "null";
+        const voice = stmt.voice ? this.expr(stmt.voice) : "null";
+        return ind + "await rt.sound(" + this.expr(stmt.period) + ", " + this.expr(stmt.duration) +
+          ", " + vol + ", " + voice + ");";
+      }
+      case "Wave":
+        if (stmt.mode === "sin") {
+          return ind + "rt.waveSin(" + this.expr(stmt.voice) + ");";
+        }
+        return ind + "rt.waveMem(" + this.expr(stmt.voice) + ", " + this.expr(stmt.addr) + ", " +
+          this.expr(stmt.count) + ");";
       case "Cls":
         return ind + "rt.cls();";
       case "Randomize":
