@@ -143,6 +143,12 @@ Verify: `node tests/phase2-smoke.js` (includes INPUT cases).
 
 Still deferred within Phase 4+: `MENU` / `GADGET`, full `PALETTE` / `COLOR` / `LOCATE`, RMB menus, Topaz webfont.
 
+### Phase 4.5 — Unified INPUT in windows (UX)
+
+~~Reuse the Phase 3.5 “text in a surface” pattern for Intuition~~ — when `INPUT` runs with a current window, live typing + blinking caret appear in that window (same as `PRINT`); Enter submits. CLI programs keep the console surface. Demo: `examples/window-input.b`.
+
+**Done when:** ~~windowed `INPUT` feels like one text surface; no detached console typing required.~~
+
 ### Phase 5+ — Graphics, audio, speech, files, corpus climb
 
 Follow the ordering in `design_deac.md` (RastPort → SOUND/WAVE/PLAY → SAY → sequential files via IndexedDB), unlocking vidarh `prgs/Gfx`, `GUI`, `IO`, etc. one example at a time.
@@ -184,7 +190,8 @@ The C compiler is a reference oracle during development, not the acceptance comp
 6. ~~Phase 3: console `INPUT` (async host prompt + smoke tests)~~
 7. ~~Phase 3.5: unified console / shell I/O~~ (print + input on one surface; Amiga CLI feel)
 8. ~~Phase 4: Intuition basics~~ (`WINDOW` / `SCREEN` + chrome; see `examples/window.b`)
-9. **Phase 4+ / 5:** grow corpus (`LOCATE`, `COLOR`, `PALETTE`, `INKEY$` demos) and/or RastPort graphics as examples demand
+9. ~~Phase 4.5: windowed `INPUT`~~ (same surface as `PRINT`; Enter submits; `examples/window-input.b`)
+10. **Phase 5+:** grow corpus (`LOCATE`, `COLOR`, `PALETTE`, `INKEY$` demos) and/or RastPort graphics as examples demand
 
 ---
 
