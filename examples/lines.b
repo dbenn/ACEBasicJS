@@ -15,7 +15,7 @@ randomize timer
 color 2
 
 time0=timer
-for i%=1 to 2000
+for i%=1 to 10000
   line (int(rnd*640!),int(rnd*200!))-(int(rnd*640!),int(rnd*200!))
 next
 time1=timer

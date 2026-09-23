@@ -335,8 +335,12 @@ async function main() {
     if (!/rt\.int\(/.test(compiled.js)) throw new Error("missing int");
     const sink = { textContent: "" };
     const rt = ACE.createRuntime({ output: sink });
+    const t0 = Date.now();
     const runPromise = ACE.run(compiled, rt);
     await new Promise(function (r) { setTimeout(r, 80); });
+    const elapsed = Date.now() - t0;
+    // Batched flush: 10k lines must not take multi-second wall time in headless.
+    if (elapsed > 3000) throw new Error("lines.b too slow: " + elapsed + "ms");
     const text = rt.windowText(1);
     if (!/Time elapsed:/.test(text)) throw new Error("missing timing: " + text);
     // Some ink should have been plotted.

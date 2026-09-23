@@ -100,22 +100,46 @@
       win.contentEl.style.color = penColor(win, win.fgd);
     }
 
+    /** Build a 256-entry RGB LUT for fast flush (avoids parseHex per pixel). */
+    function paletteLut(pal) {
+      const lut = new Uint8Array(256 * 3);
+      for (let i = 0; i < 256; i++) {
+        const rgb = parseHex(pal[i] || pal[0] || "#000000");
+        const o = i * 3;
+        lut[o] = rgb.r;
+        lut[o + 1] = rgb.g;
+        lut[o + 2] = rgb.b;
+      }
+      return lut;
+    }
+
+    function invalidatePaletteLut(scr) {
+      if (scr) scr._palLut = null;
+    }
+
     function flushRastPort(win) {
       if (!win || !win.ctx || !win.indices) return;
       const w = win.rpW;
       const h = win.rpH;
       const pal = paletteFor(win);
+      const scr = screenForWin(win);
+      let lut = scr && scr._palLut;
+      if (!lut) {
+        lut = paletteLut(pal);
+        if (scr) scr._palLut = lut;
+      }
       const img = win._imageData || (win._imageData = win.ctx.createImageData(w, h));
       const data = img.data;
       const indices = win.indices;
       for (let i = 0, p = 0; i < indices.length; i++, p += 4) {
-        const rgb = parseHex(pal[indices[i]] || pal[0]);
-        data[p] = rgb.r;
-        data[p + 1] = rgb.g;
-        data[p + 2] = rgb.b;
+        const o = (indices[i] & 255) * 3;
+        data[p] = lut[o];
+        data[p + 1] = lut[o + 1];
+        data[p + 2] = lut[o + 2];
         data[p + 3] = 255;
       }
       win.ctx.putImageData(img, 0, 0);
+      win._rpDirty = false;
     }
 
     function flushScreenWindows(sid) {
@@ -123,6 +147,38 @@
         const win = windows[wid];
         if (win && win.screenId === sid) flushRastPort(win);
       }
+    }
+
+    /**
+     * Coalesce canvas blits: LINE/PSET/CIRCLE mark dirty; one rAF/timeout flush
+     * serves a whole FOR-loop of drawing (lines.b was doing 2000 full-frame flushes).
+     */
+    let flushScheduled = false;
+    function markDirty(win) {
+      if (!win) return;
+      win._rpDirty = true;
+      if (flushScheduled) return;
+      flushScheduled = true;
+      const schedule = typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : function (cb) { setTimeout(cb, 0); };
+      schedule(function () {
+        flushScheduled = false;
+        flushAllDirty();
+      });
+    }
+
+    function flushAllDirty() {
+      for (const wid in windows) {
+        const win = windows[wid];
+        if (win && win._rpDirty) flushRastPort(win);
+      }
+    }
+
+    /** Ensure canvas matches indices before sleep / stop / tests that care about pixels. */
+    function flushNow(win) {
+      if (win) flushRastPort(win);
+      else flushAllDirty();
     }
 
     function plotIndex(win, x, y, colorId) {
@@ -904,6 +960,7 @@
       if (idx < 0) return;
       while (scr.palette.length <= idx) scr.palette.push("#000000");
       scr.palette[idx] = rgbToHex(r, g, b);
+      invalidatePaletteLut(scr);
       if (idx === 0 && scr.el) scr.el.style.background = scr.palette[0];
       flushScreenWindows(sid);
       // Refresh text colours that reference palette pens.
@@ -949,7 +1006,7 @@
         drawLineIndices(win, win.penX, win.penY, ax, ay, cid);
         win.penX = ax;
         win.penY = ay;
-        flushRastPort(win);
+        markDirty(win);
         return;
       }
       let bx = Number(x2);
@@ -959,7 +1016,7 @@
       else drawLineIndices(win, ax, ay, bx, by, cid);
       win.penX = bx;
       win.penY = by;
-      flushRastPort(win);
+      markDirty(win);
     }
 
     function pset(step, x, y, colorId) {
@@ -975,7 +1032,7 @@
       plotIndex(win, ax, ay, cid);
       win.penX = ax;
       win.penY = ay;
-      flushRastPort(win);
+      markDirty(win);
     }
 
     function circle(x, y, radius, colorId, start, end, aspect) {
@@ -1001,7 +1058,7 @@
       );
       win.penX = cx;
       win.penY = cy;
-      flushRastPort(win);
+      markDirty(win);
     }
 
     function point(x, y) {
@@ -1149,6 +1206,7 @@
 
     /** SLEEP — wake on IntuiTick (~0.1s), key, close, or stop. */
     function sleep() {
+      flushAllDirty();
       if (stopped) return Promise.resolve();
       return new Promise(function (resolve) {
         let done = false;
@@ -1166,6 +1224,7 @@
 
     /** SLEEP FOR n — wait about n seconds (yields to the event loop). */
     function sleepFor(seconds) {
+      flushAllDirty();
       if (stopped) return Promise.resolve();
       const s = Number(seconds);
       const ms = (!isFinite(s) || s <= 0) ? 100 : s * 1000;
