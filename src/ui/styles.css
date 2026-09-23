@@ -234,14 +234,16 @@ button:disabled {
 }
 
 .ace-gadget {
-  width: 0.85rem;
-  height: 0.85rem;
+  width: 1.05rem;
+  height: 1.05rem;
   padding: 0;
   border: 1px solid #111;
   background: var(--wb-grey-light);
   box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #777;
   cursor: pointer;
   flex-shrink: 0;
+  position: relative;
+  z-index: 3;
 }
 
 .ace-gadget:active {
