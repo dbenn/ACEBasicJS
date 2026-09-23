@@ -8,6 +8,7 @@ Keep media small and descriptive; prefer one short video plus 1–2 stills per p
 | [`phase0/`](phase0/) | Host UI: picker, always-visible source, Run → `PRINT` |
 | [`phase3/`](phase3/) | Interactive `INPUT` (early: prompt row under Output) |
 | [`phase35/`](phase35/) | Unified console: in-place `INPUT` + caret (Amiga CLI feel) |
+| [`phase4/`](phase4/) | Intuition `SCREEN` / `WINDOW` chrome + PRINT-to-window |
 
 ## Convention
 

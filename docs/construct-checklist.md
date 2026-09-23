@@ -145,9 +145,11 @@ Precedence from the Programmer’s Guide (high → low):
 
 | Item | Status |
 |---|---|
-| `WINDOW` / `WINDOW CLOSE` / `SCREEN` | Phase 4 |
+| `WINDOW` / `WINDOW CLOSE` / `SCREEN` / `SCREEN CLOSE` | done (Phase 4 — chrome + PRINT-to-window) |
+| `WINDOW OUTPUT` / `WINDOW(n)` / `SCREEN(n)` | done (subset) |
+| `SLEEP` | done (IntuiTick-style yield; close/key wakes) |
 | `MENU` / `GADGET` / `BUTTON` / `BEVELBOX` | Phase 4+ |
-| `MOUSE` / `SLEEP` / event trapping (`ON …`) | Phase 4+ |
+| `MOUSE` / event trapping (`ON …`) | Phase 4+ |
 | `MSGBOX` / `INPUTBOX` / `FILEBOX$` | `later` |
 
 ---

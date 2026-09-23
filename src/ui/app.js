@@ -6,6 +6,8 @@
   const source = document.getElementById("source");
   const consoleEl = document.getElementById("console");
   const output = document.getElementById("output");
+  const screensHost = document.getElementById("screens");
+  const outputPanel = document.querySelector(".output-panel");
   const liveInput = document.getElementById("live-input");
   const caret = document.getElementById("caret");
   const consoleInput = document.getElementById("console-input");
@@ -42,12 +44,27 @@
 
   const runtime = ACE.createRuntime({
     output: output,
+    screensHost: screensHost,
     onInputRequest: function () {
       setInputEnabled(true);
     },
     onInputDone: function () {
       setInputEnabled(false);
     },
+    onDisplayChange: function (info) {
+      if (outputPanel) {
+        outputPanel.classList.toggle("intui-active", !!(info && info.intuiMode));
+      }
+    },
+  });
+
+  // Feed INKEY$ / SLEEP from keyboard when Display or screens have focus.
+  document.addEventListener("keydown", function (ev) {
+    if (awaitingInput) return;
+    if (ev.target === source || ev.target === picker || ev.target === consoleInput) return;
+    if (ev.key && ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+      runtime.pushKey(ev.key);
+    }
   });
 
   let manifest = [];
