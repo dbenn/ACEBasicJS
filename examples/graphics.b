@@ -35,7 +35,7 @@ LINE (20,140)-(300,175),7
 LINE (20,175)-(300,140),6
 
 COLOR 1
-LOCATE 20,2
+LOCATE 16,2
 PRINT "Press a key (or close)."
 
 WHILE INKEY$=""
