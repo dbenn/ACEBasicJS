@@ -1,8 +1,8 @@
-/* ACEBasicJS runtime — console I/O, TIMER, INPUT, SCREEN/WINDOW (Phase 4). */
+/* ACEBasicJS runtime — console I/O, TIMER, INPUT, SCREEN/WINDOW, RastPort graphics (Phase 5). */
 (function (global) {
   "use strict";
 
-  /** Workbench 2.0-ish default palette (RGB 0..1 later via PALETTE). */
+  /** Workbench 2.0-ish default palette (RGB hex; PALETTE uses 0..1 components). */
   const DEFAULT_PALETTE = [
     "#0055aa", // 0 blue
     "#ffffff", // 1 white
@@ -13,6 +13,39 @@
     "#000000", // 6
     "#ffffff", // 7
   ];
+
+  const FONT_W = 8;
+  const FONT_H = 8;
+  const TITLEBAR_H = 18;
+
+  function clamp01(n) {
+    const x = Number(n);
+    if (!isFinite(x)) return 0;
+    if (x < 0) return 0;
+    if (x > 1) return 1;
+    return x;
+  }
+
+  function rgbToHex(r, g, b) {
+    function byte(v) {
+      const n = Math.round(clamp01(v) * 255);
+      const h = n.toString(16);
+      return h.length < 2 ? "0" + h : h;
+    }
+    return "#" + byte(r) + byte(g) + byte(b);
+  }
+
+  function parseHex(hex) {
+    const h = String(hex || "#000000").replace("#", "");
+    const full = h.length === 3
+      ? h[0] + h[0] + h[1] + h[1] + h[2] + h[2]
+      : h;
+    return {
+      r: parseInt(full.slice(0, 2), 16) || 0,
+      g: parseInt(full.slice(2, 4), 16) || 0,
+      b: parseInt(full.slice(4, 6), 16) || 0,
+    };
+  }
 
   function createRuntime(options) {
     const output = options && options.output;
@@ -29,7 +62,7 @@
     let intuiMode = false;
     let currentScreenId = 0; // 0 = workbench / none
     let currentWindowId = 0; // 0 = shell/CLI
-    const screens = Object.create(null); // id -> { id, w, h, depth, mode, palette, el, backdropId }
+    const screens = Object.create(null); // id -> screen record
     const windows = Object.create(null); // id -> window record
 
     function notifyDisplay() {
@@ -42,6 +75,184 @@
       for (let i = 0; i < waiters.length; i++) waiters[i]();
     }
 
+    function currentWin() {
+      return currentWindowId ? windows[currentWindowId] : null;
+    }
+
+    function screenForWin(win) {
+      if (!win) return null;
+      return screens[win.screenId] || null;
+    }
+
+    function paletteFor(win) {
+      const scr = screenForWin(win);
+      return (scr && scr.palette) || DEFAULT_PALETTE;
+    }
+
+    function penColor(win, id) {
+      const pal = paletteFor(win);
+      const idx = id | 0;
+      return pal[idx] || pal[0] || "#000000";
+    }
+
+    function syncTextColor(win) {
+      if (!win || !win.contentEl) return;
+      win.contentEl.style.color = penColor(win, win.fgd);
+    }
+
+    function flushRastPort(win) {
+      if (!win || !win.ctx || !win.indices) return;
+      const w = win.rpW;
+      const h = win.rpH;
+      const pal = paletteFor(win);
+      const img = win._imageData || (win._imageData = win.ctx.createImageData(w, h));
+      const data = img.data;
+      const indices = win.indices;
+      for (let i = 0, p = 0; i < indices.length; i++, p += 4) {
+        const rgb = parseHex(pal[indices[i]] || pal[0]);
+        data[p] = rgb.r;
+        data[p + 1] = rgb.g;
+        data[p + 2] = rgb.b;
+        data[p + 3] = 255;
+      }
+      win.ctx.putImageData(img, 0, 0);
+    }
+
+    function flushScreenWindows(sid) {
+      for (const wid in windows) {
+        const win = windows[wid];
+        if (win && win.screenId === sid) flushRastPort(win);
+      }
+    }
+
+    function plotIndex(win, x, y, colorId) {
+      const xi = x | 0;
+      const yi = y | 0;
+      if (!win || !win.indices) return;
+      if (xi < 0 || yi < 0 || xi >= win.rpW || yi >= win.rpH) return;
+      win.indices[yi * win.rpW + xi] = colorId & 255;
+    }
+
+    function getIndex(win, x, y) {
+      const xi = x | 0;
+      const yi = y | 0;
+      if (!win || !win.indices) return -1;
+      if (xi < 0 || yi < 0 || xi >= win.rpW || yi >= win.rpH) return -1;
+      return win.indices[yi * win.rpW + xi];
+    }
+
+    /** Bresenham line into indexed buffer. */
+    function drawLineIndices(win, x0, y0, x1, y1, colorId) {
+      let x = x0 | 0;
+      let y = y0 | 0;
+      const xEnd = x1 | 0;
+      const yEnd = y1 | 0;
+      const dx = Math.abs(xEnd - x);
+      const dy = Math.abs(yEnd - y);
+      const sx = x < xEnd ? 1 : -1;
+      const sy = y < yEnd ? 1 : -1;
+      let err = dx - dy;
+      for (;;) {
+        plotIndex(win, x, y, colorId);
+        if (x === xEnd && y === yEnd) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) {
+          err -= dy;
+          x += sx;
+        }
+        if (e2 < dx) {
+          err += dx;
+          y += sy;
+        }
+      }
+    }
+
+    function fillRectIndices(win, x1, y1, x2, y2, colorId) {
+      const left = Math.min(x1, x2) | 0;
+      const right = Math.max(x1, x2) | 0;
+      const top = Math.min(y1, y2) | 0;
+      const bottom = Math.max(y1, y2) | 0;
+      for (let y = top; y <= bottom; y++) {
+        for (let x = left; x <= right; x++) plotIndex(win, x, y, colorId);
+      }
+    }
+
+    function strokeRectIndices(win, x1, y1, x2, y2, colorId) {
+      const left = Math.min(x1, x2) | 0;
+      const right = Math.max(x1, x2) | 0;
+      const top = Math.min(y1, y2) | 0;
+      const bottom = Math.max(y1, y2) | 0;
+      drawLineIndices(win, left, top, right, top, colorId);
+      drawLineIndices(win, left, bottom, right, bottom, colorId);
+      drawLineIndices(win, left, top, left, bottom, colorId);
+      drawLineIndices(win, right, top, right, bottom, colorId);
+    }
+
+    /** Midpoint ellipse (aspect scales Y radius). */
+    function drawEllipseIndices(win, cx, cy, rx, ry, colorId, startDeg, endDeg) {
+      const rxn = Math.max(0, rx | 0);
+      const ryn = Math.max(0, ry | 0);
+      const full = (startDeg == null && endDeg == null) ||
+        ((startDeg | 0) === 0 && (endDeg | 0) >= 359);
+      if (full) {
+        // Midpoint ellipse algorithm — plot 4-way symmetry.
+        let x = 0;
+        let y = ryn;
+        let rx2 = rxn * rxn;
+        let ry2 = ryn * ryn;
+        let twoRx2 = 2 * rx2;
+        let twoRy2 = 2 * ry2;
+        let px = 0;
+        let py = twoRx2 * y;
+        function plot4(px, py) {
+          plotIndex(win, cx + px, cy + py, colorId);
+          plotIndex(win, cx - px, cy + py, colorId);
+          plotIndex(win, cx + px, cy - py, colorId);
+          plotIndex(win, cx - px, cy - py, colorId);
+        }
+        plot4(x, y);
+        let p = Math.round(ry2 - rx2 * ryn + 0.25 * rx2);
+        while (px < py) {
+          x++;
+          px += twoRy2;
+          if (p < 0) p += ry2 + px;
+          else {
+            y--;
+            py -= twoRx2;
+            p += ry2 + px - py;
+          }
+          plot4(x, y);
+        }
+        p = Math.round(ry2 * (x + 0.5) * (x + 0.5) + rx2 * (y - 1) * (y - 1) - rx2 * ry2);
+        while (y > 0) {
+          y--;
+          py -= twoRx2;
+          if (p > 0) p += rx2 - py;
+          else {
+            x++;
+            px += twoRy2;
+            p += rx2 - py + px;
+          }
+          plot4(x, y);
+        }
+        return;
+      }
+      // Arc via parametric sampling (degrees, ACE-style).
+      const a0 = (startDeg == null ? 0 : Number(startDeg)) * Math.PI / 180;
+      const a1 = (endDeg == null ? 359 : Number(endDeg)) * Math.PI / 180;
+      const steps = Math.max(16, Math.ceil(Math.max(rxn, ryn) * 4));
+      let prevX = null;
+      let prevY = null;
+      for (let i = 0; i <= steps; i++) {
+        const t = a0 + (a1 - a0) * (i / steps);
+        const x = Math.round(cx + rxn * Math.cos(t));
+        const y = Math.round(cy + ryn * Math.sin(t));
+        if (prevX != null) drawLineIndices(win, prevX, prevY, x, y, colorId);
+        prevX = x;
+        prevY = y;
+      }
+    }
+
     function write(text) {
       if (stopped) return;
       const w = currentWindowId && windows[currentWindowId];
@@ -50,6 +261,16 @@
         // Update committed text only — leave live INPUT draft / caret siblings intact.
         if (w.committedEl) w.committedEl.textContent = w.text;
         else if (w.contentEl) w.contentEl.textContent = w.text;
+        // Advance text cursor roughly with newlines / chars.
+        for (let i = 0; i < text.length; i++) {
+          const ch = text.charAt(i);
+          if (ch === "\n") {
+            w.cursorRow++;
+            w.cursorCol = 1;
+          } else {
+            w.cursorCol++;
+          }
+        }
         return;
       }
       if (output) output.textContent += text;
@@ -194,6 +415,28 @@
       return el;
     }
 
+    function initRastPort(win) {
+      const contentH = win.borderless ? win.height : Math.max(1, win.height - TITLEBAR_H);
+      const contentW = Math.max(1, win.width);
+      win.rpW = contentW;
+      win.rpH = contentH;
+      win.indices = new Uint8ClampedArray(contentW * contentH);
+      win._imageData = null;
+      win.penX = 0;
+      win.penY = 0;
+      win.cursorRow = 1;
+      win.cursorCol = 1;
+      // Fill with background pen.
+      const bg = win.bgd & 255;
+      for (let i = 0; i < win.indices.length; i++) win.indices[i] = bg;
+      if (win.canvas) {
+        win.canvas.width = contentW;
+        win.canvas.height = contentH;
+        win.ctx = win.canvas.getContext("2d");
+        flushRastPort(win);
+      }
+    }
+
     function makeWindowEl(win) {
       const parent = win.screenId && screens[win.screenId] && screens[win.screenId].el;
       if (!parent && !screensHost) return null;
@@ -252,16 +495,29 @@
         }
       }
 
+      const body = document.createElement("div");
+      body.className = "ace-window-body";
+
+      const canvas = document.createElement("canvas");
+      canvas.className = "ace-canvas";
+      canvas.setAttribute("aria-hidden", "true");
+      win.canvas = canvas;
+      body.appendChild(canvas);
+
       const content = document.createElement("pre");
       content.className = "ace-content";
       const committed = document.createElement("span");
       committed.className = "ace-committed";
       committed.textContent = win.text;
       content.appendChild(committed);
-      el.appendChild(content);
+      body.appendChild(content);
+      el.appendChild(body);
+
       win.contentEl = content;
       win.committedEl = committed;
       win.el = el;
+      initRastPort(win);
+      syncTextColor(win);
       host.appendChild(el);
       return el;
     }
@@ -371,6 +627,15 @@
         el: null,
         contentEl: null,
         committedEl: null,
+        canvas: null,
+        ctx: null,
+        indices: null,
+        rpW: 0,
+        rpH: 0,
+        penX: 0,
+        penY: 0,
+        cursorRow: 1,
+        cursorCol: 1,
         fgd: 1,
         bgd: 0,
       };
@@ -381,7 +646,12 @@
       }
       windows[wid] = win;
       if (!win.backdrop) ensureScreensHostVisible();
-      makeWindowEl(win);
+      // DOM chrome when a host exists; always init indexed RastPort (headless-safe).
+      if (typeof document !== "undefined" && (screensHost || (sid && screens[sid] && screens[sid].el))) {
+        makeWindowEl(win);
+      } else {
+        initRastPort(win);
+      }
       if (!win.backdrop) {
         currentWindowId = wid;
         intuiMode = true;
@@ -454,9 +724,9 @@
         case 11:
           return w ? w.bgd : 0;
         case 12:
-          return 8; // font width stub (Topaz 8)
+          return FONT_W;
         case 13:
-          return 8;
+          return FONT_H;
         default:
           return 0;
       }
@@ -466,12 +736,157 @@
       const scr = screens[currentScreenId];
       switch (n | 0) {
         case 5:
-          return 8;
+          return FONT_W;
         case 6:
-          return 8;
+          return FONT_H;
         default:
           return 0;
       }
+    }
+
+    function cls() {
+      const win = currentWin();
+      if (!win) {
+        clearOutput();
+        return;
+      }
+      win.text = "";
+      if (win.committedEl) win.committedEl.textContent = "";
+      else if (win.contentEl) win.contentEl.textContent = "";
+      win.cursorRow = 1;
+      win.cursorCol = 1;
+      win.penX = 0;
+      win.penY = 0;
+      if (win.indices) {
+        const bg = win.bgd & 255;
+        for (let i = 0; i < win.indices.length; i++) win.indices[i] = bg;
+        flushRastPort(win);
+      }
+    }
+
+    function color(fg, bg) {
+      const win = currentWin();
+      if (!win) return;
+      if (fg != null) win.fgd = fg | 0;
+      if (bg != null && bg !== undefined) win.bgd = bg | 0;
+      syncTextColor(win);
+    }
+
+    function palette(id, r, g, b) {
+      const sid = currentScreenId;
+      const scr = screens[sid];
+      // PALETTE can also affect "Workbench" — without a custom screen, no-op for now.
+      if (!scr) return;
+      const idx = id | 0;
+      if (idx < 0) return;
+      while (scr.palette.length <= idx) scr.palette.push("#000000");
+      scr.palette[idx] = rgbToHex(r, g, b);
+      if (idx === 0 && scr.el) scr.el.style.background = scr.palette[0];
+      flushScreenWindows(sid);
+      // Refresh text colours that reference palette pens.
+      for (const wid in windows) {
+        const win = windows[wid];
+        if (win && win.screenId === sid) syncTextColor(win);
+      }
+    }
+
+    function locate(row, col) {
+      const win = currentWin();
+      if (!win) return;
+      const r = Math.max(1, row | 0);
+      const c = Math.max(1, col == null ? 1 : col | 0);
+      win.cursorRow = r;
+      win.cursorCol = c;
+      win.penX = (c - 1) * FONT_W;
+      win.penY = (r - 1) * FONT_H;
+      // Pad text buffer so the next PRINT appears at (row,col).
+      const lines = win.text.split("\n");
+      while (lines.length < r) lines.push("");
+      const target = r - 1;
+      let line = lines[target] || "";
+      if (line.length < c - 1) line += Array(c - 1 - line.length + 1).join(" ");
+      else line = line.slice(0, c - 1);
+      lines[target] = line;
+      // Keep trailing lines intact (LOCATE does not erase).
+      win.text = lines.join("\n");
+      if (win.committedEl) win.committedEl.textContent = win.text;
+      else if (win.contentEl) win.contentEl.textContent = win.text;
+    }
+
+    function line(step, x1, y1, x2, y2, colorId, box) {
+      const win = currentWin();
+      if (!win || !win.indices) return;
+      let ax = Number(x1);
+      let ay = Number(y1);
+      if (step) {
+        ax = win.penX + ax;
+        ay = win.penY + ay;
+      }
+      const cid = colorId == null ? win.fgd : (colorId | 0);
+      if (x2 == null || y2 == null) {
+        // LINE STEP (x,y) or LINE (x,y) — from last pen to point.
+        drawLineIndices(win, win.penX, win.penY, ax, ay, cid);
+        win.penX = ax;
+        win.penY = ay;
+        flushRastPort(win);
+        return;
+      }
+      let bx = Number(x2);
+      let by = Number(y2);
+      if (box === "bf") fillRectIndices(win, ax, ay, bx, by, cid);
+      else if (box === "b") strokeRectIndices(win, ax, ay, bx, by, cid);
+      else drawLineIndices(win, ax, ay, bx, by, cid);
+      win.penX = bx;
+      win.penY = by;
+      flushRastPort(win);
+    }
+
+    function pset(step, x, y, colorId) {
+      const win = currentWin();
+      if (!win || !win.indices) return;
+      let ax = Number(x);
+      let ay = Number(y);
+      if (step) {
+        ax = win.penX + ax;
+        ay = win.penY + ay;
+      }
+      const cid = colorId == null ? win.fgd : (colorId | 0);
+      plotIndex(win, ax, ay, cid);
+      win.penX = ax;
+      win.penY = ay;
+      flushRastPort(win);
+    }
+
+    function circle(x, y, radius, colorId, start, end, aspect) {
+      const win = currentWin();
+      if (!win || !win.indices) return;
+      const cx = Number(x);
+      const cy = Number(y);
+      const rx = Math.abs(Number(radius)) | 0;
+      // Browser canvas has square pixels; ACE default aspect 0.44 was for NTSC.
+      // Use 1.0 when unspecified so CIRCLE looks round on modern displays.
+      const asp = aspect == null ? 1 : Number(aspect);
+      const ry = Math.max(0, Math.round(rx * (isFinite(asp) ? asp : 1)));
+      const cid = colorId == null ? win.fgd : (colorId | 0);
+      drawEllipseIndices(
+        win,
+        cx | 0,
+        cy | 0,
+        rx,
+        ry,
+        cid,
+        start == null ? null : Number(start),
+        end == null ? null : Number(end)
+      );
+      win.penX = cx;
+      win.penY = cy;
+      flushRastPort(win);
+    }
+
+    function point(x, y) {
+      const win = currentWin();
+      if (!win) return -1;
+      return getIndex(win, Number(x), Number(y));
     }
 
     /** SLEEP — wake on IntuiTick (~0.1s), key, close, or stop. */
@@ -505,6 +920,13 @@
     function windowText(id) {
       const w = windows[id | 0];
       return w ? w.text : "";
+    }
+
+    /** Test helper: raw color index at (x,y) in window id (default current). */
+    function windowPixel(id, x, y) {
+      const w = windows[id == null ? currentWindowId : (id | 0)];
+      if (!w) return -1;
+      return getIndex(w, x, y);
     }
 
     function stop() {
@@ -571,10 +993,19 @@
       windowOutput: windowOutput,
       windowFunc: windowFunc,
       screenFunc: screenFunc,
+      cls: cls,
+      color: color,
+      palette: palette,
+      locate: locate,
+      line: line,
+      pset: pset,
+      circle: circle,
+      point: point,
       sleep: sleep,
       inkey: inkey,
       pushKey: pushKey,
       windowText: windowText,
+      windowPixel: windowPixel,
       activeTextSurface: activeTextSurface,
       get stopped() {
         return stopped;

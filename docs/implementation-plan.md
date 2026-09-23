@@ -149,9 +149,17 @@ Still deferred within Phase 4+: `MENU` / `GADGET`, full `PALETTE` / `COLOR` / `L
 
 **Done when:** ~~windowed `INPUT` feels like one text surface; no detached console typing required.~~
 
-### Phase 5+ — Graphics, audio, speech, files, corpus climb
+### Phase 5 — RastPort graphics
 
-Follow the ordering in `design_deac.md` (RastPort → SOUND/WAVE/PLAY → SAY → sequential files via IndexedDB), unlocking vidarh `prgs/Gfx`, `GUI`, `IO`, etc. one example at a time.
+~~`LINE` / `PSET` / `CIRCLE` / `COLOR` / `PALETTE` / `CLS` / `LOCATE` / `POINT`~~ — indexed framebuffer per window (palette remaps like Amiga), canvas blit in the Display panel. Demo: `examples/graphics.b`.
+
+**Done when:** ~~a small graphics example draws lines, boxes, and circles with a custom palette.~~
+
+Still deferred: `PAINT` / `AREA` / `AREAFILL` / `PATTERN` / `SCROLL`, turtle graphics, IFF, EHB/HAM modes, Topaz webfont, `MENU` / `GADGET`.
+
+### Phase 6+ — Audio, speech, files, corpus climb
+
+Follow the ordering in `design_deac.md` (SOUND/WAVE/PLAY → SAY → sequential files via IndexedDB), unlocking vidarh `prgs/Gfx`, `GUI`, `IO`, etc. one example at a time.
 
 Each newly passing distribution example is a milestone; do not expand the grammar ahead of failing examples.
 
@@ -191,7 +199,8 @@ The C compiler is a reference oracle during development, not the acceptance comp
 7. ~~Phase 3.5: unified console / shell I/O~~ (print + input on one surface; Amiga CLI feel)
 8. ~~Phase 4: Intuition basics~~ (`WINDOW` / `SCREEN` + chrome; see `examples/window.b`)
 9. ~~Phase 4.5: windowed `INPUT`~~ (same surface as `PRINT`; Enter submits; `examples/window-input.b`)
-10. **Phase 5+:** grow corpus (`LOCATE`, `COLOR`, `PALETTE`, `INKEY$` demos) and/or RastPort graphics as examples demand
+10. ~~Phase 5: RastPort graphics~~ (`LINE` / `CIRCLE` / `PSET` / `COLOR` / `PALETTE`; see `examples/graphics.b`)
+11. **Phase 6+:** audio / speech / files, then climb the vidarh corpus example by example
 
 ---
 

@@ -135,7 +135,7 @@ Precedence from the Programmer’s Guide (high → low):
 | `PRINT` / `PRINTS` | done (`PRINT`; `PRINTS` later) |
 | `INPUT` | done (Phase 3 console + Phase 4.5 in-window; Enter submits) |
 | `LINE INPUT` / `INPUT$` / `INKEY$` | Phase 3+ / as examples demand |
-| `CLS` / `LOCATE` / `CSRLIN` / `POS` / `TAB` / `SPC` | Phase 3+ |
+| `CLS` / `LOCATE` / `CSRLIN` / `POS` / `TAB` / `SPC` | `CLS`/`LOCATE` done (Phase 5); others as examples demand |
 | `ASC` `CHR$` `LEFT$` `RIGHT$` `MID$` `LEN` `VAL` `STR$` `UCASE$` … | As examples demand |
 | `DATA` / `READ` / `RESTORE` | `later` |
 
@@ -158,7 +158,8 @@ Precedence from the Programmer’s Guide (high → low):
 
 | Item | Status |
 |---|---|
-| `LINE` `PSET` `CIRCLE` `COLOR` `PALETTE` `PAINT` `AREA` `AREAFILL` `PATTERN` `SCROLL` `POINT` | Phase 5+ |
+| `LINE` `PSET` `CIRCLE` `COLOR` `PALETTE` `POINT` | done (Phase 5; square-pixel CIRCLE aspect default 1.0) |
+| `PAINT` `AREA` `AREAFILL` `PATTERN` `SCROLL` | Phase 5+ / as examples demand |
 | Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `HOME` …) | `later` |
 | `IFF` / images | `later` |
 | Sprites / bobs / `OBJECT.*` | `out` (not ACE focus; reserved but unimplemented in ACE) |

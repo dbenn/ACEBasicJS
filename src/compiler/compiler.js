@@ -7,13 +7,13 @@
   "use strict";
 
   const KEYWORDS = {
-    AND: 1, AS: 1, CALL: 1, CLOSE: 1, CONST: 1, DATA: 1, DEFINT: 1, DEFLNG: 1, DEFSNG: 1,
-    DEFSTR: 1, DEFDBL: 1, DIM: 1, ELSE: 1, ELSEIF: 1, END: 1, EXIT: 1, FOR: 1,
-    GOTO: 1, GOSUB: 1, IF: 1, INPUT: 1, LET: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1,
-    OUTPUT: 1, PRINT: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1,
-    SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, LONGINT: 1, STEP: 1, SUB: 1, THEN: 1,
-    TO: 1, UNTIL: 1, WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1, FUNCTION: 1,
-    LIBRARY: 1,
+    AND: 1, AS: 1, CALL: 1, CIRCLE: 1, CLOSE: 1, CLS: 1, COLOR: 1, CONST: 1, DATA: 1,
+    DEFINT: 1, DEFLNG: 1, DEFSNG: 1, DEFSTR: 1, DEFDBL: 1, DIM: 1, ELSE: 1, ELSEIF: 1,
+    END: 1, EXIT: 1, FOR: 1, GOTO: 1, GOSUB: 1, IF: 1, INPUT: 1, LET: 1, LINE: 1,
+    LOCATE: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1, OUTPUT: 1, PALETTE: 1, PRINT: 1,
+    PSET: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1, SHARED: 1,
+    SINGLE: 1, SHORTINT: 1, SLEEP: 1, LONGINT: 1, STEP: 1, SUB: 1, THEN: 1, TO: 1,
+    UNTIL: 1, WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1, FUNCTION: 1, LIBRARY: 1,
   };
 
   function isIdentStart(c) {
@@ -342,6 +342,14 @@
       const name = t.value;
       const upper = name.toUpperCase();
       if (upper === "INKEY$") return { type: "Inkey" };
+      if (upper === "POINT") {
+        this.expect("LPAREN");
+        const x = this.parseExpr();
+        this.expect("COMMA");
+        const y = this.parseExpr();
+        this.expect("RPAREN");
+        return { type: "Point", x: x, y: y };
+      }
       return { type: "Var", name: name };
     }
     if (this.at("LPAREN")) {
@@ -759,12 +767,194 @@
     return { type: "Sleep" };
   };
 
+  Parser.prototype.parseCls = function () {
+    this.expect("KW", "CLS");
+    return { type: "Cls" };
+  };
+
+  /** COLOR fgnd[,bgnd] */
+  Parser.prototype.parseColor = function () {
+    this.expect("KW", "COLOR");
+    const fg = this.parseExpr();
+    let bg = null;
+    if (this.at("COMMA")) {
+      this.eat();
+      bg = this.parseExpr();
+    }
+    return { type: "Color", fg: fg, bg: bg };
+  };
+
+  /** PALETTE color-id,R,G,B  (components 0..1) */
+  Parser.prototype.parsePalette = function () {
+    this.expect("KW", "PALETTE");
+    const id = this.parseExpr();
+    this.expect("COMMA");
+    const r = this.parseExpr();
+    this.expect("COMMA");
+    const g = this.parseExpr();
+    this.expect("COMMA");
+    const b = this.parseExpr();
+    return { type: "Palette", id: id, r: r, g: g, b: b };
+  };
+
+  /** LOCATE line[,column] */
+  Parser.prototype.parseLocate = function () {
+    this.expect("KW", "LOCATE");
+    const row = this.parseExpr();
+    let col = { type: "Number", value: 1 };
+    if (this.at("COMMA")) {
+      this.eat();
+      col = this.parseExpr();
+    }
+    return { type: "Locate", row: row, col: col };
+  };
+
+  /** Optional box flag: b | bf (as identifier). */
+  Parser.prototype.parseLineBox = function () {
+    if (this.at("IDENT")) {
+      const u = String(this.peek().value).toUpperCase();
+      if (u === "B" || u === "BF") {
+        this.eat();
+        return u.toLowerCase();
+      }
+    }
+    return null;
+  };
+
+  /**
+   * LINE [STEP](x1,y1)[-(x2,y2)[,[color],[b[f]]]]
+   */
+  Parser.prototype.parseLine = function () {
+    this.expect("KW", "LINE");
+    let step = false;
+    if (this.atKw("STEP")) {
+      this.eat();
+      step = true;
+    }
+    this.expect("LPAREN");
+    const x1 = this.parseExpr();
+    this.expect("COMMA");
+    const y1 = this.parseExpr();
+    this.expect("RPAREN");
+    let x2 = null;
+    let y2 = null;
+    let color = null;
+    let box = null;
+    if (this.at("OP") && this.peek().value === "-") {
+      this.eat();
+      this.expect("LPAREN");
+      x2 = this.parseExpr();
+      this.expect("COMMA");
+      y2 = this.parseExpr();
+      this.expect("RPAREN");
+      if (this.at("COMMA")) {
+        this.eat();
+        if (!this.at("COMMA") && !this.at("EOL") && !this.at("EOF") && !this.at("COLON") &&
+            !(this.at("IDENT") && /^(B|BF)$/i.test(this.peek().value))) {
+          color = this.parseExpr();
+        }
+        if (this.at("COMMA")) {
+          this.eat();
+          box = this.parseLineBox();
+        } else {
+          box = this.parseLineBox();
+        }
+      }
+    }
+    return {
+      type: "Line",
+      step: step,
+      x1: x1,
+      y1: y1,
+      x2: x2,
+      y2: y2,
+      color: color,
+      box: box,
+    };
+  };
+
+  /** PSET [STEP] (x,y)[,color-id] */
+  Parser.prototype.parsePset = function () {
+    this.expect("KW", "PSET");
+    let step = false;
+    if (this.atKw("STEP")) {
+      this.eat();
+      step = true;
+    }
+    this.expect("LPAREN");
+    const x = this.parseExpr();
+    this.expect("COMMA");
+    const y = this.parseExpr();
+    this.expect("RPAREN");
+    let color = null;
+    if (this.at("COMMA")) {
+      this.eat();
+      color = this.parseExpr();
+    }
+    return { type: "Pset", step: step, x: x, y: y, color: color };
+  };
+
+  /** CIRCLE (x,y),radius[,color-id,start,end,aspect] */
+  Parser.prototype.parseCircle = function () {
+    this.expect("KW", "CIRCLE");
+    this.expect("LPAREN");
+    const x = this.parseExpr();
+    this.expect("COMMA");
+    const y = this.parseExpr();
+    this.expect("RPAREN");
+    this.expect("COMMA");
+    const radius = this.parseExpr();
+    let color = null;
+    let start = null;
+    let end = null;
+    let aspect = null;
+    if (this.at("COMMA")) {
+      this.eat();
+      if (!this.at("COMMA") && !this.at("EOL") && !this.at("EOF") && !this.at("COLON")) {
+        color = this.parseExpr();
+      }
+      if (this.at("COMMA")) {
+        this.eat();
+        if (!this.at("COMMA") && !this.at("EOL") && !this.at("EOF") && !this.at("COLON")) {
+          start = this.parseExpr();
+        }
+        if (this.at("COMMA")) {
+          this.eat();
+          if (!this.at("COMMA") && !this.at("EOL") && !this.at("EOF") && !this.at("COLON")) {
+            end = this.parseExpr();
+          }
+          if (this.at("COMMA")) {
+            this.eat();
+            aspect = this.parseExpr();
+          }
+        }
+      }
+    }
+    return {
+      type: "Circle",
+      x: x,
+      y: y,
+      radius: radius,
+      color: color,
+      start: start,
+      end: end,
+      aspect: aspect,
+    };
+  };
+
   Parser.prototype.parseStatementContent = function () {
     if (this.atKw("PRINT")) return this.parsePrint();
     if (this.atKw("INPUT")) return this.parseInput();
     if (this.atKw("WINDOW")) return this.parseWindow();
     if (this.atKw("SCREEN")) return this.parseScreen();
     if (this.atKw("SLEEP")) return this.parseSleep();
+    if (this.atKw("CLS")) return this.parseCls();
+    if (this.atKw("COLOR")) return this.parseColor();
+    if (this.atKw("PALETTE")) return this.parsePalette();
+    if (this.atKw("LOCATE")) return this.parseLocate();
+    if (this.atKw("LINE")) return this.parseLine();
+    if (this.atKw("PSET")) return this.parsePset();
+    if (this.atKw("CIRCLE")) return this.parseCircle();
     if (this.atKw("IF")) return this.parseIf();
     if (this.atKw("FOR")) return this.parseFor();
     if (this.atKw("WHILE")) return this.parseWhile();
@@ -882,6 +1072,8 @@
       case "Inkey": return "rt.inkey()";
       case "WindowFunc": return "rt.windowFunc(" + this.expr(node.arg) + ")";
       case "ScreenFunc": return "rt.screenFunc(" + this.expr(node.arg) + ")";
+      case "Point":
+        return "rt.point(" + this.expr(node.x) + ", " + this.expr(node.y) + ")";
       case "Unary":
         if (node.op === "-") return "(-(" + this.expr(node.expr) + "))";
         if (node.op === "NOT") return "(((" + this.expr(node.expr) + ")===0)?-1:0)";
@@ -976,6 +1168,37 @@
         return ind + "rt.windowOutput(" + this.expr(stmt.id) + ");";
       case "Sleep":
         return ind + "await rt.sleep();";
+      case "Cls":
+        return ind + "rt.cls();";
+      case "Color":
+        return ind + "rt.color(" + this.expr(stmt.fg) +
+          (stmt.bg ? ", " + this.expr(stmt.bg) : "") + ");";
+      case "Palette":
+        return ind + "rt.palette(" + this.expr(stmt.id) + ", " + this.expr(stmt.r) + ", " +
+          this.expr(stmt.g) + ", " + this.expr(stmt.b) + ");";
+      case "Locate":
+        return ind + "rt.locate(" + this.expr(stmt.row) + ", " + this.expr(stmt.col) + ");";
+      case "Line": {
+        const x2 = stmt.x2 ? this.expr(stmt.x2) : "null";
+        const y2 = stmt.y2 ? this.expr(stmt.y2) : "null";
+        const color = stmt.color ? this.expr(stmt.color) : "null";
+        const box = stmt.box ? JSON.stringify(stmt.box) : "null";
+        return ind + "rt.line(" + !!stmt.step + ", " + this.expr(stmt.x1) + ", " +
+          this.expr(stmt.y1) + ", " + x2 + ", " + y2 + ", " + color + ", " + box + ");";
+      }
+      case "Pset": {
+        const color = stmt.color ? this.expr(stmt.color) : "null";
+        return ind + "rt.pset(" + !!stmt.step + ", " + this.expr(stmt.x) + ", " +
+          this.expr(stmt.y) + ", " + color + ");";
+      }
+      case "Circle": {
+        const color = stmt.color ? this.expr(stmt.color) : "null";
+        const start = stmt.start ? this.expr(stmt.start) : "null";
+        const end = stmt.end ? this.expr(stmt.end) : "null";
+        const aspect = stmt.aspect ? this.expr(stmt.aspect) : "null";
+        return ind + "rt.circle(" + this.expr(stmt.x) + ", " + this.expr(stmt.y) + ", " +
+          this.expr(stmt.radius) + ", " + color + ", " + start + ", " + end + ", " + aspect + ");";
+      }
       case "Assign":
         return ind + jsName(stmt.name) + " = " + this.expr(stmt.expr) + ";";
       case "AssignIndex":

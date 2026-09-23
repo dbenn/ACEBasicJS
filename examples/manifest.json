@@ -18,6 +18,12 @@
     "notes": "Phase 4.5 — type in the window, Enter to submit"
   },
   {
+    "id": "graphics",
+    "title": "Graphics (LINE/CIRCLE)",
+    "path": "examples/graphics.b",
+    "notes": "Phase 5 — RastPort LINE / BOX / CIRCLE / PSET / PALETTE"
+  },
+  {
     "id": "input",
     "title": "INPUT demo",
     "path": "examples/input.b",

@@ -14,7 +14,7 @@ python3 -m http.server 8080
 
 Open http://localhost:8080/ — pick a program, edit the ACE source (always visible), Run.
 
-Phase 2 compiles control flow, arrays/`GOTO`, and `SUB` recursion. Phase 3 adds interactive `INPUT` on a unified console. Phase 4 opens Amiga-style `SCREEN` / `WINDOW` chrome in the Display panel (try **WINDOW / SCREEN**).
+Phase 2 compiles control flow, arrays/`GOTO`, and `SUB` recursion. Phase 3 adds interactive `INPUT` on a unified console. Phase 4 opens Amiga-style `SCREEN` / `WINDOW` chrome in the Display panel (try **WINDOW / SCREEN**). Phase 5 draws with `LINE` / `CIRCLE` / `PSET` (try **Graphics (LINE/CIRCLE)**).
 
 ## GitHub Pages
 
