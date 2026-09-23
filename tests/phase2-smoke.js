@@ -218,6 +218,74 @@ async function main() {
     await runPromise;
   });
 
+  await check("LINE / CIRCLE / PSET / PALETTE / POINT", async function () {
+    const src =
+      "SCREEN 1,160,100,3,1\n" +
+      'WINDOW 1,"G",(0,0)-(160,100),32,1\n' +
+      "PALETTE 0,0,0,0\n" +
+      "PALETTE 2,1,0,0\n" +
+      "PALETTE 3,0,1,0\n" +
+      "PALETTE 4,0,0,1\n" +
+      "CLS\n" +
+      "LINE (10,10)-(50,10),2\n" +
+      "LINE (10,20)-(40,40),3,bf\n" +
+      "CIRCLE (80,50),15,4\n" +
+      "PSET (80,50),2\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    await ACE.run(compiled, rt);
+    if (rt.point(10, 10) !== 2) throw new Error("line start color " + rt.point(10, 10));
+    if (rt.point(50, 10) !== 2) throw new Error("line end color " + rt.point(50, 10));
+    if (rt.point(20, 25) !== 3) throw new Error("box fill color " + rt.point(20, 25));
+    if (rt.point(80, 50) !== 2) throw new Error("pset color " + rt.point(80, 50));
+    // Circle outline should have hit a point at rightmost extent.
+    if (rt.point(95, 50) !== 4) throw new Error("circle color " + rt.point(95, 50));
+    if (rt.windowPixel(1, 0, 0) !== 0) throw new Error("CLS bg " + rt.windowPixel(1, 0, 0));
+  });
+
+  await check("examples/graphics.b compiles and draws", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/graphics.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/rt\.line\(/.test(compiled.js) || !/rt\.circle\(/.test(compiled.js)) {
+      throw new Error("missing graphics calls");
+    }
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 50); });
+    // Horizontal line near y=42 in colour 2.
+    if (rt.point(100, 42) !== 2) throw new Error("demo line color " + rt.point(100, 42));
+    // Filled box colour 4.
+    if (rt.point(180, 90) !== 4) throw new Error("demo box color " + rt.point(180, 90));
+    // Circle centre PSET colour 1.
+    if (rt.point(270, 90) !== 1) throw new Error("demo pset " + rt.point(270, 90));
+    const text = rt.windowText(1);
+    if (!/ACE Phase 5 graphics/.test(text)) throw new Error("missing title text: " + text);
+    rt.stop();
+    await runPromise;
+  });
+
+  await check("LOCATE pads text cursor", async function () {
+    const src =
+      "SCREEN 1,200,100,3,1\n" +
+      'WINDOW 1,"T",(0,0)-(200,100),32,1\n' +
+      "CLS\n" +
+      "LOCATE 3,5\n" +
+      'PRINT "Hi"\n';
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    await ACE.run(compiled, rt);
+    const text = rt.windowText(1);
+    const lines = text.split("\n");
+    if (lines.length < 3) throw new Error("expected >=3 lines: " + JSON.stringify(text));
+    if (!/^    Hi/.test(lines[2])) throw new Error("locate pad failed: " + JSON.stringify(lines[2]));
+  });
+
   if (failed) {
     console.error(failed + " failed");
     process.exit(1);

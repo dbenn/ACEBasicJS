@@ -10,6 +10,7 @@ Keep media small and descriptive; prefer one short video plus 1–2 stills per p
 | [`phase35/`](phase35/) | Unified console: in-place `INPUT` + caret (Amiga CLI feel) |
 | [`phase4/`](phase4/) | Intuition `SCREEN` / `WINDOW` chrome + PRINT-to-window |
 | [`phase45/`](phase45/) | `INPUT` in-window (same surface as `PRINT`; Enter submits) |
+| [`phase5/`](phase5/) | RastPort `LINE` / `CIRCLE` / `PSET` / `PALETTE` |
 
 ## Convention
 

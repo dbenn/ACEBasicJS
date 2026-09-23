@@ -1,0 +1,46 @@
+' Phase 5 — RastPort graphics (LINE / CIRCLE / PSET / COLOR / PALETTE)
+' Open a screen, set a palette, draw into the window. Press a key or close to quit.
+
+DEFINT a-z
+
+SCREEN 1,320,200,3,1
+WINDOW 1,"Graphics",(0,0)-(320,200),31,1
+
+PALETTE 0,0,0,0.35
+PALETTE 1,1,1,1
+PALETTE 2,1,0.2,0.2
+PALETTE 3,0.2,1,0.35
+PALETTE 4,0.35,0.55,1
+PALETTE 5,1,1,0.25
+PALETTE 6,1,0.55,0.1
+PALETTE 7,0.85,0.3,1
+
+CLS
+COLOR 1
+PRINT "ACE Phase 5 graphics"
+PRINT "LINE / BOX / CIRCLE / PSET"
+
+COLOR 2
+LINE (10,42)-(310,42)
+
+LINE (20,55)-(120,125),3,b
+LINE (130,55)-(230,125),4,bf
+
+CIRCLE (270,90),38,5
+CIRCLE (270,90),22,6
+PSET (270,90),1
+
+COLOR 7
+LINE (20,140)-(300,175),7
+LINE (20,175)-(300,140),6
+
+COLOR 1
+LOCATE 20,2
+PRINT "Press a key (or close)."
+
+WHILE INKEY$=""
+  SLEEP
+WEND
+
+WINDOW CLOSE 1
+SCREEN CLOSE 1

@@ -11,6 +11,7 @@ expectations below (observable results in the host output / runtime).
 | `hello` | `hello.b` | ACEBasicJS Phase 0 | Trivial `PRINT` smoke test | Two lines: `Hello from ACEBasicJS` then `Edit me, then Run again.` |
 | `window` | `window.b` | ACEBasicJS Phase 4 | `SCREEN` / `WINDOW` chrome + `PRINT` into window | Opens a 320×200 screen and titled window; text appears in the window. Close gadget (or Stop) ends the wait loop. |
 | `window-input` | `window-input.b` | ACEBasicJS Phase 4.5 | `INPUT` on the same window surface as `PRINT` | Prompts in the window; type after the prompt, Enter to submit; echoes greeting and double. |
+| `graphics` | `graphics.b` | ACEBasicJS Phase 5 | RastPort `LINE` / `CIRCLE` / `PSET` / `COLOR` / `PALETTE` / `LOCATE` | Opens a 320×200 screen; draws lines, boxes, circles; wait for a key or close. |
 | `input` | `input.b` | ACEBasicJS Phase 3 | Interactive `INPUT` (prompt + `? `, string and number) | Asks for name then number; echoes greeting and double. Type in the unified console (Enter to submit). |
 | `loops` | `loops.b` | vidarh `prgs/BenchMarks/loops.b` | Nested `FOR`, `WHILE`, `REPEAT` / `UNTIL`, `CONST`, `TIMER` | Prints timing lines for FOR / WHILE / REPEAT (five passes). Exact seconds may differ; structure and labels matter. |
 | `sieve` | `sieve.b` | vidarh `prgs/BenchMarks/sieve.b` | `DIM`, `FOR`, `IF`, `GOTO`, line numbers | Banner about byte sieve; runs five passes over flags; prints timing. |
