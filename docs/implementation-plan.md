@@ -157,6 +157,21 @@ Still deferred within Phase 4+: `MENU` / `GADGET`, full `PALETTE` / `COLOR` / `L
 
 Still deferred: `PAINT` / `AREA` / `AREAFILL` / `PATTERN` / `SCROLL`, turtle graphics, IFF, EHB/HAM modes, Topaz webfont, `MENU` / `GADGET`.
 
+### Phase 5.5 — Math builtins (program-driven)
+
+~~`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS` / `SIN` / `COS` / …~~ unlocked by climbing the vidarh corpus:
+
+| Example | Features exercised |
+|---|---|
+| `examples/hi.b` | bare `RND`, `COLOR` fg/bg, coloured `LOCATE`/`PRINT` |
+| `examples/ahl.b` | `SQR(n)`, `RND`, `ABS(n)` |
+| `examples/lines.b` | `RANDOMIZE TIMER`, `INT`, `RND`, `LINE` |
+| `examples/fact.b` | recursive `SUB` (already Phase 2) + interactive `INPUT` |
+
+Also: single-line `WHILE cond:…:WEND`, and window `PRINT` as absolutely positioned coloured runs (so `hi.b` keeps per-string pens).
+
+**Done when:** ~~hi / ahl / lines / fact compile and pass smoke checks.~~
+
 ### Phase 6+ — Audio, speech, files, corpus climb
 
 Follow the ordering in `design_deac.md` (SOUND/WAVE/PLAY → SAY → sequential files via IndexedDB), unlocking vidarh `prgs/Gfx`, `GUI`, `IO`, etc. one example at a time.
@@ -200,7 +215,8 @@ The C compiler is a reference oracle during development, not the acceptance comp
 8. ~~Phase 4: Intuition basics~~ (`WINDOW` / `SCREEN` + chrome; see `examples/window.b`)
 9. ~~Phase 4.5: windowed `INPUT`~~ (same surface as `PRINT`; Enter submits; `examples/window-input.b`)
 10. ~~Phase 5: RastPort graphics~~ (`LINE` / `CIRCLE` / `PSET` / `COLOR` / `PALETTE`; see `examples/graphics.b`)
-11. **Phase 6+:** audio / speech / files, then climb the vidarh corpus example by example
+11. ~~Phase 5.5: math builtins~~ (`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS`; `hi.b` / `ahl.b` / `lines.b` / `fact.b`)
+12. **Phase 6+:** audio / speech / files, then climb the vidarh corpus example by example
 
 ---
 

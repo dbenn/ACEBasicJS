@@ -11,10 +11,36 @@
     DEFINT: 1, DEFLNG: 1, DEFSNG: 1, DEFSTR: 1, DEFDBL: 1, DIM: 1, ELSE: 1, ELSEIF: 1,
     END: 1, EXIT: 1, FOR: 1, GOTO: 1, GOSUB: 1, IF: 1, INPUT: 1, LET: 1, LINE: 1,
     LOCATE: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1, OUTPUT: 1, PALETTE: 1, PRINT: 1,
-    PSET: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1, SHARED: 1,
-    SINGLE: 1, SHORTINT: 1, SLEEP: 1, LONGINT: 1, STEP: 1, SUB: 1, THEN: 1, TO: 1,
-    UNTIL: 1, WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1, FUNCTION: 1, LIBRARY: 1,
+    PSET: 1, RANDOMIZE: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1,
+    SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, LONGINT: 1, STEP: 1, SUB: 1, THEN: 1,
+    TO: 1, UNTIL: 1, WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1, FUNCTION: 1, LIBRARY: 1,
   };
+
+  /**
+   * Built-in functions (Language Reference). Mapped to runtime helpers.
+   * RND is also usable without parentheses (AmigaBASIC / ACE).
+   */
+  const BUILTINS = {
+    ABS: { arity: 1, rt: "abs" },
+    ATN: { arity: 1, rt: "atn" },
+    CINT: { arity: 1, rt: "cint" },
+    CLNG: { arity: 1, rt: "clng" },
+    COS: { arity: 1, rt: "cos" },
+    EXP: { arity: 1, rt: "exp" },
+    FIX: { arity: 1, rt: "fix" },
+    INT: { arity: 1, rt: "int" },
+    LOG: { arity: 1, rt: "log" },
+    RND: { arity: -1, rt: "rnd" }, // 0 or 1 arg
+    SGN: { arity: 1, rt: "sgn" },
+    SIN: { arity: 1, rt: "sin" },
+    SQR: { arity: 1, rt: "sqr" },
+    TAN: { arity: 1, rt: "tan" },
+  };
+
+  function builtinInfo(name) {
+    if (!name) return null;
+    return BUILTINS[String(name).toUpperCase().replace(/[!%&$]+$/g, "")] || null;
+  }
 
   function isIdentStart(c) {
     return (c >= "A" && c <= "Z") || (c >= "a" && c <= "z") || c === "_";
@@ -350,6 +376,10 @@
         this.expect("RPAREN");
         return { type: "Point", x: x, y: y };
       }
+      // RND without (): AmigaBASIC / ACE allow bare RND
+      if (builtinInfo(name) && upper.replace(/[!%&$]+$/g, "") === "RND" && !this.at("LPAREN")) {
+        return { type: "Builtin", name: "RND", args: [] };
+      }
       return { type: "Var", name: name };
     }
     if (this.at("LPAREN")) {
@@ -502,10 +532,29 @@
   Parser.prototype.parseWhile = function () {
     this.expect("KW", "WHILE");
     const cond = this.parseExpr();
+    // Support WHILE cond:stmt:WEND on one line (e.g. while inkey$="":wend).
+    const body = [];
+    if (this.at("COLON")) {
+      while (this.at("COLON")) {
+        this.eat();
+        if (this.atKw("WEND") || this.at("EOL") || this.at("EOF")) break;
+        body.push(this.parseStatementContent());
+        // Nested colons inside the single-line body
+        while (this.at("COLON")) {
+          this.eat();
+          if (this.atKw("WEND") || this.at("EOL") || this.at("EOF")) break;
+          body.push(this.parseStatementContent());
+        }
+      }
+      if (this.atKw("WEND")) {
+        this.eat();
+        return { type: "While", cond: cond, body: body };
+      }
+    }
     this.skipEols();
-    const body = this.parseBlockUntil(["WEND"]);
+    const more = this.parseBlockUntil(["WEND"]);
     this.expect("KW", "WEND");
-    return { type: "While", cond: cond, body: body };
+    return { type: "While", cond: cond, body: body.concat(more) };
   };
 
   Parser.prototype.parseRepeat = function () {
@@ -772,6 +821,16 @@
     return { type: "Cls" };
   };
 
+  /** RANDOMIZE [expression] — seed RNG (RANDOMIZE TIMER is common). */
+  Parser.prototype.parseRandomize = function () {
+    this.expect("KW", "RANDOMIZE");
+    let seed = null;
+    if (!(this.at("EOL") || this.at("EOF") || this.at("COLON") || this.atKw("ELSE") || this.atKw("UNTIL"))) {
+      seed = this.parseExpr();
+    }
+    return { type: "Randomize", seed: seed };
+  };
+
   /** COLOR fgnd[,bgnd] */
   Parser.prototype.parseColor = function () {
     this.expect("KW", "COLOR");
@@ -949,6 +1008,7 @@
     if (this.atKw("SCREEN")) return this.parseScreen();
     if (this.atKw("SLEEP")) return this.parseSleep();
     if (this.atKw("CLS")) return this.parseCls();
+    if (this.atKw("RANDOMIZE")) return this.parseRandomize();
     if (this.atKw("COLOR")) return this.parseColor();
     if (this.atKw("PALETTE")) return this.parsePalette();
     if (this.atKw("LOCATE")) return this.parseLocate();
@@ -1074,6 +1134,11 @@
       case "ScreenFunc": return "rt.screenFunc(" + this.expr(node.arg) + ")";
       case "Point":
         return "rt.point(" + this.expr(node.x) + ", " + this.expr(node.y) + ")";
+      case "Builtin": {
+        const info = builtinInfo(node.name);
+        const rtName = info ? info.rt : String(node.name).toLowerCase();
+        return "rt." + rtName + "(" + (node.args || []).map(this.expr.bind(this)).join(", ") + ")";
+      }
       case "Unary":
         if (node.op === "-") return "(-(" + this.expr(node.expr) + "))";
         if (node.op === "NOT") return "(((" + this.expr(node.expr) + ")===0)?-1:0)";
@@ -1104,6 +1169,10 @@
         if (node.callee.type === "Timer") return "rt.timer()";
         if (node.callee.type === "Var") {
           const n = node.callee.name;
+          const bi = builtinInfo(n);
+          if (bi) {
+            return "rt." + bi.rt + "(" + node.args.map(this.expr.bind(this)).join(", ") + ")";
+          }
           // array index vs function: if known sub, call; else array
           if (this.subs[n.toLowerCase()]) {
             return jsName(n) + "(" + node.args.map(this.expr.bind(this)).join(", ") + ")";
@@ -1170,6 +1239,8 @@
         return ind + "await rt.sleep();";
       case "Cls":
         return ind + "rt.cls();";
+      case "Randomize":
+        return ind + "rt.randomize(" + (stmt.seed ? this.expr(stmt.seed) : "null") + ");";
       case "Color":
         return ind + "rt.color(" + this.expr(stmt.fg) +
           (stmt.bg ? ", " + this.expr(stmt.bg) : "") + ");";
@@ -1347,6 +1418,7 @@
     // Better: prepend `const vars = Object.create(null)` and rewrite — too heavy.
     // Use `let` declarations collected from scan:
     const names = Object.create(null);
+    const subs = this.subs;
     function scan(node) {
       if (!node) return;
       if (Array.isArray(node)) { node.forEach(scan); return; }
@@ -1354,7 +1426,7 @@
       if (node.type === "Var" || node.type === "Assign" || node.type === "Inc" || node.type === "Dim" ||
           node.type === "AssignIndex" || node.type === "For" || node.type === "CallStmt" ||
           node.type === "Input") {
-        if (node.name) names[jsName(node.name)] = 1;
+        if (node.name && !builtinInfo(node.name)) names[jsName(node.name)] = 1;
       }
       if (node.type === "Const") {
         node.items.forEach(function (it) { names[jsName(it.name)] = 1; });
@@ -1363,7 +1435,11 @@
         node.names.forEach(function (n) { names[jsName(n)] = 1; });
       }
       if (node.type === "Call" && node.callee && node.callee.type === "Var") {
-        names[jsName(node.callee.name)] = 1;
+        const cname = node.callee.name;
+        if (!builtinInfo(cname) && !subs[cname.toLowerCase()]) {
+          // Likely an array reference — declare storage
+          names[jsName(cname)] = 1;
+        }
       }
       Object.keys(node).forEach(function (k) {
         if (k === "type") return;

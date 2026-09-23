@@ -89,8 +89,10 @@ Precedence from the Programmer’s Guide (high → low):
 
 | Item | Status |
 |---|---|
-| Arithmetic + relational for seed math | `next` |
-| Boolean `AND` / `OR` / `NOT` | `next` |
+| Arithmetic + relational for seed math | done |
+| Boolean `AND` / `OR` / `NOT` | done |
+| Math builtins (`ABS` `INT` `SQR` `SIN` `COS` `RND` …) | done (Phase 5.5) |
+| `RANDOMIZE` | done (Phase 5.5) |
 | String concatenation / `$` functions | `later` (after console I/O) |
 | `@` address-of / indirection | `later` |
 | `SHL` / `SHR` | `later` |
@@ -159,6 +161,7 @@ Precedence from the Programmer’s Guide (high → low):
 | Item | Status |
 |---|---|
 | `LINE` `PSET` `CIRCLE` `COLOR` `PALETTE` `POINT` | done (Phase 5; square-pixel CIRCLE aspect default 1.0) |
+| Coloured window `PRINT` / `LOCATE` (fg/bg pens) | done (Phase 5.5; absolute text runs) |
 | `PAINT` `AREA` `AREAFILL` `PATTERN` `SCROLL` | Phase 5+ / as examples demand |
 | Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `HOME` …) | `later` |
 | `IFF` / images | `later` |

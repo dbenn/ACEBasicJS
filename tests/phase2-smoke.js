@@ -286,6 +286,71 @@ async function main() {
     if (!/^    Hi/.test(lines[2])) throw new Error("locate pad failed: " + JSON.stringify(lines[2]));
   });
 
+  await check("math builtins SQR INT ABS RND", async function () {
+    const r = await runSource(ACE, "PRINT SQR(9)\nPRINT INT(3.7)\nPRINT ABS(-4)\nRANDOMIZE 1\nPRINT RND(0)*0+1\n");
+    if (r.error) throw r.error;
+    if (!/ 3 /.test(r.lines[0])) throw new Error("SQR: " + r.text);
+    if (!/ 3 /.test(r.lines[1])) throw new Error("INT: " + r.text);
+    if (!/ 4 /.test(r.lines[2])) throw new Error("ABS: " + r.text);
+  });
+
+  await check("bare RND is not a variable", async function () {
+    const compiled = ACE.compile("x=rnd*10\nPRINT x\n");
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (/let __v_rnd/.test(compiled.js)) throw new Error("RND declared as var: " + compiled.js);
+    if (!/rt\.rnd\(\)/.test(compiled.js)) throw new Error("missing rt.rnd: " + compiled.js);
+  });
+
+  await check("examples/ahl.b", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/ahl.b"), "utf8");
+    const r = await runSource(ACE, src);
+    if (r.error) throw r.error.stack || r.error;
+    const joined = r.lines.join("\n");
+    if (!/Time in seconds =/.test(joined)) throw new Error(joined);
+    if (!/Accuracy =/.test(joined)) throw new Error(joined);
+    if (!/Random =/.test(joined)) throw new Error(joined);
+  });
+
+  await check("examples/fact.b", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/fact.b"), "utf8");
+    const r = await runSource(ACE, src, ["5", "-1"]);
+    if (r.error) throw r.error.stack || r.error;
+    if (!/-->> 120 /.test(r.text)) throw new Error(r.text);
+  });
+
+  await check("examples/hi.b compiles with RND/COLOR", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/hi.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/rt\.rnd\(/.test(compiled.js)) throw new Error("missing rnd");
+    if (!/rt\.color\(/.test(compiled.js)) throw new Error("missing color");
+    if (!/rt\.locate\(/.test(compiled.js)) throw new Error("missing locate");
+  });
+
+  await check("examples/lines.b draws with RANDOMIZE", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/lines.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/rt\.randomize\(/.test(compiled.js)) throw new Error("missing randomize");
+    if (!/rt\.int\(/.test(compiled.js)) throw new Error("missing int");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 80); });
+    const text = rt.windowText(1);
+    if (!/Time elapsed:/.test(text)) throw new Error("missing timing: " + text);
+    // Some ink should have been plotted.
+    let ink = 0;
+    for (let y = 0; y < 200 && ink === 0; y++) {
+      for (let x = 0; x < 640; x++) {
+        if (rt.point(x, y) === 2) { ink = 1; break; }
+      }
+    }
+    if (!ink) throw new Error("no line pixels drawn");
+    rt.stop();
+    await runPromise;
+  });
+
   if (failed) {
     console.error(failed + " failed");
     process.exit(1);
