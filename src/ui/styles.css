@@ -276,6 +276,25 @@ button:disabled {
   background: #ddd;
   white-space: pre-wrap;
   word-break: break-word;
+  position: relative;
+}
+
+.ace-committed {
+  display: inline;
+  white-space: pre-wrap;
+}
+
+.ace-content .live-input {
+  color: #111;
+}
+
+.ace-content .caret {
+  background: #111;
+}
+
+.ace-content.awaiting-input {
+  cursor: text;
+  box-shadow: inset 0 0 0 2px var(--wb-orange);
 }
 
 .ace-window.borderless .ace-content {
@@ -284,8 +303,26 @@ button:disabled {
   pointer-events: none;
 }
 
+.ace-window.borderless .ace-content .live-input {
+  color: #fff;
+}
+
+.ace-window.borderless .ace-content .caret {
+  background: #fff;
+}
+
 .output-panel.intui-active .console {
   max-height: 30%;
+}
+
+/* While INPUT is mounted in a window, tuck the empty CLI console away. */
+.output-panel.input-in-window .console {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+  border: 0;
+  flex: 0;
 }
 
 /* Single shell surface: PRINT output + in-place INPUT (Amiga CLI feel). */

@@ -10,7 +10,8 @@ expectations below (observable results in the host output / runtime).
 |---|---|---|---|---|
 | `hello` | `hello.b` | ACEBasicJS Phase 0 | Trivial `PRINT` smoke test | Two lines: `Hello from ACEBasicJS` then `Edit me, then Run again.` |
 | `window` | `window.b` | ACEBasicJS Phase 4 | `SCREEN` / `WINDOW` chrome + `PRINT` into window | Opens a 320×200 screen and titled window; text appears in the window. Close gadget (or Stop) ends the wait loop. |
-| `input` | `input.b` | ACEBasicJS Phase 3 | Interactive `INPUT` (prompt + `? `, string and number) | Asks for name then number; echoes greeting and double. Type answers in the unified console (Enter to submit). |
+| `window-input` | `window-input.b` | ACEBasicJS Phase 4.5 | `INPUT` on the same window surface as `PRINT` | Prompts in the window; type after the prompt, Enter to submit; echoes greeting and double. |
+| `input` | `input.b` | ACEBasicJS Phase 3 | Interactive `INPUT` (prompt + `? `, string and number) | Asks for name then number; echoes greeting and double. Type in the unified console (Enter to submit). |
 | `loops` | `loops.b` | vidarh `prgs/BenchMarks/loops.b` | Nested `FOR`, `WHILE`, `REPEAT` / `UNTIL`, `CONST`, `TIMER` | Prints timing lines for FOR / WHILE / REPEAT (five passes). Exact seconds may differ; structure and labels matter. |
 | `sieve` | `sieve.b` | vidarh `prgs/BenchMarks/sieve.b` | `DIM`, `FOR`, `IF`, `GOTO`, line numbers | Banner about byte sieve; runs five passes over flags; prints timing. |
 | `ackermann` | `ackermann.b` | vidarh `prgs/BenchMarks/Ackermann.b` | `SUB`, recursion, `EXIT SUB`, return via name | Computes Ackermann values for the printed table; recursive depth must work. |
@@ -25,5 +26,5 @@ expectations below (observable results in the host output / runtime).
 ## Notes
 
 - Comments starting with `'..` or `REM` are ignored.
-- Node smoke tests feed `INPUT` via `inputLines` on the runtime; the browser uses the Display panel’s unified console (Enter to submit).
+- Node smoke tests feed `INPUT` via `inputLines` on the runtime; the browser types on the active text surface (console or current window) and presses Enter to submit.
 - Phase 4 Intuition programs draw into the Display panel’s screen host; CLI programs still use the console surface below.

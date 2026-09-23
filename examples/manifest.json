@@ -12,10 +12,16 @@
     "notes": "Phase 4 — Intuition window chrome; close gadget quits"
   },
   {
+    "id": "window-input",
+    "title": "WINDOW + INPUT",
+    "path": "examples/window-input.b",
+    "notes": "Phase 4.5 — type in the window, Enter to submit"
+  },
+  {
     "id": "input",
     "title": "INPUT demo",
     "path": "examples/input.b",
-    "notes": "Phase 3 — interactive INPUT"
+    "notes": "Phase 3 — interactive INPUT (console; Enter to submit)"
   },
   {
     "id": "loops",

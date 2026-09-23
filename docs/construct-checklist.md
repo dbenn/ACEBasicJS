@@ -133,7 +133,7 @@ Precedence from the Programmer’s Guide (high → low):
 | Item | Status |
 |---|---|
 | `PRINT` / `PRINTS` | done (`PRINT`; `PRINTS` later) |
-| `INPUT` | done (Phase 3 — async prompt; string/`$` vs numeric) |
+| `INPUT` | done (Phase 3 console + Phase 4.5 in-window; Enter submits) |
 | `LINE INPUT` / `INPUT$` / `INKEY$` | Phase 3+ / as examples demand |
 | `CLS` / `LOCATE` / `CSRLIN` / `POS` / `TAB` / `SPC` | Phase 3+ |
 | `ASC` `CHR$` `LEFT$` `RIGHT$` `MID$` `LEN` `VAL` `STR$` `UCASE$` … | As examples demand |
@@ -145,7 +145,7 @@ Precedence from the Programmer’s Guide (high → low):
 
 | Item | Status |
 |---|---|
-| `WINDOW` / `WINDOW CLOSE` / `SCREEN` / `SCREEN CLOSE` | done (Phase 4 — chrome + PRINT-to-window) |
+| `WINDOW` / `WINDOW CLOSE` / `SCREEN` / `SCREEN CLOSE` | done (Phase 4 chrome + PRINT; Phase 4.5 INPUT-in-window) |
 | `WINDOW OUTPUT` / `WINDOW(n)` / `SCREEN(n)` | done (subset) |
 | `SLEEP` | done (IntuiTick-style yield; close/key wakes) |
 | `MENU` / `GADGET` / `BUTTON` / `BEVELBOX` | Phase 4+ |

@@ -47,7 +47,9 @@
       const w = currentWindowId && windows[currentWindowId];
       if (intuiMode && w) {
         w.text += text;
-        if (w.contentEl) w.contentEl.textContent = w.text;
+        // Update committed text only — leave live INPUT draft / caret siblings intact.
+        if (w.committedEl) w.committedEl.textContent = w.text;
+        else if (w.contentEl) w.contentEl.textContent = w.text;
         return;
       }
       if (output) output.textContent += text;
@@ -57,6 +59,13 @@
         write._buf = parts.pop();
         for (let i = 0; i < parts.length; i++) console.log(parts[i]);
       }
+    }
+
+    /** Active text surface for host INPUT UX: window content, or null → CLI console. */
+    function activeTextSurface() {
+      if (!intuiMode || !currentWindowId) return null;
+      const w = windows[currentWindowId];
+      return w && w.contentEl ? w.contentEl : null;
     }
 
     function clearOutput() {
@@ -129,7 +138,12 @@
           },
           reject: reject,
         };
-        if (onInputRequest) onInputRequest(p);
+        if (onInputRequest) {
+          onInputRequest(p, {
+            intuiMode: intuiMode,
+            windowId: currentWindowId,
+          });
+        }
       });
     }
 
@@ -240,9 +254,13 @@
 
       const content = document.createElement("pre");
       content.className = "ace-content";
-      content.textContent = win.text;
+      const committed = document.createElement("span");
+      committed.className = "ace-committed";
+      committed.textContent = win.text;
+      content.appendChild(committed);
       el.appendChild(content);
       win.contentEl = content;
+      win.committedEl = committed;
       win.el = el;
       host.appendChild(el);
       return el;
@@ -352,6 +370,7 @@
         text: "",
         el: null,
         contentEl: null,
+        committedEl: null,
         fgd: 1,
         bgd: 0,
       };
@@ -556,6 +575,7 @@
       inkey: inkey,
       pushKey: pushKey,
       windowText: windowText,
+      activeTextSurface: activeTextSurface,
       get stopped() {
         return stopped;
       },
@@ -564,6 +584,9 @@
       },
       get intuiMode() {
         return intuiMode;
+      },
+      get currentWindowId() {
+        return currentWindowId;
       },
     };
   }

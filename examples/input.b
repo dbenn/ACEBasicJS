@@ -1,5 +1,5 @@
 '.. Phase 3.5: unified console INPUT demo.
-'.. Type in the console after the prompt (Amiga CLI feel).
+'.. Type after the prompt, then press Enter to submit (Amiga CLI feel).
 
 PRINT "ACEBasicJS INPUT demo"
 INPUT "Your name"; name$

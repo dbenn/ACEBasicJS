@@ -1,4 +1,4 @@
-/* ACEBasicJS host UI — picker + always-visible editable source + unified console. */
+/* ACEBasicJS host UI — picker + always-visible editable source + unified I/O. */
 (function () {
   "use strict";
 
@@ -17,28 +17,67 @@
 
   let runToken = 0;
   let awaitingInput = false;
+  /** @type {HTMLElement|null} surface holding live-input + caret (console or window) */
+  let inputMount = consoleEl;
 
   function syncLiveInput() {
     liveInput.textContent = consoleInput.value;
   }
 
-  function scrollConsoleToEnd() {
-    consoleEl.scrollTop = consoleEl.scrollHeight;
+  function scrollMountToEnd() {
+    if (!inputMount) return;
+    // Window content scrolls; console scrolls on itself.
+    const scroller = inputMount.classList && inputMount.classList.contains("ace-content")
+      ? inputMount
+      : consoleEl;
+    scroller.scrollTop = scroller.scrollHeight;
+  }
+
+  /** Mount live draft + caret + mirror field on the active text surface. */
+  function mountInputOnSurface(surface) {
+    const mount = surface || consoleEl;
+    inputMount = mount;
+    // Keep committed text first; append live draft after it.
+    mount.appendChild(liveInput);
+    mount.appendChild(caret);
+    mount.appendChild(consoleInput);
+    mount.classList.toggle("awaiting-input", awaitingInput);
+    if (mount !== consoleEl) consoleEl.classList.remove("awaiting-input");
+    else if (screensHost) {
+      // Clear awaiting mark on any prior window content.
+      const prev = screensHost.querySelectorAll(".ace-content.awaiting-input");
+      for (let i = 0; i < prev.length; i++) prev[i].classList.remove("awaiting-input");
+    }
   }
 
   function setInputEnabled(on) {
     awaitingInput = on;
     consoleInput.disabled = !on;
     caret.hidden = !on;
-    consoleEl.classList.toggle("awaiting-input", on);
     if (on) {
+      const surface = runtime.activeTextSurface();
+      mountInputOnSurface(surface);
+      if (outputPanel) {
+        outputPanel.classList.toggle("input-in-window", !!surface);
+      }
       consoleInput.value = "";
       syncLiveInput();
       consoleInput.focus();
-      scrollConsoleToEnd();
+      scrollMountToEnd();
+      setStatus(
+        surface
+          ? "Type in the window — press Enter to submit."
+          : "Type after the prompt — press Enter to submit.",
+        "info"
+      );
     } else {
+      if (inputMount) inputMount.classList.remove("awaiting-input");
+      if (outputPanel) outputPanel.classList.remove("input-in-window");
+      // Return draft chrome to the CLI console between runs / prompts.
+      mountInputOnSurface(consoleEl);
       consoleInput.value = "";
       syncLiveInput();
+      if (runBtn.disabled) setStatus("Running…", "info");
     }
   }
 
@@ -54,6 +93,13 @@
     onDisplayChange: function (info) {
       if (outputPanel) {
         outputPanel.classList.toggle("intui-active", !!(info && info.intuiMode));
+      }
+      // If a window opens while awaiting INPUT, remount onto that surface.
+      if (awaitingInput) {
+        const surface = runtime.activeTextSurface();
+        mountInputOnSurface(surface);
+        if (outputPanel) outputPanel.classList.toggle("input-in-window", !!surface);
+        consoleInput.focus();
       }
     },
   });
@@ -144,7 +190,16 @@
     consoleInput.value = "";
     syncLiveInput();
     runtime.provideInput(line);
-    scrollConsoleToEnd();
+    scrollMountToEnd();
+  }
+
+  function focusInputIfAwaiting(ev) {
+    if (!awaitingInput) return;
+    if (ev.target === consoleInput) return;
+    // Don't steal clicks from window gadgets (close / depth).
+    if (ev.target && ev.target.classList && ev.target.classList.contains("ace-gadget")) return;
+    ev.preventDefault();
+    consoleInput.focus();
   }
 
   picker.addEventListener("change", function () {
@@ -158,16 +213,14 @@
   });
   stopBtn.addEventListener("click", stopCurrent);
 
-  consoleEl.addEventListener("mousedown", function (ev) {
-    if (!awaitingInput) return;
-    if (ev.target === consoleInput) return;
-    ev.preventDefault();
-    consoleInput.focus();
-  });
+  consoleEl.addEventListener("mousedown", focusInputIfAwaiting);
+  if (screensHost) {
+    screensHost.addEventListener("mousedown", focusInputIfAwaiting);
+  }
 
   consoleInput.addEventListener("input", function () {
     syncLiveInput();
-    scrollConsoleToEnd();
+    scrollMountToEnd();
   });
 
   consoleInput.addEventListener("keydown", function (ev) {
@@ -177,9 +230,9 @@
     }
   });
 
-  // Keep typed characters visible in the shell line; mirror field stays for IME/mobile.
+  // Keep typed characters visible; scroll as PRINT / prompt text grows.
   const mo = typeof MutationObserver !== "undefined"
-    ? new MutationObserver(scrollConsoleToEnd)
+    ? new MutationObserver(scrollMountToEnd)
     : null;
   if (mo) mo.observe(output, { childList: true, characterData: true, subtree: true });
 

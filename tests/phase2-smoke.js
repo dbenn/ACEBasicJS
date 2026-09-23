@@ -199,6 +199,25 @@ async function main() {
     }
   });
 
+  await check("WINDOW + INPUT stays in window text", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/window-input.b"), "utf8");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink, inputLines: ["Ada", "7"] });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    // Program ends in WHILE/SLEEP; capture window text before close cleanup.
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 100); });
+    const text = rt.windowText(1);
+    if (!/Your name\? /.test(text)) throw new Error("missing name prompt: " + JSON.stringify(text));
+    if (!/Hello, Ada!/.test(text)) throw new Error("missing hello: " + JSON.stringify(text));
+    if (!/Favourite number\? /.test(text)) throw new Error("missing number prompt: " + JSON.stringify(text));
+    if (!/Double is 14 /.test(text)) throw new Error("missing double: " + JSON.stringify(text));
+    if (sink.textContent !== "") throw new Error("INPUT/PRINT leaked to console: " + JSON.stringify(sink.textContent));
+    rt.stop();
+    await runPromise;
+  });
+
   if (failed) {
     console.error(failed + " failed");
     process.exit(1);
