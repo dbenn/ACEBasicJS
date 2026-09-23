@@ -258,17 +258,26 @@
       const w = currentWindowId && windows[currentWindowId];
       if (intuiMode && w) {
         w.text += text;
-        // Update committed text only — leave live INPUT draft / caret siblings intact.
-        if (w.committedEl) w.committedEl.textContent = w.text;
-        else if (w.contentEl) w.contentEl.textContent = w.text;
-        // Advance text cursor roughly with newlines / chars.
+        // Visual: coloured absolute runs so COLOR fg,bg + LOCATE (hi.b) look right.
+        // Keep win.text as a plain buffer for windowText() / LOCATE padding.
+        if (w.committedEl && typeof document !== "undefined") {
+          paintWindowText(w, text);
+        } else if (w.committedEl) {
+          w.committedEl.textContent = w.text;
+        } else if (w.contentEl) {
+          w.contentEl.textContent = w.text;
+        }
+        // Advance text cursor / graphics pen with newlines / chars.
         for (let i = 0; i < text.length; i++) {
           const ch = text.charAt(i);
           if (ch === "\n") {
             w.cursorRow++;
             w.cursorCol = 1;
+            w.penX = 0;
+            w.penY = (w.cursorRow - 1) * FONT_H;
           } else {
             w.cursorCol++;
+            w.penX += FONT_W;
           }
         }
         return;
@@ -280,6 +289,51 @@
         write._buf = parts.pop();
         for (let i = 0; i < parts.length; i++) console.log(parts[i]);
       }
+    }
+
+    /**
+     * Paint PRINT into the window as absolutely positioned coloured spans.
+     * LOCATE sets penX/penY; each run keeps its COLOR pens.
+     */
+    function paintWindowText(win, text) {
+      if (!win.committedEl || !text) return;
+      let x = win.penX;
+      let y = win.penY;
+      let buf = "";
+      let bufX = x;
+      let bufY = y;
+      const fg = penColor(win, win.fgd);
+      const bg = penColor(win, win.bgd);
+      function flush() {
+        if (!buf) return;
+        const span = document.createElement("span");
+        span.className = "ace-text-run";
+        span.style.left = bufX + "px";
+        span.style.top = bufY + "px";
+        span.style.color = fg;
+        span.style.backgroundColor = bg;
+        span.textContent = buf;
+        win.committedEl.appendChild(span);
+        buf = "";
+      }
+      for (let i = 0; i < text.length; i++) {
+        const ch = text.charAt(i);
+        if (ch === "\n") {
+          flush();
+          x = 0;
+          y += FONT_H;
+          bufX = x;
+          bufY = y;
+        } else {
+          if (!buf) {
+            bufX = x;
+            bufY = y;
+          }
+          buf += ch;
+          x += FONT_W;
+        }
+      }
+      flush();
     }
 
     /** Active text surface for host INPUT UX: window content, or null → CLI console. */
@@ -377,6 +431,72 @@
     function timer() {
       return (Date.now() - startMs) / 1000;
     }
+
+    // --- Math builtins (ACE Language Reference) ---
+    let rngState = (Date.now() ^ 0x9e3779b9) >>> 0;
+    let lastRnd = 0;
+
+    function nextUnitRandom() {
+      // xorshift32 → [0, 1)
+      let x = rngState || 1;
+      x ^= x << 13;
+      x ^= x >>> 17;
+      x ^= x << 5;
+      rngState = x >>> 0;
+      lastRnd = (rngState >>> 0) / 4294967296;
+      return lastRnd;
+    }
+
+    function randomize(seed) {
+      if (seed == null || seed === undefined) {
+        rngState = (Date.now() ^ 0x9e3779b9) >>> 0;
+        return;
+      }
+      let s = Number(seed);
+      if (!isFinite(s)) s = Date.now();
+      // Mix float seeds (e.g. TIMER) into a 32-bit state.
+      rngState = (Math.floor(Math.abs(s) * 1000000) ^ 0xA5A5A5A5) >>> 0;
+      if (!rngState) rngState = 1;
+    }
+
+    function rnd(n) {
+      // AmigaBASIC: RND or RND(positive) → next; RND(0) → last; RND(negative) → reseed
+      if (arguments.length === 0 || n == null || n === undefined) return nextUnitRandom();
+      const v = Number(n);
+      if (v < 0) {
+        randomize(v);
+        return nextUnitRandom();
+      }
+      if (v === 0) return lastRnd;
+      return nextUnitRandom();
+    }
+
+    function abs(n) { return Math.abs(Number(n)); }
+    function atn(n) { return Math.atan(Number(n)); }
+    function cos(n) { return Math.cos(Number(n)); }
+    function sin(n) { return Math.sin(Number(n)); }
+    function tan(n) { return Math.tan(Number(n)); }
+    function exp(n) { return Math.exp(Number(n)); }
+    function log(n) { return Math.log(Number(n)); }
+    function sqr(n) { return Math.sqrt(Number(n)); }
+    function sgn(n) {
+      const v = Number(n);
+      if (v > 0) return 1;
+      if (v < 0) return -1;
+      return 0;
+    }
+    /** INT: greatest integer ≤ n (floor). */
+    function int(n) { return Math.floor(Number(n)); }
+    /** FIX: truncate toward zero. */
+    function fix(n) { return Math.trunc(Number(n)); }
+    /** CINT: round; .5 always rounds up (ACE). */
+    function cint(n) {
+      const v = Number(n);
+      const f = v - Math.floor(v);
+      if (f === 0.5) return Math.floor(v) + 1;
+      return Math.round(v);
+    }
+    function clng(n) { return cint(n); }
 
     function ensureScreensHostVisible() {
       if (screensHost) {
@@ -751,8 +871,11 @@
         return;
       }
       win.text = "";
-      if (win.committedEl) win.committedEl.textContent = "";
-      else if (win.contentEl) win.contentEl.textContent = "";
+      if (win.committedEl) {
+        win.committedEl.textContent = "";
+        // Drop coloured absolute runs from prior PRINTs.
+        while (win.committedEl.firstChild) win.committedEl.removeChild(win.committedEl.firstChild);
+      } else if (win.contentEl) win.contentEl.textContent = "";
       win.cursorRow = 1;
       win.cursorCol = 1;
       win.penX = 0;
@@ -799,7 +922,7 @@
       win.cursorCol = c;
       win.penX = (c - 1) * FONT_W;
       win.penY = (r - 1) * FONT_H;
-      // Pad text buffer so the next PRINT appears at (row,col).
+      // Pad text buffer so windowText() reflects LOCATE (display uses absolute runs).
       const lines = win.text.split("\n");
       while (lines.length < r) lines.push("");
       const target = r - 1;
@@ -809,8 +932,6 @@
       lines[target] = line;
       // Keep trailing lines intact (LOCATE does not erase).
       win.text = lines.join("\n");
-      if (win.committedEl) win.committedEl.textContent = win.text;
-      else if (win.contentEl) win.contentEl.textContent = win.text;
     }
 
     function line(step, x1, y1, x2, y2, colorId, box) {
@@ -1007,6 +1128,21 @@
       windowText: windowText,
       windowPixel: windowPixel,
       activeTextSurface: activeTextSurface,
+      randomize: randomize,
+      rnd: rnd,
+      abs: abs,
+      atn: atn,
+      cos: cos,
+      sin: sin,
+      tan: tan,
+      exp: exp,
+      log: log,
+      sqr: sqr,
+      sgn: sgn,
+      int: int,
+      fix: fix,
+      cint: cint,
+      clng: clng,
       get stopped() {
         return stopped;
       },

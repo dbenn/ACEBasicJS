@@ -6,6 +6,12 @@
     "notes": "PRINT smoke test — see examples/README.md"
   },
   {
+    "id": "hi",
+    "title": "Hi There! (RND/COLOR)",
+    "path": "examples/hi.b",
+    "notes": "Math builtins — RND + COLOR/LOCATE text spray; press q"
+  },
+  {
     "id": "window",
     "title": "WINDOW / SCREEN",
     "path": "examples/window.b",
@@ -24,10 +30,28 @@
     "notes": "Phase 5 — RastPort LINE / BOX / CIRCLE / PSET / PALETTE"
   },
   {
+    "id": "lines",
+    "title": "Lines benchmark",
+    "path": "examples/lines.b",
+    "notes": "RANDOMIZE / RND / INT + LINE; press a key when done"
+  },
+  {
     "id": "input",
     "title": "INPUT demo",
     "path": "examples/input.b",
     "notes": "Phase 3 — interactive INPUT (console; Enter to submit)"
+  },
+  {
+    "id": "fact",
+    "title": "Factorial",
+    "path": "examples/fact.b",
+    "notes": "Recursive SUB + INPUT"
+  },
+  {
+    "id": "ahl",
+    "title": "Ahl benchmark",
+    "path": "examples/ahl.b",
+    "notes": "SQR / RND / ABS math builtins"
   },
   {
     "id": "loops",
