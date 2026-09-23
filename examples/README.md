@@ -13,6 +13,7 @@ expectations below (observable results in the host output / runtime).
 | `window` | `window.b` | ACEBasicJS Phase 4 | `SCREEN` / `WINDOW` chrome + `PRINT` into window | Opens a 320×200 screen and titled window; text appears in the window. Close gadget (or Stop) ends the wait loop. |
 | `window-input` | `window-input.b` | ACEBasicJS Phase 4.5 | `INPUT` on the same window surface as `PRINT` | Prompts in the window; type after the prompt, Enter to submit; echoes greeting and double. |
 | `graphics` | `graphics.b` | ACEBasicJS Phase 5 | RastPort `LINE` / `CIRCLE` / `PSET` / `COLOR` / `PALETTE` / `LOCATE` | Opens a 320×200 screen; draws lines, boxes, circles; wait for a key or close. |
+| `sound` | `sound.b` | ACEBasicJS Phase 6 (from vidarh `Sound/sound.b`) | `WAVE SIN`, `SOUND`, `BEEP` via Web Audio | Prints status lines and plays tones / a period sweep. Unmute the browser tab. |
 | `lines` | `lines.b` | vidarh `prgs/BenchMarks/lines.b` | `RANDOMIZE`, `RND`, `INT` + `LINE` | Draws random lines; prints elapsed seconds; press a key to quit. |
 | `input` | `input.b` | ACEBasicJS Phase 3 | Interactive `INPUT` (prompt + `? `, string and number) | Asks for name then number; echoes greeting and double. Type in the unified console (Enter to submit). |
 | `fact` | `fact.b` | vidarh `prgs/Misc/fact.b` | Recursive `SUB` + console `INPUT` | Prompts for integers; prints factorials until `-1`. |

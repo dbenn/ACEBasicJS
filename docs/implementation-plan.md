@@ -172,9 +172,17 @@ Also: single-line `WHILE cond:…:WEND`, and window `PRINT` as absolutely positi
 
 **Done when:** ~~hi / ahl / lines / fact compile and pass smoke checks.~~
 
-### Phase 6+ — Audio, speech, files, corpus climb
+### Phase 6 — SOUND / WAVE (Web Audio)
 
-Follow the ordering in `design_deac.md` (SOUND/WAVE/PLAY → SAY → sequential files via IndexedDB), unlocking vidarh `prgs/Gfx`, `GUI`, `IO`, etc. one example at a time.
+~~`SOUND` / `WAVE SIN` / `BEEP`~~ — Paula-style period (124..32767), duration 18.2 ≈ 1s, volume 0..64, voices 0..3. Frequency = `3579546 / (period * 32)` for ACE’s 32-byte sine table. Demo: `examples/sound.b`.
+
+Still deferred: `WAVE` with `ALLOC`/`POKE` sample memory (white noise / 8SVX `play.b`), tracker modules.
+
+**Done when:** ~~tones play in-page after Run (user gesture); smoke tests log SOUND calls.~~
+
+### Phase 7+ — Speech, files, corpus climb
+
+Follow the ordering in `design_deac.md` (SAY → sequential files via IndexedDB), unlocking vidarh `prgs/Gfx`, `GUI`, `IO`, etc. one example at a time.
 
 Each newly passing distribution example is a milestone; do not expand the grammar ahead of failing examples.
 
@@ -216,7 +224,8 @@ The C compiler is a reference oracle during development, not the acceptance comp
 9. ~~Phase 4.5: windowed `INPUT`~~ (same surface as `PRINT`; Enter submits; `examples/window-input.b`)
 10. ~~Phase 5: RastPort graphics~~ (`LINE` / `CIRCLE` / `PSET` / `COLOR` / `PALETTE`; see `examples/graphics.b`)
 11. ~~Phase 5.5: math builtins~~ (`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS`; `hi.b` / `ahl.b` / `lines.b` / `fact.b`)
-12. **Phase 6+:** audio / speech / files, then climb the vidarh corpus example by example
+12. ~~Phase 6: SOUND / WAVE~~ (`WAVE SIN`, `SOUND`, `BEEP`; see `examples/sound.b`)
+13. **Phase 7+:** speech / files, then climb the vidarh corpus example by example
 
 ---
 

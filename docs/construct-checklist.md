@@ -173,7 +173,7 @@ Precedence from the Programmer’s Guide (high → low):
 
 | Item | Status |
 |---|---|
-| `SOUND` / `WAVE` / `SAY` / `TRANSLATE$` | Phases 6–7 |
+| `SOUND` / `WAVE` / `SAY` / `TRANSLATE$` | `SOUND`/`WAVE SIN`/`BEEP` done (Phase 6); `SAY` Phase 7 |
 | Tracker / sample detail | As examples demand |
 
 ---
