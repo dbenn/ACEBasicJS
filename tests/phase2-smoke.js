@@ -593,16 +593,28 @@ async function main() {
     const runPromise = ACE.run(compiled, rt);
     await new Promise(function (r) { setTimeout(r, 150); });
     const text = rt.windowText(1);
-    if (!/depth of tree is/.test(text)) throw new Error("missing depth text: " + text);
+    if (!/branch length is/.test(text)) throw new Error("missing length text: " + text);
     if (!/press 'q'/.test(text)) throw new Error("tree never reached quit prompt: " + text);
-    // Depth 5 draws a short trunk; sample near the setxy start.
+    rt.stop();
+    await runPromise;
+  });
+
+  await check("examples/Turtle/tree.b length 40 draws visible tree", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Turtle/tree.b"), "utf8");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink, inputLines: ["40"] });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 200); });
     let ink = 0;
-    for (let y = 140; y < 160; y++) {
-      for (let x = 300; x < 340; x++) {
+    for (let y = 0; y < 200; y++) {
+      for (let x = 300; x < 500; x++) {
         if (rt.windowPixel(1, x, y) === 1) ink++;
       }
     }
-    if (ink < 5) throw new Error("expected tree ink near root, got " + ink);
+    // Length 40 yields a clear fractal (thousands of pixels); 5 is only ~12.
+    if (ink < 500) throw new Error("expected visible tree ink, got " + ink);
     rt.stop();
     await runPromise;
   });

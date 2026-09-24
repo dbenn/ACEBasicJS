@@ -1,6 +1,7 @@
 ' Turtle/tree.b — recursive binary tree (vidarh ACE prgs/Turtle/tree.b)
-' CLI ARGCOUNT/ARG$ omitted; always prompts for depth in-browser.
-' Press q (or Stop) to quit.
+' "Depth" here is initial branch length in pixels (ACE original).
+' Base case is n<5, so try ~40 (not 5). Press q (or Stop) to quit.
+' CLI ARGCOUNT/ARG$ omitted; always prompts in-browser.
 
 SUB tree(n)
   IF n<5 THEN EXIT SUB
@@ -22,10 +23,10 @@ COLOR 1,0
 
 CLS
 LOCATE 3,1
-INPUT "enter depth: ",depth
+INPUT "branch length (try 40): ",depth
 CLS
 LOCATE 3,1
-PRINT "depth of tree is"
+PRINT "branch length is"
 PRINT depth
 
 PENUP
