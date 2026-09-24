@@ -197,7 +197,23 @@
       return win.indices[yi * win.rpW + xi];
     }
 
-    /** Bresenham line into indexed buffer. */
+    /** Amiga area-pattern bit: MSB of each 16-bit word is leftmost pixel. */
+    function areaPatBit(win, x, y) {
+      const pat = win.areaPat;
+      if (!pat || !pat.length) return 1;
+      const h = pat.length;
+      const row = (pat[((y % h) + h) % h] | 0) & 0xffff;
+      const bit = 15 - (x & 15);
+      return (row >> bit) & 1;
+    }
+
+    /** Plot with area pattern: bit1 → fg (APen), bit0 → bg (BPen). */
+    function plotPatterned(win, x, y, fg, bg) {
+      if (areaPatBit(win, x | 0, y | 0)) plotIndex(win, x, y, fg);
+      else if (bg != null) plotIndex(win, x, y, bg);
+    }
+
+    /** Bresenham line into indexed buffer (honours line pattern). */
     function drawLineIndices(win, x0, y0, x1, y1, colorId) {
       let x = x0 | 0;
       let y = y0 | 0;
@@ -208,8 +224,11 @@
       const sx = x < xEnd ? 1 : -1;
       const sy = y < yEnd ? 1 : -1;
       let err = dx - dy;
+      let pat = win.linePat != null ? (win.linePat & 0xffff) : 0xffff;
+      let patCnt = win.linePatCnt != null ? win.linePatCnt : 15;
       for (;;) {
-        plotIndex(win, x, y, colorId);
+        if ((pat >> patCnt) & 1) plotIndex(win, x, y, colorId);
+        patCnt = (patCnt - 1) & 15;
         if (x === xEnd && y === yEnd) break;
         const e2 = 2 * err;
         if (e2 > -dy) {
@@ -221,6 +240,7 @@
           y += sy;
         }
       }
+      win.linePatCnt = patCnt;
     }
 
     function fillRectIndices(win, x1, y1, x2, y2, colorId) {
@@ -228,8 +248,15 @@
       const right = Math.max(x1, x2) | 0;
       const top = Math.min(y1, y2) | 0;
       const bottom = Math.max(y1, y2) | 0;
+      const fg = colorId & 255;
+      const bg = win.bgd & 255;
+      const solid = !win.areaPat || win.areaPat.length === 0 ||
+        (win.areaPat.length === 1 && (win.areaPat[0] & 0xffff) === 0xffff);
       for (let y = top; y <= bottom; y++) {
-        for (let x = left; x <= right; x++) plotIndex(win, x, y, colorId);
+        for (let x = left; x <= right; x++) {
+          if (solid) plotIndex(win, x, y, fg);
+          else plotPatterned(win, x, y, fg, bg);
+        }
       }
     }
 
@@ -627,6 +654,12 @@
       win.penY = 0;
       win.cursorRow = 1;
       win.cursorCol = 1;
+      win.linePat = 0xffff;
+      win.linePatCnt = 15;
+      win.areaPat = [0xffff];
+      win.areaPts = [];
+      win.lastAreaX = 0;
+      win.lastAreaY = 0;
       // Fill with background pen.
       const bg = win.bgd & 255;
       for (let i = 0; i < win.indices.length; i++) win.indices[i] = bg;
@@ -839,6 +872,12 @@
         cursorCol: 1,
         fgd: 1,
         bgd: 0,
+        linePat: 0xffff,
+        linePatCnt: 15,
+        areaPat: [0xffff],
+        areaPts: [],
+        lastAreaX: 0,
+        lastAreaY: 0,
       };
       if (sid >= 1 && !screens[sid]) {
         // Implicit mini-screen so WINDOW alone still shows chrome.
@@ -1090,6 +1129,150 @@
       const win = currentWin();
       if (!win) return -1;
       return getIndex(win, Number(x), Number(y));
+    }
+
+    /**
+     * PATTERN [line-pattern][,area-array] — Amiga SetDrPt / SetAfPt.
+     * linePat null → leave line pattern (or restore default if only area given).
+     * areaArr null → leave area pattern.
+     */
+    function pattern(linePat, areaArr) {
+      const win = currentWin();
+      if (!win) return;
+      if (linePat != null) {
+        win.linePat = (linePat | 0) & 0xffff;
+        win.linePatCnt = 15;
+      } else if (areaArr != null) {
+        // ACE: omitted line pattern → $FFFF so area pattern works.
+        win.linePat = 0xffff;
+        win.linePatCnt = 15;
+      }
+      if (areaArr != null && typeof areaArr.length === "number") {
+        const words = [];
+        for (let i = 0; i < areaArr.length; i++) {
+          if (areaArr[i] == null || areaArr[i] === undefined) continue;
+          words.push((areaArr[i] | 0) & 0xffff);
+        }
+        // Height should be power-of-two for Amiga; use what we have.
+        win.areaPat = words.length ? words : [0xffff];
+      }
+    }
+
+    function patternRestore() {
+      const win = currentWin();
+      if (!win) return;
+      win.linePat = 0xffff;
+      win.linePatCnt = 15;
+      win.areaPat = [0xffff];
+    }
+
+    /** AREA [STEP](x,y) — accumulate polygon vertices (max 20 like ACE). */
+    function area(step, x, y) {
+      const win = currentWin();
+      if (!win) return;
+      if (!win.areaPts) win.areaPts = [];
+      if (win.areaPts.length >= 20) return;
+      let ax = Number(x);
+      let ay = Number(y);
+      if (step) {
+        ax = (win.lastAreaX | 0) + ax;
+        ay = (win.lastAreaY | 0) + ay;
+      }
+      ax = ax | 0;
+      ay = ay | 0;
+      win.areaPts.push({ x: ax, y: ay });
+      win.lastAreaX = ax;
+      win.lastAreaY = ay;
+    }
+
+    /** Scanline even-odd fill of win.areaPts with current area pattern. */
+    function fillPolygonIndices(win, colorId) {
+      const pts = win.areaPts;
+      if (!pts || pts.length < 2) return;
+      const fg = colorId & 255;
+      const bg = win.bgd & 255;
+      let minY = pts[0].y;
+      let maxY = pts[0].y;
+      for (let i = 1; i < pts.length; i++) {
+        if (pts[i].y < minY) minY = pts[i].y;
+        if (pts[i].y > maxY) maxY = pts[i].y;
+      }
+      minY = Math.max(0, minY | 0);
+      maxY = Math.min(win.rpH - 1, maxY | 0);
+      const n = pts.length;
+      for (let y = minY; y <= maxY; y++) {
+        const nodes = [];
+        for (let i = 0, j = n - 1; i < n; j = i++) {
+          const yi = pts[i].y;
+          const yj = pts[j].y;
+          if ((yi < y && yj >= y) || (yj < y && yi >= y)) {
+            const xi = pts[i].x;
+            const xj = pts[j].x;
+            nodes.push((xi + ((y - yi) / (yj - yi)) * (xj - xi)) | 0);
+          }
+        }
+        nodes.sort(function (a, b) { return a - b; });
+        for (let k = 0; k + 1 < nodes.length; k += 2) {
+          let x0 = nodes[k];
+          let x1 = nodes[k + 1];
+          if (x0 > x1) {
+            const t = x0;
+            x0 = x1;
+            x1 = t;
+          }
+          x0 = Math.max(0, x0);
+          x1 = Math.min(win.rpW - 1, x1);
+          for (let x = x0; x <= x1; x++) plotPatterned(win, x, y, fg, bg);
+        }
+      }
+    }
+
+    /** AREAFILL [mode] — mode 1 inverts pen vs max colour id. */
+    function areafill(mode) {
+      const win = currentWin();
+      if (!win || !win.indices) return;
+      let cid = win.fgd | 0;
+      if ((mode | 0) === 1) {
+        const maxId = windowFunc(6) | 0;
+        cid = maxId - cid;
+      }
+      fillPolygonIndices(win, cid);
+      win.areaPts = [];
+      markDirty(win);
+    }
+
+    /**
+     * PAINT (x,y)[,paintcolor[,bordercolor]] — Flood fill until border.
+     * Default paint colour = foreground; default border = paint colour.
+     */
+    function paint(x, y, paintColor, borderColor) {
+      const win = currentWin();
+      if (!win || !win.indices) return;
+      const sx = Number(x) | 0;
+      const sy = Number(y) | 0;
+      let paintId = paintColor == null ? (win.fgd | 0) : (paintColor | 0);
+      let borderId = borderColor == null ? paintId : (borderColor | 0);
+      const bg = win.bgd & 255;
+      if (sx < 0 || sy < 0 || sx >= win.rpW || sy >= win.rpH) return;
+      // Already on border — nothing to fill.
+      if (getIndex(win, sx, sy) === borderId) return;
+      const stack = [sx, sy];
+      const visited = new Uint8Array(win.rpW * win.rpH);
+      while (stack.length) {
+        const cy = stack.pop();
+        const cx = stack.pop();
+        if (cx < 0 || cy < 0 || cx >= win.rpW || cy >= win.rpH) continue;
+        const idx = cy * win.rpW + cx;
+        if (visited[idx]) continue;
+        if (getIndex(win, cx, cy) === borderId) continue;
+        visited[idx] = 1;
+        plotPatterned(win, cx, cy, paintId, bg);
+        stack.push(cx + 1, cy);
+        stack.push(cx - 1, cy);
+        stack.push(cx, cy + 1);
+        stack.push(cx, cy - 1);
+      }
+      markDirty(win);
     }
 
     // --- Phase 6: Paula-ish SOUND / WAVE via Web Audio ---
@@ -1362,6 +1545,11 @@
       pset: pset,
       circle: circle,
       point: point,
+      paint: paint,
+      area: area,
+      areafill: areafill,
+      pattern: pattern,
+      patternRestore: patternRestore,
       sleep: sleep,
       sleepFor: sleepFor,
       sound: sound,

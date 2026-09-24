@@ -30,6 +30,12 @@
     "notes": "Phase 5 — RastPort LINE / BOX / CIRCLE / PSET / PALETTE"
   },
   {
+    "id": "paint",
+    "title": "PAINT / PATTERN",
+    "path": "examples/paint.b",
+    "notes": "Phase 5+ — AREA / AREAFILL / PAINT / PATTERN"
+  },
+  {
     "id": "sound",
     "title": "SOUND / WAVE",
     "path": "examples/sound.b",

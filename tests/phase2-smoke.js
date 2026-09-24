@@ -296,6 +296,94 @@ async function main() {
     await runPromise;
   });
 
+  await check("hex &H literals", async function () {
+    const compiled = ACE.compile("PRINT &Hff\nPRINT &H10\n");
+    if (!compiled.ok) throw compiled.diagnostics;
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    await ACE.run(compiled, rt);
+    if (!/255/.test(sink.textContent) || !/\b16\b/.test(sink.textContent)) {
+      throw new Error("hex print failed: " + sink.textContent);
+    }
+  });
+
+  await check("PAINT flood fill + AREA/AREAFILL", async function () {
+    const src =
+      "SCREEN 1,80,60,2,1\n" +
+      'WINDOW 1,"P",(0,0)-(80,60),32,1\n' +
+      "PALETTE 0,0,0,0\n" +
+      "PALETTE 1,1,1,1\n" +
+      "PALETTE 2,1,0,0\n" +
+      "CLS\n" +
+      "LINE (10,10)-(50,10),2\n" +
+      "LINE (50,10)-(50,40),2\n" +
+      "LINE (50,40)-(10,40),2\n" +
+      "LINE (10,40)-(10,10),2\n" +
+      "PAINT (30,25),1,2\n" +
+      "AREA (60,5)\n" +
+      "AREA (75,5)\n" +
+      "AREA (67,20)\n" +
+      "COLOR 2\n" +
+      "AREAFILL\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    await ACE.run(compiled, rt);
+    if (rt.point(30, 25) !== 1) throw new Error("paint fill " + rt.point(30, 25));
+    if (rt.point(10, 10) !== 2) throw new Error("paint border " + rt.point(10, 10));
+    // Triangle interior near centroid.
+    if (rt.point(67, 10) !== 2) throw new Error("areafill " + rt.point(67, 10));
+  });
+
+  await check("PATTERN line + area dither", async function () {
+    const src =
+      "SCREEN 1,40,20,2,1\n" +
+      'WINDOW 1,"Pat",(0,0)-(40,20),32,1\n' +
+      "DIM ap%(1)\n" +
+      "ap%(0)=&Hcccc\n" +
+      "ap%(1)=&H3333\n" +
+      "PATTERN ,ap%\n" +
+      "LINE (0,0)-(39,19),1,bf\n" +
+      "PATTERN RESTORE\n" +
+      "LINE (0,10)-(20,10),2\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/rt\.pattern\(/.test(compiled.js) || !/rt\.patternRestore\(/.test(compiled.js)) {
+      throw new Error("missing pattern calls");
+    }
+    await ACE.run(compiled, rt);
+    // Dithered fill: (0,0) uses bit15 of &HCCCC = 1 → fg; (1,0) bit14 = 1 → fg;
+    // (2,0) bit13 = 0 → bg. Row0=&HCCCC = 1100 1100 1100 1100.
+    if (rt.point(0, 0) !== 1) throw new Error("pat 0,0 " + rt.point(0, 0));
+    if (rt.point(2, 0) !== 0) throw new Error("pat 2,0 " + rt.point(2, 0));
+    if (rt.point(5, 10) !== 2) throw new Error("solid line after restore " + rt.point(5, 10));
+  });
+
+  await check("examples/paint.b compiles and paints", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/paint.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/rt\.paint\(/.test(compiled.js) || !/rt\.areafill\(/.test(compiled.js)) {
+      throw new Error("missing paint/areafill calls");
+    }
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 50); });
+    // Painted circle centre should be colour 2 (or patterned with 2).
+    const c = rt.point(60, 70);
+    if (c !== 2 && c !== 0) throw new Error("paint centre " + c);
+    // Filled box after PATTERN RESTORE is solid colour 3.
+    if (rt.point(220, 150) !== 3) throw new Error("restored box " + rt.point(220, 150));
+    const text = rt.windowText(1);
+    if (!/PAINT/.test(text)) throw new Error("missing title: " + text);
+    rt.stop();
+    await runPromise;
+  });
+
   await check("LOCATE pads text cursor", async function () {
     const src =
       "SCREEN 1,200,100,3,1\n" +

@@ -155,7 +155,9 @@ Still deferred within Phase 4+: `MENU` / `GADGET`, full `PALETTE` / `COLOR` / `L
 
 **Done when:** ~~a small graphics example draws lines, boxes, and circles with a custom palette.~~
 
-Still deferred: `PAINT` / `AREA` / `AREAFILL` / `PATTERN` / `SCROLL`, turtle graphics, IFF, EHB/HAM modes, Topaz webfont, `MENU` / `GADGET`.
+~~Phase 5+ follow-up:~~ `PAINT` / `AREA` / `AREAFILL` / `PATTERN` (+ `&H` hex literals) — flood fill, polygon fill, line/area patterns. Demo: `examples/paint.b` (from vidarh `prgs/Gfx/pattern.b`).
+
+Still deferred: `SCROLL`, turtle graphics, IFF, EHB/HAM modes, Topaz webfont, `MENU` / `GADGET`.
 
 ### Phase 5.5 — Math builtins (program-driven)
 
@@ -223,6 +225,7 @@ The C compiler is a reference oracle during development, not the acceptance comp
 8. ~~Phase 4: Intuition basics~~ (`WINDOW` / `SCREEN` + chrome; see `examples/window.b`)
 9. ~~Phase 4.5: windowed `INPUT`~~ (same surface as `PRINT`; Enter submits; `examples/window-input.b`)
 10. ~~Phase 5: RastPort graphics~~ (`LINE` / `CIRCLE` / `PSET` / `COLOR` / `PALETTE`; see `examples/graphics.b`)
+10b. ~~Phase 5+: `PAINT` / `AREA` / `AREAFILL` / `PATTERN`~~ (see `examples/paint.b`)
 11. ~~Phase 5.5: math builtins~~ (`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS`; `hi.b` / `ahl.b` / `lines.b` / `fact.b`)
 12. ~~Phase 6: SOUND / WAVE~~ (`WAVE SIN`, `SOUND`, `BEEP`; see `examples/sound.b`)
 13. **Phase 7+:** speech / files, then climb the vidarh corpus example by example

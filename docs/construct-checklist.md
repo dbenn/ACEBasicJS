@@ -162,7 +162,8 @@ Precedence from the Programmer’s Guide (high → low):
 |---|---|
 | `LINE` `PSET` `CIRCLE` `COLOR` `PALETTE` `POINT` | done (Phase 5; square-pixel CIRCLE aspect default 1.0) |
 | Coloured window `PRINT` / `LOCATE` (fg/bg pens) | done (Phase 5.5; absolute text runs) |
-| `PAINT` `AREA` `AREAFILL` `PATTERN` `SCROLL` | Phase 5+ / as examples demand |
+| `PAINT` `AREA` `AREAFILL` `PATTERN` | done (Phase 5+; flood fill + polygon + line/area patterns; see `examples/paint.b`) |
+| `SCROLL` | Phase 5+ / as examples demand |
 | Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `HOME` …) | `later` |
 | `IFF` / images | `later` |
 | Sprites / bobs / `OBJECT.*` | `out` (not ACE focus; reserved but unimplemented in ACE) |
