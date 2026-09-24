@@ -1,13 +1,14 @@
 ' Phase 7 — turtle graphics (vidarh prgs/Turtle/torus.b)
 ' Nested FORWARD / TURNRIGHT draws a torus. Press a key or close to quit.
+' Window taller than the Amiga 200-line original so the figure is not clipped.
 
 DEFINT a-z
 
-SCREEN 1,640,200,1,2
-WINDOW 1,,(0,10)-(640,200),32,1
+SCREEN 1,640,256,1,2
+WINDOW 1,,(0,10)-(640,256),32,1
 
 PENUP
-SETXY 280,110
+SETXY 280,140
 PENDOWN
 
 FOR i=1 TO 36

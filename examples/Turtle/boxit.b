@@ -1,5 +1,6 @@
 ' Phase 7 — recursive turtle boxes (vidarh prgs/Turtle/boxit.b)
 ' Press q (or Stop) to quit.
+' Window taller than the Amiga 200-line original so the curve is not clipped.
 
 SUB boxit(n)
   IF n=0 THEN
@@ -17,18 +18,18 @@ SUB boxit(n)
   END IF
 END SUB
 
-WINDOW 1,"BoxIt",(0,0)-(640,200),6
+WINDOW 1,"BoxIt",(0,0)-(640,256),6
 FONT "topaz",8
 COLOR 2,1
 
 CLS
 PENUP
-SETXY 0,150
+SETXY 0,200
 PENDOWN
 TURNRIGHT 90
 boxit(4)
 
-LOCATE 22,1
+LOCATE 28,1
 PRINT "press 'q' to quit."
 WHILE UCASE$(INKEY$)<>"Q"
   SLEEP

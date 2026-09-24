@@ -511,7 +511,7 @@ async function main() {
       "CLS\n" +
       "COLOR 1\n" +
       "PENUP\n" +
-      "SETXY 10,50\n" +
+      "SETXY 50,90\n" +
       "PENDOWN\n" +
       "FORWARD 40\n" +
       "TURNRIGHT 90\n" +
@@ -523,13 +523,13 @@ async function main() {
     if (!/rt\.turtleMove\("FORWARD"/.test(compiled.js)) throw new Error(compiled.js);
     if (!/rt\.turtleTurn\("TURNRIGHT"/.test(compiled.js)) throw new Error(compiled.js);
     await ACE.run(compiled, rt);
-    // Heading 0 → +X; then TURNRIGHT 90 → +Y (down).
-    if (rt.xcor() !== 50) throw new Error("xcor " + rt.xcor());
-    if (rt.ycor() !== 70) throw new Error("ycor " + rt.ycor());
-    if (rt.heading() !== 90) throw new Error("heading " + rt.heading());
-    if (rt.point(10, 50) !== 1) throw new Error("start pixel " + rt.point(10, 50));
-    if (rt.point(50, 50) !== 1) throw new Error("east end " + rt.point(50, 50));
-    if (rt.point(50, 70) !== 1) throw new Error("south end " + rt.point(50, 70));
+    // Default heading 270 → up (−Y); TURNRIGHT 90 → 0 (+X).
+    if (rt.xcor() !== 70) throw new Error("xcor " + rt.xcor());
+    if (rt.ycor() !== 50) throw new Error("ycor " + rt.ycor());
+    if (rt.heading() !== 0) throw new Error("heading " + rt.heading());
+    if (rt.point(50, 90) !== 1) throw new Error("start pixel " + rt.point(50, 90));
+    if (rt.point(50, 50) !== 1) throw new Error("north end " + rt.point(50, 50));
+    if (rt.point(70, 50) !== 1) throw new Error("east end " + rt.point(70, 50));
   });
 
   await check("UCASE$ + turtle HOME / BACK", async function () {
@@ -539,7 +539,7 @@ async function main() {
       'WINDOW 1,"H",(0,0)-(100,80),32,1\n' +
       "COLOR 1\n" +
       "PENUP\n" +
-      "SETXY 20,20\n" +
+      "SETXY 20,40\n" +
       "PENDOWN\n" +
       "FORWARD 10\n" +
       "HOME\n" +
@@ -555,9 +555,19 @@ async function main() {
     if (!compiled.ok) throw compiled.diagnostics;
     await ACE.run(compiled, rt);
     if (sink.textContent.trim() !== "ABC") throw new Error(sink.textContent);
-    // HOME with pen down draws back to 0,0; BACK returns to SETXY start.
+    // Default 270: FORWARD from (20,40) goes to (20,30). HOME → (0,0).
+    // SETHEADING 0 is +X; BACK returns to SETXY start.
     if (rt.xcor() !== 30) throw new Error("back x " + rt.xcor());
     if (rt.ycor() !== 30) throw new Error("back y " + rt.ycor());
+    if (rt.heading() !== 0) throw new Error("heading after SETHEADING 0: " + rt.heading());
+  });
+
+  await check("turtle default heading is 270 (up)", async function () {
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    if (rt.heading() !== 270) throw new Error("default heading " + rt.heading());
+    rt.reset();
+    if (rt.heading() !== 270) throw new Error("reset heading " + rt.heading());
   });
 
   await check("leading-dot float .75 is 0.75", async function () {
@@ -608,8 +618,9 @@ async function main() {
     const runPromise = ACE.run(compiled, rt);
     await new Promise(function (r) { setTimeout(r, 200); });
     let ink = 0;
-    for (let y = 0; y < 200; y++) {
-      for (let x = 300; x < 500; x++) {
+    // Default heading 270°: tree grows upward from (320,200) in a 256-tall window.
+    for (let y = 0; y < 210; y++) {
+      for (let x = 200; x < 440; x++) {
         if (rt.windowPixel(1, x, y) === 1) ink++;
       }
     }
@@ -628,9 +639,9 @@ async function main() {
     if (!/rt\.turtleMove\("FORWARD"/.test(compiled.js)) throw new Error("missing forward");
     const runPromise = ACE.run(compiled, rt);
     await new Promise(function (r) { setTimeout(r, 80); });
-    // Flower is drawn around (320,100); sample a petal stroke.
+    // Flower is drawn around (320,128); sample a petal stroke.
     let ink = 0;
-    for (let y = 40; y < 160; y++) {
+    for (let y = 40; y < 200; y++) {
       for (let x = 200; x < 440; x++) {
         if (rt.windowPixel(1, x, y) === 2) { ink++; }
       }
@@ -651,7 +662,7 @@ async function main() {
     const runPromise = ACE.run(compiled, rt);
     await new Promise(function (r) { setTimeout(r, 80); });
     let ink = 0;
-    for (let y = 100; y < 200; y++) {
+    for (let y = 120; y < 256; y++) {
       for (let x = 0; x < 200; x++) {
         if (rt.windowPixel(1, x, y) === 2) ink++;
       }
@@ -671,7 +682,7 @@ async function main() {
     // Torus has many iterations — allow more time.
     await new Promise(function (r) { setTimeout(r, 400); });
     let ink = 0;
-    for (let y = 40; y < 180; y += 2) {
+    for (let y = 40; y < 220; y += 2) {
       for (let x = 100; x < 500; x += 2) {
         if (rt.windowPixel(1, x, y) !== 0) ink++;
       }

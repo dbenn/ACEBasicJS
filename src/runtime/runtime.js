@@ -1132,12 +1132,13 @@
       return getIndex(win, Number(x), Number(y));
     }
 
-    // --- Turtle graphics (ACE turtle.lib) ---
-    // Heading 0° = +X (right); degrees increase clockwise (TURNRIGHT).
-    // Y grows downward on the rastport (Amiga screen coords). Square-pixel
-    // displays use xyRatio 1 (Amiga hi-res used ~1.875 to compensate pixels).
-    let tgDegs = 0;
-    let tgPen = 0; // 0 = up, 1 = down (matches ACE BSS / turtle.s)
+    // --- Turtle graphics (ACE turtle.lib / ACE docs) ---
+    // Angle system: 0° = +X (right), 90° = +Y (down), 180° = left, 270° = up.
+    // Default / home orientation is 270° (pointing up) — ACE Programmer's Guide.
+    // Degrees increase clockwise (TURNRIGHT). Y grows downward on the rastport.
+    // Square-pixel displays use xyRatio 1 (Amiga hi-res used ~1.875).
+    let tgDegs = 270;
+    let tgPen = 0; // 0 = up, 1 = down (demos use PENUP/PENDOWN explicitly)
     let tgInitX = 0;
     let tgInitY = 0;
     const TG_XY_RATIO = 1;
@@ -1622,7 +1623,7 @@
       pendingInput = null;
       keyQueue = [];
       sleepWaiters = [];
-      tgDegs = 0;
+      tgDegs = 270;
       tgPen = 0;
       tgInitX = 0;
       tgInitY = 0;
