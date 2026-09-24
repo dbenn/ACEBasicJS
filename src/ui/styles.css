@@ -319,6 +319,32 @@ button:disabled {
   pointer-events: none;
 }
 
+/* Live INPUT draft positioned at the window text pen (inline after prompt). */
+.ace-committed .live-input.ace-inline-draft,
+.ace-committed .caret.ace-inline-draft {
+  position: absolute;
+  display: inline-block;
+  font-family: var(--font-code);
+  font-size: 8px;
+  line-height: 8px;
+  white-space: pre;
+  margin: 0;
+  z-index: 2;
+}
+
+.ace-committed .live-input.ace-inline-draft {
+  color: #fff;
+  background: transparent;
+}
+
+.ace-committed .caret.ace-inline-draft {
+  width: 8px;
+  height: 8px;
+  margin-left: 0;
+  vertical-align: top;
+  background: #fff;
+}
+
 .ace-content .live-input {
   color: inherit;
 }
