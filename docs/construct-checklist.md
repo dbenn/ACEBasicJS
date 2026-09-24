@@ -164,8 +164,8 @@ Precedence from the Programmer’s Guide (high → low):
 | Coloured window `PRINT` / `LOCATE` (fg/bg pens) | done (Phase 5.5; absolute text runs) |
 | `PAINT` `AREA` `AREAFILL` `PATTERN` | done (Phase 5+; flood fill + polygon + line/area patterns; see `examples/paint.b`) |
 | `SCROLL` | Phase 5+ / as examples demand |
-| Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `SETXY` `HOME` …) | **next** (Phase 7; vidarh `prgs/Turtle/`) |
-| Further Gfx corpus (`pattern2`, `7seg`, `shuttle`, …) | **next** after turtle; IFF/EHB/HAM stay later |
+| Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `SETXY` `HOME` …) | **done** (Phase 7; `torus` / `flower` / `boxit`) |
+| Further Gfx corpus (`pattern2`, `7seg`, `shuttle`, …) | **next**; IFF/EHB/HAM stay later |
 | `IFF` / images | `later` |
 | Sprites / bobs / `OBJECT.*` | `out` (not ACE focus; reserved but unimplemented in ACE) |
 

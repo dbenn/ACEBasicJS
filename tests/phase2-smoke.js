@@ -504,6 +504,124 @@ async function main() {
     if (rt.soundLog.length < 5) throw new Error("too few sounds: " + rt.soundLog.length);
   });
 
+  await check("turtle FORWARD / TURNRIGHT / SETXY / PEN*", async function () {
+    const src =
+      "SCREEN 1,200,100,2,1\n" +
+      'WINDOW 1,"T",(0,0)-(200,100),32,1\n' +
+      "CLS\n" +
+      "COLOR 1\n" +
+      "PENUP\n" +
+      "SETXY 10,50\n" +
+      "PENDOWN\n" +
+      "FORWARD 40\n" +
+      "TURNRIGHT 90\n" +
+      "FORWARD 20\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/rt\.turtleMove\("FORWARD"/.test(compiled.js)) throw new Error(compiled.js);
+    if (!/rt\.turtleTurn\("TURNRIGHT"/.test(compiled.js)) throw new Error(compiled.js);
+    await ACE.run(compiled, rt);
+    // Heading 0 → +X; then TURNRIGHT 90 → +Y (down).
+    if (rt.xcor() !== 50) throw new Error("xcor " + rt.xcor());
+    if (rt.ycor() !== 70) throw new Error("ycor " + rt.ycor());
+    if (rt.heading() !== 90) throw new Error("heading " + rt.heading());
+    if (rt.point(10, 50) !== 1) throw new Error("start pixel " + rt.point(10, 50));
+    if (rt.point(50, 50) !== 1) throw new Error("east end " + rt.point(50, 50));
+    if (rt.point(50, 70) !== 1) throw new Error("south end " + rt.point(50, 70));
+  });
+
+  await check("UCASE$ + turtle HOME / BACK", async function () {
+    const src =
+      'PRINT UCASE$("abC")\n' +
+      "SCREEN 1,100,80,2,1\n" +
+      'WINDOW 1,"H",(0,0)-(100,80),32,1\n' +
+      "COLOR 1\n" +
+      "PENUP\n" +
+      "SETXY 20,20\n" +
+      "PENDOWN\n" +
+      "FORWARD 10\n" +
+      "HOME\n" +
+      "PENUP\n" +
+      "SETXY 30,30\n" +
+      "SETHEADING 0\n" +
+      "PENDOWN\n" +
+      "FORWARD 10\n" +
+      "BACK 10\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    await ACE.run(compiled, rt);
+    if (sink.textContent.trim() !== "ABC") throw new Error(sink.textContent);
+    // HOME with pen down draws back to 0,0; BACK returns to SETXY start.
+    if (rt.xcor() !== 30) throw new Error("back x " + rt.xcor());
+    if (rt.ycor() !== 30) throw new Error("back y " + rt.ycor());
+  });
+
+  await check("examples/flower.b compiles and draws", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/flower.b"), "utf8");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/rt\.turtleMove\("FORWARD"/.test(compiled.js)) throw new Error("missing forward");
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 80); });
+    // Flower is drawn around (320,100); sample a petal stroke.
+    let ink = 0;
+    for (let y = 40; y < 160; y++) {
+      for (let x = 200; x < 440; x++) {
+        if (rt.windowPixel(1, x, y) === 2) { ink++; }
+      }
+    }
+    if (ink < 100) throw new Error("expected flower ink, got " + ink);
+    const text = rt.windowText(1);
+    if (!/press 'q'/.test(text)) throw new Error("missing prompt: " + text);
+    rt.stop();
+    await runPromise;
+  });
+
+  await check("examples/boxit.b compiles and draws", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/boxit.b"), "utf8");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 80); });
+    let ink = 0;
+    for (let y = 100; y < 200; y++) {
+      for (let x = 0; x < 200; x++) {
+        if (rt.windowPixel(1, x, y) === 2) ink++;
+      }
+    }
+    if (ink < 50) throw new Error("expected boxit ink, got " + ink);
+    rt.stop();
+    await runPromise;
+  });
+
+  await check("examples/torus.b compiles and draws", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/torus.b"), "utf8");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    const runPromise = ACE.run(compiled, rt);
+    // Torus has many iterations — allow more time.
+    await new Promise(function (r) { setTimeout(r, 400); });
+    let ink = 0;
+    for (let y = 40; y < 180; y += 2) {
+      for (let x = 100; x < 500; x += 2) {
+        if (rt.windowPixel(1, x, y) !== 0) ink++;
+      }
+    }
+    if (ink < 200) throw new Error("expected torus ink, got " + ink);
+    rt.stop();
+    await runPromise;
+  });
+
   if (failed) {
     console.error(failed + " failed");
     process.exit(1);

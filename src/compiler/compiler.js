@@ -7,13 +7,14 @@
   "use strict";
 
   const KEYWORDS = {
-    AND: 1, AREA: 1, AREAFILL: 1, AS: 1, BEEP: 1, CALL: 1, CIRCLE: 1, CLOSE: 1, CLS: 1,
+    AND: 1, AREA: 1, AREAFILL: 1, AS: 1, BACK: 1, BEEP: 1, CALL: 1, CIRCLE: 1, CLOSE: 1, CLS: 1,
     COLOR: 1, CONST: 1, DATA: 1, DEFINT: 1, DEFLNG: 1, DEFSNG: 1, DEFSTR: 1, DEFDBL: 1,
-    DIM: 1, ELSE: 1, ELSEIF: 1, END: 1, EXIT: 1, FOR: 1, GOTO: 1, GOSUB: 1, IF: 1,
-    INPUT: 1, LET: 1, LINE: 1, LOCATE: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1, OUTPUT: 1,
-    PAINT: 1, PALETTE: 1, PATTERN: 1, PRINT: 1, PSET: 1, RANDOMIZE: 1, READ: 1, REM: 1,
-    REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1, SHARED: 1, SINGLE: 1, SHORTINT: 1,
-    SLEEP: 1, SOUND: 1, LONGINT: 1, STEP: 1, SUB: 1, THEN: 1, TO: 1, UNTIL: 1, WAVE: 1,
+    DIM: 1, ELSE: 1, ELSEIF: 1, END: 1, EXIT: 1, FONT: 1, FOR: 1, FORWARD: 1, GOTO: 1, GOSUB: 1,
+    HOME: 1, IF: 1, INPUT: 1, LET: 1, LINE: 1, LOCATE: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1,
+    OUTPUT: 1, PAINT: 1, PALETTE: 1, PATTERN: 1, PENDOWN: 1, PENUP: 1, PRINT: 1, PSET: 1,
+    RANDOMIZE: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1, SETHEADING: 1,
+    SETXY: 1, SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, SOUND: 1, LONGINT: 1, STEP: 1,
+    SUB: 1, THEN: 1, TO: 1, TURN: 1, TURNLEFT: 1, TURNRIGHT: 1, UNTIL: 1, WAVE: 1,
     WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1, FUNCTION: 1, LIBRARY: 1,
   };
 
@@ -29,6 +30,7 @@
     COS: { arity: 1, rt: "cos" },
     EXP: { arity: 1, rt: "exp" },
     FIX: { arity: 1, rt: "fix" },
+    HEADING: { arity: 0, rt: "heading" },
     INT: { arity: 1, rt: "int" },
     LOG: { arity: 1, rt: "log" },
     RND: { arity: -1, rt: "rnd" }, // 0 or 1 arg
@@ -36,6 +38,9 @@
     SIN: { arity: 1, rt: "sin" },
     SQR: { arity: 1, rt: "sqr" },
     TAN: { arity: 1, rt: "tan" },
+    UCASE: { arity: 1, rt: "ucase" },
+    XCOR: { arity: 0, rt: "xcor" },
+    YCOR: { arity: 0, rt: "ycor" },
   };
 
   function builtinInfo(name) {
@@ -394,9 +399,11 @@
         this.expect("RPAREN");
         return { type: "Point", x: x, y: y };
       }
-      // RND without (): AmigaBASIC / ACE allow bare RND
-      if (builtinInfo(name) && upper.replace(/[!%&$]+$/g, "") === "RND" && !this.at("LPAREN")) {
-        return { type: "Builtin", name: "RND", args: [] };
+      // RND / HEADING / XCOR / YCOR without (): AmigaBASIC / ACE allow bare forms
+      const bare = upper.replace(/[!%&$]+$/g, "");
+      if (builtinInfo(name) && (bare === "RND" || bare === "HEADING" || bare === "XCOR" || bare === "YCOR") &&
+          !this.at("LPAREN")) {
+        return { type: "Builtin", name: bare, args: [] };
       }
       return { type: "Var", name: name };
     }
@@ -486,7 +493,8 @@
       this.eat();
       return { type: "Assign", name: id.value, expr: this.parseExpr() };
     }
-    throw new CompileError("Expected assignment", this.peek());
+    // Bare name → SUB call with no args (ACE: `fourside` without parentheses).
+    return { type: "CallStmt", name: id.value, args: [] };
   };
 
   Parser.prototype.parseIf = function () {
@@ -1142,6 +1150,51 @@
     return { type: "Pattern", restore: false, linePat: linePat, areaArr: areaArr };
   };
 
+  /** FORWARD n | BACK n — turtle move (parens optional). */
+  Parser.prototype.parseTurtleMove = function (kind) {
+    this.expect("KW", kind);
+    const dist = this.parseExpr();
+    return { type: "TurtleMove", kind: kind, dist: dist };
+  };
+
+  /** TURN n | TURNLEFT n | TURNRIGHT n */
+  Parser.prototype.parseTurtleTurn = function (kind) {
+    this.expect("KW", kind);
+    const deg = this.parseExpr();
+    return { type: "TurtleTurn", kind: kind, deg: deg };
+  };
+
+  /** PENUP | PENDOWN | HOME */
+  Parser.prototype.parseTurtleSimple = function (kind) {
+    this.expect("KW", kind);
+    return { type: "TurtleSimple", kind: kind };
+  };
+
+  /** SETXY x,y */
+  Parser.prototype.parseSetxy = function () {
+    this.expect("KW", "SETXY");
+    const x = this.parseExpr();
+    this.expect("COMMA");
+    const y = this.parseExpr();
+    return { type: "Setxy", x: x, y: y };
+  };
+
+  /** SETHEADING n */
+  Parser.prototype.parseSetheading = function () {
+    this.expect("KW", "SETHEADING");
+    const deg = this.parseExpr();
+    return { type: "Setheading", deg: deg };
+  };
+
+  /** FONT name,size — no-op stub until Topaz webfont (examples still need to parse). */
+  Parser.prototype.parseFont = function () {
+    this.expect("KW", "FONT");
+    const name = this.parseExpr();
+    this.expect("COMMA");
+    const size = this.parseExpr();
+    return { type: "Font", name: name, size: size };
+  };
+
   Parser.prototype.parseStatementContent = function () {
     if (this.atKw("PRINT")) return this.parsePrint();
     if (this.atKw("INPUT")) return this.parseInput();
@@ -1163,6 +1216,17 @@
     if (this.atKw("AREA")) return this.parseArea();
     if (this.atKw("AREAFILL")) return this.parseAreafill();
     if (this.atKw("PATTERN")) return this.parsePattern();
+    if (this.atKw("FORWARD")) return this.parseTurtleMove("FORWARD");
+    if (this.atKw("BACK")) return this.parseTurtleMove("BACK");
+    if (this.atKw("TURNLEFT")) return this.parseTurtleTurn("TURNLEFT");
+    if (this.atKw("TURNRIGHT")) return this.parseTurtleTurn("TURNRIGHT");
+    if (this.atKw("TURN")) return this.parseTurtleTurn("TURN");
+    if (this.atKw("PENUP")) return this.parseTurtleSimple("PENUP");
+    if (this.atKw("PENDOWN")) return this.parseTurtleSimple("PENDOWN");
+    if (this.atKw("HOME")) return this.parseTurtleSimple("HOME");
+    if (this.atKw("SETXY")) return this.parseSetxy();
+    if (this.atKw("SETHEADING")) return this.parseSetheading();
+    if (this.atKw("FONT")) return this.parseFont();
     if (this.atKw("IF")) return this.parseIf();
     if (this.atKw("FOR")) return this.parseFor();
     if (this.atKw("WHILE")) return this.parseWhile();
@@ -1453,6 +1517,18 @@
         return ind + "rt.pattern(" +
           (stmt.linePat ? this.expr(stmt.linePat) : "null") + ", " +
           (stmt.areaArr ? jsName(stmt.areaArr) : "null") + ");";
+      case "TurtleMove":
+        return ind + "rt.turtleMove(" + JSON.stringify(stmt.kind) + ", " + this.expr(stmt.dist) + ");";
+      case "TurtleTurn":
+        return ind + "rt.turtleTurn(" + JSON.stringify(stmt.kind) + ", " + this.expr(stmt.deg) + ");";
+      case "TurtleSimple":
+        return ind + "rt.turtleSimple(" + JSON.stringify(stmt.kind) + ");";
+      case "Setxy":
+        return ind + "rt.setxy(" + this.expr(stmt.x) + ", " + this.expr(stmt.y) + ");";
+      case "Setheading":
+        return ind + "rt.setheading(" + this.expr(stmt.deg) + ");";
+      case "Font":
+        return ind + "rt.font(" + this.expr(stmt.name) + ", " + this.expr(stmt.size) + ");";
       case "Assign":
         return ind + jsName(stmt.name) + " = " + this.expr(stmt.expr) + ";";
       case "AssignIndex":

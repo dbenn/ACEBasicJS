@@ -14,6 +14,9 @@ expectations below (observable results in the host output / runtime).
 | `window-input` | `window-input.b` | ACEBasicJS Phase 4.5 | `INPUT` on the same window surface as `PRINT` | Prompts in the window; type after the prompt, Enter to submit; echoes greeting and double. |
 | `graphics` | `graphics.b` | ACEBasicJS Phase 5 | RastPort `LINE` / `CIRCLE` / `PSET` / `COLOR` / `PALETTE` / `LOCATE` | Opens a 320×200 screen; draws lines, boxes, circles; wait for a key or close. |
 | `paint` | `paint.b` | vidarh `prgs/Gfx/pattern.b` (adapted) | `PATTERN` / `AREA` / `AREAFILL` / `PAINT` + `&H` hex | Patterned triangle, flood-filled circle, solid boxes after `PATTERN RESTORE`. |
+| `torus` | `torus.b` | vidarh `prgs/Turtle/torus.b` | Turtle `FORWARD` / `TURNRIGHT` / `PEN*` / `SETXY` | Draws a torus via nested turtle loops; press a key or close to quit. |
+| `flower` | `flower.b` | vidarh `prgs/Turtle/flower.b` | Turtle + `SUB`s + `UCASE$` | Draws a flower; press `q` (or Stop) to quit. |
+| `boxit` | `boxit.b` | vidarh `prgs/Turtle/boxit.b` | Recursive turtle `FORWARD` / `TURN*` | Recursive boxed edges; press `q` (or Stop) to quit. |
 | `sound` | `sound.b` | ACEBasicJS Phase 6 (from vidarh `Sound/sound.b`) | `WAVE SIN`, `SOUND`, `BEEP` via Web Audio | Prints status lines and plays tones / a period sweep. Unmute the browser tab. |
 | `lines` | `lines.b` | vidarh `prgs/BenchMarks/lines.b` | `RANDOMIZE`, `RND`, `INT` + `LINE` | Draws random lines; prints elapsed seconds; press a key to quit. |
 | `input` | `input.b` | ACEBasicJS Phase 3 | Interactive `INPUT` (prompt + `? `, string and number) | Asks for name then number; echoes greeting and double. Type in the unified console (Enter to submit). |
@@ -27,9 +30,10 @@ expectations below (observable results in the host output / runtime).
 
 | Program | Reason |
 |---|---|
-| vidarh `prgs/Turtle/*` | **Next priority** — turtle (`FORWARD`/`TURN*`/`PEN*`/`SETXY`); start with `torus` / `flower` / `boxit` |
-| vidarh `prgs/Gfx/*` (beyond `paint.b`) | **High priority** after turtle; defer IFF/EHB/HAM |
-| vidarh `prgs/welcome.b` | Needs `SAY` / `TRANSLATE$` (after turtle/Gfx) |
+| vidarh `prgs/Turtle/dragon.b` | Next turtle climb (paren `Forward(n)` already works) |
+| vidarh `prgs/Turtle/spiro.b` | Needs `MENU` |
+| vidarh `prgs/Gfx/*` (beyond `paint.b`) | **Next priority** after turtle; defer IFF/EHB/HAM |
+| vidarh `prgs/welcome.b` | Needs `SAY` / `TRANSLATE$` (after Gfx climb) |
 | vidarh `prgs/Library/hello.b` | `LIBRARY` open/close may be no-ops; shim only the calls used (`FPuts`, …) |
 | vidarh `prgs/IO/seq.b` | File I/O demoted; in-memory VFS if/when wanted |
 | vidarh `prgs/IO/print.b` | Printer + SUBmods / Workbench args — not a PRINT demo |
