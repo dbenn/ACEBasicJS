@@ -45,7 +45,7 @@ expectations below (observable results in the host output / runtime).
 | `snowflake` | `Turtle/snowflake.b` | Koch snowflake; prompts for depth/sides. |
 | `spiro` | `Turtle/spiro.b` | SpiroGraph; press `q` (original `MENU` deferred). |
 | `torus` | `Turtle/torus.b` | Nested turtle loops; press a key or close. |
-| `tree` | `Turtle/tree.b` | Recursive tree; prompts for depth; press `q`. |
+| `tree` | `Turtle/tree.b` | Recursive tree; prompt is **branch length in pixels** (try **40**, not 5 — base case is `n<5`); press `q`. |
 
 ## Intentionally not seeded yet
 

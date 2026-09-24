@@ -151,6 +151,6 @@
     "title": "tree",
     "folder": "Turtle",
     "path": "examples/Turtle/tree.b",
-    "notes": "Recursive binary tree; prompts for depth"
+    "notes": "Recursive tree; branch length in pixels (try 40); press q"
   }
 ]
