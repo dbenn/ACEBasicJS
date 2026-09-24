@@ -157,7 +157,7 @@ Still deferred within Phase 4+: `MENU` / `GADGET`, full `PALETTE` / `COLOR` / `L
 
 ~~Phase 5+ follow-up:~~ `PAINT` / `AREA` / `AREAFILL` / `PATTERN` (+ `&H` hex literals) — flood fill, polygon fill, line/area patterns. Demo: `examples/paint.b` (from vidarh `prgs/Gfx/pattern.b`).
 
-Still deferred: `SCROLL`, turtle graphics, IFF, EHB/HAM modes, Topaz webfont, `MENU` / `GADGET`.
+Still deferred within graphics: `SCROLL`, IFF, EHB/HAM modes, Topaz webfont, `MENU` / `GADGET` (elevate when a Gfx/Turtle example needs them).
 
 ### Phase 5.5 — Math builtins (program-driven)
 
@@ -182,11 +182,20 @@ Still deferred: `WAVE` with `ALLOC`/`POKE` sample memory (white noise / 8SVX `pl
 
 **Done when:** ~~tones play in-page after Run (user gesture); smoke tests log SOUND calls.~~
 
-### Phase 7+ — Speech, files, corpus climb
+### Phase 7+ — Reordered priority (post–SOUND)
 
-Follow the ordering in `design_deac.md` (SAY → sequential files via IndexedDB), unlocking vidarh `prgs/Gfx`, `GUI`, `IO`, etc. one example at a time.
+Drive by visible demos and the smallest stack that works. Do **not** expand grammar ahead of a failing example.
 
-Each newly passing distribution example is a milestone; do not expand the grammar ahead of failing examples.
+| Priority | Work | Why / seed |
+|---|---|---|
+| **1** | **Turtle graphics** | Thin layer on existing RastPort (`FORWARD` / `BACK` / `TURN*` / `PEN*` / `SETXY` / `HOME`…). Seeds: vidarh `prgs/Turtle/` — start with `torus.b`, `flower.b`, `boxit.b`; then `dragon.b`, `spiro.b` (latter needs `MENU`) |
+| **2** | **Gfx corpus climb** | More of the original ACE graphics demos (vidarh `prgs/Gfx/`). `pattern.b` already landed as `examples/paint.b`. Next easy wins before IFF/EHB/HAM: e.g. `pattern2.b` (needs `GADGET WAIT`), `7seg.b`, `shuttle.b`, `tri.b` — unlock constructs only as each fails |
+| **3** | **SAY** | Web Speech API; seed `welcome.b` (`SAY TRANSLATE$(…)`). Full `SpeechTool.b` waits on `GADGET` / requesters |
+| **4** | **`LIBRARY` selective shims** | `LIBRARY` open/close can be **no-ops**. `DECLARE FUNCTION … LIBRARY` must bind the few AmigaOS calls an example actually uses (e.g. `FPuts` → console). Not a blanket stub for every `.bmap` entry |
+| **5** | **Sequential files (demoted)** | Client-side apps rarely need `PRINT#` persistence. When an example demands it (`seq.b`), use an **in-memory VFS** first. IndexedDB only if reload survival is wanted — optional, maybe never |
+| later | GUI (`MENU`/`GADGET`), IFF/EHB/HAM, sample `WAVE`, tracker/`PLAY` | As corpus examples force them |
+
+Each newly passing distribution example is a milestone.
 
 ---
 
@@ -228,7 +237,11 @@ The C compiler is a reference oracle during development, not the acceptance comp
 10b. ~~Phase 5+: `PAINT` / `AREA` / `AREAFILL` / `PATTERN`~~ (see `examples/paint.b`)
 11. ~~Phase 5.5: math builtins~~ (`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS`; `hi.b` / `ahl.b` / `lines.b` / `fact.b`)
 12. ~~Phase 6: SOUND / WAVE~~ (`WAVE SIN`, `SOUND`, `BEEP`; see `examples/sound.b`)
-13. **Phase 7+:** speech / files, then climb the vidarh corpus example by example
+13. **Turtle graphics** — `FORWARD` / `TURN*` / `PEN*` / `SETXY`; seed from vidarh `prgs/Turtle/` (`torus` / `flower` / `boxit` first)
+14. **Gfx corpus** — climb vidarh `prgs/Gfx/` beyond `paint.b` (defer IFF/EHB/HAM)
+15. **SAY** — Web Speech; seed `welcome.b`
+16. **`LIBRARY` shims** — open/close no-ops; bind only calls examples need
+17. **Files (low priority)** — in-memory VFS if/when `seq.b`-class demos matter; IndexedDB optional
 
 ---
 
