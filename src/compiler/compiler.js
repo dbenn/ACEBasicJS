@@ -7,14 +7,14 @@
   "use strict";
 
   const KEYWORDS = {
-    AND: 1, AS: 1, BEEP: 1, CALL: 1, CIRCLE: 1, CLOSE: 1, CLS: 1, COLOR: 1, CONST: 1, DATA: 1,
-    DEFINT: 1, DEFLNG: 1, DEFSNG: 1, DEFSTR: 1, DEFDBL: 1, DIM: 1, ELSE: 1, ELSEIF: 1,
-    END: 1, EXIT: 1, FOR: 1, GOTO: 1, GOSUB: 1, IF: 1, INPUT: 1, LET: 1, LINE: 1,
-    LOCATE: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1, OUTPUT: 1, PALETTE: 1, PRINT: 1,
-    PSET: 1, RANDOMIZE: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1,
-    SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, SOUND: 1, LONGINT: 1, STEP: 1, SUB: 1,
-    THEN: 1, TO: 1, UNTIL: 1, WAVE: 1, WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1,
-    FUNCTION: 1, LIBRARY: 1,
+    AND: 1, AREA: 1, AREAFILL: 1, AS: 1, BEEP: 1, CALL: 1, CIRCLE: 1, CLOSE: 1, CLS: 1,
+    COLOR: 1, CONST: 1, DATA: 1, DEFINT: 1, DEFLNG: 1, DEFSNG: 1, DEFSTR: 1, DEFDBL: 1,
+    DIM: 1, ELSE: 1, ELSEIF: 1, END: 1, EXIT: 1, FOR: 1, GOTO: 1, GOSUB: 1, IF: 1,
+    INPUT: 1, LET: 1, LINE: 1, LOCATE: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1, OUTPUT: 1,
+    PAINT: 1, PALETTE: 1, PATTERN: 1, PRINT: 1, PSET: 1, RANDOMIZE: 1, READ: 1, REM: 1,
+    REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1, SHARED: 1, SINGLE: 1, SHORTINT: 1,
+    SLEEP: 1, SOUND: 1, LONGINT: 1, STEP: 1, SUB: 1, THEN: 1, TO: 1, UNTIL: 1, WAVE: 1,
+    WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1, FUNCTION: 1, LIBRARY: 1,
   };
 
   /**
@@ -127,6 +127,23 @@
         if (peek() === '"') bump();
         add("STRING", s, startLine, startCol);
         continue;
+      }
+
+      // &Hxxxx / &Oooo / &Bbbb — AmigaBASIC / ACE hex / octal / binary
+      if (c === "&") {
+        const baseCh = peek(1).toUpperCase();
+        if (baseCh === "H" || baseCh === "O" || baseCh === "B") {
+          bump(); // &
+          bump(); // H|O|B
+          let digits = "";
+          const re = baseCh === "H" ? /[0-9A-Fa-f]/ : baseCh === "O" ? /[0-7]/ : /[01]/;
+          while (re.test(peek())) digits += bump();
+          const base = baseCh === "H" ? 16 : baseCh === "O" ? 8 : 2;
+          const n = digits ? parseInt(digits, base) : 0;
+          if ("!#%&".indexOf(peek()) >= 0) bump();
+          add("NUMBER", String(n), startLine, startCol);
+          continue;
+        }
       }
 
       if (c >= "0" && c <= "9") {
@@ -1052,6 +1069,79 @@
     };
   };
 
+  /** PAINT (x,y)[,paintcolor-id[,bordercolor-id]] */
+  Parser.prototype.parsePaint = function () {
+    this.expect("KW", "PAINT");
+    this.expect("LPAREN");
+    const x = this.parseExpr();
+    this.expect("COMMA");
+    const y = this.parseExpr();
+    this.expect("RPAREN");
+    let paintColor = null;
+    let borderColor = null;
+    if (this.at("COMMA")) {
+      this.eat();
+      if (!this.at("COMMA") && !this.at("EOL") && !this.at("EOF") && !this.at("COLON")) {
+        paintColor = this.parseExpr();
+      }
+      if (this.at("COMMA")) {
+        this.eat();
+        borderColor = this.parseExpr();
+      }
+    }
+    return { type: "Paint", x: x, y: y, paintColor: paintColor, borderColor: borderColor };
+  };
+
+  /** AREA [STEP](x,y) */
+  Parser.prototype.parseArea = function () {
+    this.expect("KW", "AREA");
+    let step = false;
+    if (this.atKw("STEP")) {
+      this.eat();
+      step = true;
+    }
+    this.expect("LPAREN");
+    const x = this.parseExpr();
+    this.expect("COMMA");
+    const y = this.parseExpr();
+    this.expect("RPAREN");
+    return { type: "Area", step: step, x: x, y: y };
+  };
+
+  /** AREAFILL [mode] — mode 0 normal, 1 inverted pen */
+  Parser.prototype.parseAreafill = function () {
+    this.expect("KW", "AREAFILL");
+    let mode = { type: "Number", value: 0 };
+    if (this.at("NUMBER")) {
+      mode = { type: "Number", value: Number(this.eat().value) };
+    }
+    return { type: "Areafill", mode: mode };
+  };
+
+  /**
+   * PATTERN RESTORE |
+   * PATTERN [line-pattern][,area-array]
+   * Area pattern is a short-integer array name (Amiga SetAfPt).
+   */
+  Parser.prototype.parsePattern = function () {
+    this.expect("KW", "PATTERN");
+    if (this.atKw("RESTORE")) {
+      this.eat();
+      return { type: "Pattern", restore: true };
+    }
+    let linePat = null;
+    let areaArr = null;
+    if (!this.at("COMMA")) {
+      linePat = this.parseExpr();
+    }
+    if (this.at("COMMA")) {
+      this.eat();
+      const name = this.expect("IDENT").value;
+      areaArr = name;
+    }
+    return { type: "Pattern", restore: false, linePat: linePat, areaArr: areaArr };
+  };
+
   Parser.prototype.parseStatementContent = function () {
     if (this.atKw("PRINT")) return this.parsePrint();
     if (this.atKw("INPUT")) return this.parseInput();
@@ -1069,6 +1159,10 @@
     if (this.atKw("LINE")) return this.parseLine();
     if (this.atKw("PSET")) return this.parsePset();
     if (this.atKw("CIRCLE")) return this.parseCircle();
+    if (this.atKw("PAINT")) return this.parsePaint();
+    if (this.atKw("AREA")) return this.parseArea();
+    if (this.atKw("AREAFILL")) return this.parseAreafill();
+    if (this.atKw("PATTERN")) return this.parsePattern();
     if (this.atKw("IF")) return this.parseIf();
     if (this.atKw("FOR")) return this.parseFor();
     if (this.atKw("WHILE")) return this.parseWhile();
@@ -1341,6 +1435,24 @@
         return ind + "rt.circle(" + this.expr(stmt.x) + ", " + this.expr(stmt.y) + ", " +
           this.expr(stmt.radius) + ", " + color + ", " + start + ", " + end + ", " + aspect + ");";
       }
+      case "Paint": {
+        const pc = stmt.paintColor ? this.expr(stmt.paintColor) : "null";
+        const bc = stmt.borderColor ? this.expr(stmt.borderColor) : "null";
+        return ind + "rt.paint(" + this.expr(stmt.x) + ", " + this.expr(stmt.y) + ", " +
+          pc + ", " + bc + ");";
+      }
+      case "Area":
+        return ind + "rt.area(" + !!stmt.step + ", " + this.expr(stmt.x) + ", " +
+          this.expr(stmt.y) + ");";
+      case "Areafill":
+        return ind + "rt.areafill(" + this.expr(stmt.mode) + ");";
+      case "Pattern":
+        if (stmt.restore) {
+          return ind + "rt.patternRestore();";
+        }
+        return ind + "rt.pattern(" +
+          (stmt.linePat ? this.expr(stmt.linePat) : "null") + ", " +
+          (stmt.areaArr ? jsName(stmt.areaArr) : "null") + ");";
       case "Assign":
         return ind + jsName(stmt.name) + " = " + this.expr(stmt.expr) + ";";
       case "AssignIndex":

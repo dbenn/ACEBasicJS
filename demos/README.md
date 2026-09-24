@@ -12,6 +12,7 @@ Keep media small and descriptive; prefer one short video plus 1–2 stills per p
 | [`phase45/`](phase45/) | `INPUT` in-window (same surface as `PRINT`; Enter submits) |
 | [`phase45-inline/`](phase45-inline/) | Window INPUT draft inline at prompt (not bottom) |
 | [`phase5/`](phase5/) | RastPort `LINE` / `CIRCLE` / `PSET` / `PALETTE` |
+| [`phase5-paint/`](phase5-paint/) | `PAINT` / `AREA` / `AREAFILL` / `PATTERN` |
 | [`phase55/`](phase55/) | Math builtins: `RND` / `COLOR` text (`hi.b`), `lines.b` |
 | [`phase6/`](phase6/) | `SOUND` / `WAVE SIN` / `BEEP` (Web Audio) |
 
