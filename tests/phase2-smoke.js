@@ -62,7 +62,7 @@ async function check(name, fn) {
 
 async function main() {
   await check("hello.b", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/hello.b"), "utf8");
+    const src = fs.readFileSync(path.join(root, "examples/ACEBasicJS/hello.b"), "utf8");
     const r = await runSource(ACE, src);
     if (r.error) throw r.error;
     if (r.lines[0] !== "Hello from ACEBasicJS") throw new Error(JSON.stringify(r.lines));
@@ -70,7 +70,7 @@ async function main() {
   });
 
   await check("loops.b structure", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/loops.b"), "utf8");
+    const src = fs.readFileSync(path.join(root, "examples/BenchMarks/loops.b"), "utf8");
     const small = src.replace("CONST x=400, y=150", "CONST x=20, y=10");
     const r = await runSource(ACE, small);
     if (r.error) throw r.error.stack || r.error;
@@ -82,7 +82,7 @@ async function main() {
   });
 
   await check("sieve.b", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/sieve.b"), "utf8");
+    const src = fs.readFileSync(path.join(root, "examples/BenchMarks/sieve.b"), "utf8");
     const small = src
       .replace(/MAX=7000/g, "MAX=200")
       .replace(/DIM FLAGS\(7000\)/g, "DIM FLAGS(200)")
@@ -95,7 +95,7 @@ async function main() {
   });
 
   await check("ackermann.b", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/ackermann.b"), "utf8");
+    const src = fs.readFileSync(path.join(root, "examples/BenchMarks/ackermann.b"), "utf8");
     const r = await runSource(ACE, src);
     if (r.error) throw r.error.stack || JSON.stringify(r.error);
     const trimmed = r.lines.map(function (l) { return l.trim(); });
@@ -149,7 +149,7 @@ async function main() {
   });
 
   await check("INPUT prompt and string/number", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/input.b"), "utf8");
+    const src = fs.readFileSync(path.join(root, "examples/ACEBasicJS/input.b"), "utf8");
     const r = await runSource(ACE, src, ["Ada", "7"]);
     if (r.error) throw r.error.stack || r.error;
     if (!/Your name\? /.test(r.text)) throw new Error("missing name prompt: " + JSON.stringify(r.text));
@@ -190,8 +190,8 @@ async function main() {
     if (rt.windowFunc(3) !== 110) throw new Error("height " + rt.windowFunc(3));
   });
 
-  await check("examples/window.b compiles", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/window.b"), "utf8");
+  await check("examples/ACEBasicJS/window.b compiles", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/ACEBasicJS/window.b"), "utf8");
     const compiled = ACE.compile(src);
     if (!compiled.ok) throw compiled.diagnostics;
     if (!/openScreen/.test(compiled.js) || !/openWindow/.test(compiled.js)) {
@@ -200,7 +200,7 @@ async function main() {
   });
 
   await check("WINDOW + INPUT stays in window text", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/window-input.b"), "utf8");
+    const src = fs.readFileSync(path.join(root, "examples/ACEBasicJS/window-input.b"), "utf8");
     const sink = { textContent: "" };
     const rt = ACE.createRuntime({ output: sink, inputLines: ["Ada", "7"] });
     const compiled = ACE.compile(src);
@@ -273,8 +273,8 @@ async function main() {
     if (rt.windowPixel(1, 0, 0) !== 0) throw new Error("CLS bg " + rt.windowPixel(1, 0, 0));
   });
 
-  await check("examples/graphics.b compiles and draws", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/graphics.b"), "utf8");
+  await check("examples/ACEBasicJS/graphics.b compiles and draws", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/ACEBasicJS/graphics.b"), "utf8");
     const compiled = ACE.compile(src);
     if (!compiled.ok) throw compiled.diagnostics;
     if (!/rt\.line\(/.test(compiled.js) || !/rt\.circle\(/.test(compiled.js)) {
@@ -362,8 +362,8 @@ async function main() {
     if (rt.point(5, 10) !== 2) throw new Error("solid line after restore " + rt.point(5, 10));
   });
 
-  await check("examples/paint.b compiles and paints", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/paint.b"), "utf8");
+  await check("examples/Gfx/paint.b compiles and paints", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Gfx/paint.b"), "utf8");
     const compiled = ACE.compile(src);
     if (!compiled.ok) throw compiled.diagnostics;
     if (!/rt\.paint\(/.test(compiled.js) || !/rt\.areafill\(/.test(compiled.js)) {
@@ -417,8 +417,8 @@ async function main() {
     if (!/rt\.rnd\(\)/.test(compiled.js)) throw new Error("missing rt.rnd: " + compiled.js);
   });
 
-  await check("examples/ahl.b", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/ahl.b"), "utf8");
+  await check("examples/BenchMarks/ahl.b", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/BenchMarks/ahl.b"), "utf8");
     const r = await runSource(ACE, src);
     if (r.error) throw r.error.stack || r.error;
     const joined = r.lines.join("\n");
@@ -427,8 +427,8 @@ async function main() {
     if (!/Random =/.test(joined)) throw new Error(joined);
   });
 
-  await check("examples/fact.b", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/fact.b"), "utf8");
+  await check("examples/Misc/fact.b", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Misc/fact.b"), "utf8");
     const r = await runSource(ACE, src, ["5", "-1"]);
     if (r.error) throw r.error.stack || r.error;
     if (!/-->> 120 /.test(r.text)) throw new Error(r.text);
@@ -443,8 +443,8 @@ async function main() {
     if (!/rt\.locate\(/.test(compiled.js)) throw new Error("missing locate");
   });
 
-  await check("examples/lines.b draws with RANDOMIZE", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/lines.b"), "utf8");
+  await check("examples/BenchMarks/lines.b draws with RANDOMIZE", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/BenchMarks/lines.b"), "utf8");
     const compiled = ACE.compile(src);
     if (!compiled.ok) throw compiled.diagnostics;
     if (!/rt\.randomize\(/.test(compiled.js)) throw new Error("missing randomize");
@@ -492,8 +492,8 @@ async function main() {
     if (rt.soundLog[1].voice !== 1) throw new Error("voice " + rt.soundLog[1].voice);
   });
 
-  await check("examples/sound.b runs", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/sound.b"), "utf8");
+  await check("examples/Sound/sound.b runs", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Sound/sound.b"), "utf8");
     const sink = { textContent: "" };
     const rt = ACE.createRuntime({ output: sink });
     const compiled = ACE.compile(src);
@@ -560,8 +560,8 @@ async function main() {
     if (rt.ycor() !== 30) throw new Error("back y " + rt.ycor());
   });
 
-  await check("examples/flower.b compiles and draws", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/flower.b"), "utf8");
+  await check("examples/Turtle/flower.b compiles and draws", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Turtle/flower.b"), "utf8");
     const sink = { textContent: "" };
     const rt = ACE.createRuntime({ output: sink });
     const compiled = ACE.compile(src);
@@ -583,8 +583,8 @@ async function main() {
     await runPromise;
   });
 
-  await check("examples/boxit.b compiles and draws", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/boxit.b"), "utf8");
+  await check("examples/Turtle/boxit.b compiles and draws", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Turtle/boxit.b"), "utf8");
     const sink = { textContent: "" };
     const rt = ACE.createRuntime({ output: sink });
     const compiled = ACE.compile(src);
@@ -602,8 +602,8 @@ async function main() {
     await runPromise;
   });
 
-  await check("examples/torus.b compiles and draws", async function () {
-    const src = fs.readFileSync(path.join(root, "examples/torus.b"), "utf8");
+  await check("examples/Turtle/torus.b compiles and draws", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Turtle/torus.b"), "utf8");
     const sink = { textContent: "" };
     const rt = ACE.createRuntime({ output: sink });
     const compiled = ACE.compile(src);

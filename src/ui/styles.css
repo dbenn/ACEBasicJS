@@ -73,7 +73,7 @@ button {
 }
 
 select {
-  min-width: 12rem;
+  min-width: 16rem;
   padding: 0.25rem 0.4rem;
   border: 2px solid #444;
   background: #fff;

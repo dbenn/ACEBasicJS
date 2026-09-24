@@ -182,17 +182,55 @@
     if (!isRunning) setInputEnabled(false);
   }
 
+  /** Folder order: ACEBasicJS first (host demos), then ACE prgs folders A–Z. */
+  function folderSortKey(name) {
+    if (name === "ACEBasicJS") return "0";
+    if (name === "prgs") return "1";
+    return "2" + String(name || "").toLowerCase();
+  }
+
+  function fillPicker() {
+    picker.innerHTML = "";
+    const byFolder = Object.create(null);
+    const folderOrder = [];
+    manifest.forEach(function (entry) {
+      const folder = entry.folder || "prgs";
+      if (!byFolder[folder]) {
+        byFolder[folder] = [];
+        folderOrder.push(folder);
+      }
+      byFolder[folder].push(entry);
+    });
+    folderOrder.sort(function (a, b) {
+      const ka = folderSortKey(a);
+      const kb = folderSortKey(b);
+      if (ka < kb) return -1;
+      if (ka > kb) return 1;
+      return 0;
+    });
+    folderOrder.forEach(function (folder) {
+      const group = document.createElement("optgroup");
+      group.label = folder;
+      byFolder[folder]
+        .slice()
+        .sort(function (a, b) {
+          return String(a.title || a.id).localeCompare(String(b.title || b.id));
+        })
+        .forEach(function (entry) {
+          const opt = document.createElement("option");
+          opt.value = entry.id;
+          opt.textContent = entry.title || entry.id;
+          group.appendChild(opt);
+        });
+      picker.appendChild(group);
+    });
+  }
+
   async function loadManifest() {
     const res = await fetch("examples/manifest.json");
     if (!res.ok) throw new Error("Could not load examples/manifest.json");
     manifest = await res.json();
-    picker.innerHTML = "";
-    manifest.forEach(function (entry) {
-      const opt = document.createElement("option");
-      opt.value = entry.id;
-      opt.textContent = entry.title;
-      picker.appendChild(opt);
-    });
+    fillPicker();
   }
 
   async function loadProgram(id) {
