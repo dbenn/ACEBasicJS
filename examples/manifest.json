@@ -1,104 +1,156 @@
 [
   {
     "id": "hello",
-    "title": "Hello (PRINT)",
-    "path": "examples/hello.b",
-    "notes": "PRINT smoke test — see examples/README.md"
-  },
-  {
-    "id": "hi",
-    "title": "Hi There! (RND/COLOR)",
-    "path": "examples/hi.b",
-    "notes": "Math builtins — RND + COLOR/LOCATE text spray; press q"
-  },
-  {
-    "id": "window",
-    "title": "WINDOW / SCREEN",
-    "path": "examples/window.b",
-    "notes": "Phase 4 — Intuition window chrome; close gadget quits"
-  },
-  {
-    "id": "window-input",
-    "title": "WINDOW + INPUT",
-    "path": "examples/window-input.b",
-    "notes": "Phase 4.5 — type in the window, Enter to submit"
-  },
-  {
-    "id": "graphics",
-    "title": "Graphics (LINE/CIRCLE)",
-    "path": "examples/graphics.b",
-    "notes": "Phase 5 — RastPort LINE / BOX / CIRCLE / PSET / PALETTE"
-  },
-  {
-    "id": "paint",
-    "title": "PAINT / PATTERN",
-    "path": "examples/paint.b",
-    "notes": "Phase 5+ — AREA / AREAFILL / PAINT / PATTERN"
-  },
-  {
-    "id": "torus",
-    "title": "Turtle torus",
-    "path": "examples/torus.b",
-    "notes": "Phase 7 — FORWARD / TURNRIGHT nested loops"
-  },
-  {
-    "id": "flower",
-    "title": "Turtle flower",
-    "path": "examples/flower.b",
-    "notes": "Phase 7 — turtle SUBs; press q"
-  },
-  {
-    "id": "boxit",
-    "title": "Turtle boxit",
-    "path": "examples/boxit.b",
-    "notes": "Phase 7 — recursive FORWARD / TURN*; press q"
-  },
-  {
-    "id": "sound",
-    "title": "SOUND / WAVE",
-    "path": "examples/sound.b",
-    "notes": "Phase 6 — Web Audio tones (click Run; unmute tab)"
-  },
-  {
-    "id": "lines",
-    "title": "Lines benchmark",
-    "path": "examples/lines.b",
-    "notes": "RANDOMIZE / RND / INT + LINE; press a key when done"
+    "title": "hello",
+    "folder": "ACEBasicJS",
+    "path": "examples/ACEBasicJS/hello.b",
+    "notes": "PRINT smoke test"
   },
   {
     "id": "input",
-    "title": "INPUT demo",
-    "path": "examples/input.b",
-    "notes": "Phase 3 — interactive INPUT (console; Enter to submit)"
+    "title": "input",
+    "folder": "ACEBasicJS",
+    "path": "examples/ACEBasicJS/input.b",
+    "notes": "Interactive INPUT (console)"
   },
   {
-    "id": "fact",
-    "title": "Factorial",
-    "path": "examples/fact.b",
-    "notes": "Recursive SUB + INPUT"
+    "id": "window",
+    "title": "window",
+    "folder": "ACEBasicJS",
+    "path": "examples/ACEBasicJS/window.b",
+    "notes": "SCREEN / WINDOW chrome"
   },
   {
-    "id": "ahl",
-    "title": "Ahl benchmark",
-    "path": "examples/ahl.b",
-    "notes": "SQR / RND / ABS math builtins"
+    "id": "window-input",
+    "title": "window-input",
+    "folder": "ACEBasicJS",
+    "path": "examples/ACEBasicJS/window-input.b",
+    "notes": "INPUT in window"
   },
   {
-    "id": "loops",
-    "title": "Loops benchmark",
-    "path": "examples/loops.b",
-    "notes": "FOR / WHILE / REPEAT"
-  },
-  {
-    "id": "sieve",
-    "title": "Sieve benchmark",
-    "path": "examples/sieve.b",
-    "notes": "DIM / GOTO / IF"
+    "id": "graphics",
+    "title": "graphics",
+    "folder": "ACEBasicJS",
+    "path": "examples/ACEBasicJS/graphics.b",
+    "notes": "LINE / CIRCLE / PSET / PALETTE"
   },
   {
     "id": "ackermann",
     "title": "Ackermann",
-    "path": "examples/ackermann.b",
+    "folder": "BenchMarks",
+    "path": "examples/BenchMarks/ackermann.b",
     "notes": "SUB / recursion"
+  },
+  {
+    "id": "ahl",
+    "title": "Ahl",
+    "folder": "BenchMarks",
+    "path": "examples/BenchMarks/ahl.b",
+    "notes": "SQR / RND / ABS"
+  },
+  {
+    "id": "lines",
+    "title": "lines",
+    "folder": "BenchMarks",
+    "path": "examples/BenchMarks/lines.b",
+    "notes": "RANDOMIZE / RND / LINE"
+  },
+  {
+    "id": "loops",
+    "title": "loops",
+    "folder": "BenchMarks",
+    "path": "examples/BenchMarks/loops.b",
+    "notes": "FOR / WHILE / REPEAT"
+  },
+  {
+    "id": "sieve",
+    "title": "sieve",
+    "folder": "BenchMarks",
+    "path": "examples/BenchMarks/sieve.b",
+    "notes": "DIM / GOTO / IF"
+  },
+  {
+    "id": "paint",
+    "title": "paint (pattern)",
+    "folder": "Gfx",
+    "path": "examples/Gfx/paint.b",
+    "notes": "From prgs/Gfx/pattern.b — PAINT / AREA / PATTERN"
+  },
+  {
+    "id": "fact",
+    "title": "fact",
+    "folder": "Misc",
+    "path": "examples/Misc/fact.b",
+    "notes": "Recursive SUB + INPUT"
+  },
+  {
+    "id": "hi",
+    "title": "hi",
+    "folder": "prgs",
+    "path": "examples/hi.b",
+    "notes": "ACE prgs/hi.b — RND / COLOR / LOCATE; press q"
+  },
+  {
+    "id": "sound",
+    "title": "sound",
+    "folder": "Sound",
+    "path": "examples/Sound/sound.b",
+    "notes": "WAVE SIN / SOUND / BEEP"
+  },
+  {
+    "id": "boxit",
+    "title": "boxit",
+    "folder": "Turtle",
+    "path": "examples/Turtle/boxit.b",
+    "notes": "Recursive FORWARD / TURN*; press q"
+  },
+  {
+    "id": "bst",
+    "title": "bst",
+    "folder": "Turtle",
+    "path": "examples/Turtle/bst.b",
+    "notes": "Needs STRUCT / ADDRESS / CASE — corpus climb"
+  },
+  {
+    "id": "dragon",
+    "title": "dragon",
+    "folder": "Turtle",
+    "path": "examples/Turtle/dragon.b",
+    "notes": "Recursive dragon curve; prompts for depth/sides"
+  },
+  {
+    "id": "flower",
+    "title": "flower",
+    "folder": "Turtle",
+    "path": "examples/Turtle/flower.b",
+    "notes": "Turtle SUBs; press q"
+  },
+  {
+    "id": "snowflake",
+    "title": "snowflake",
+    "folder": "Turtle",
+    "path": "examples/Turtle/snowflake.b",
+    "notes": "Koch snowflake; prompts for depth/sides"
+  },
+  {
+    "id": "spiro",
+    "title": "spiro",
+    "folder": "Turtle",
+    "path": "examples/Turtle/spiro.b",
+    "notes": "SpiroGraph; press q (MENU deferred)"
+  },
+  {
+    "id": "torus",
+    "title": "torus",
+    "folder": "Turtle",
+    "path": "examples/Turtle/torus.b",
+    "notes": "FORWARD / TURNRIGHT nested loops"
+  },
+  {
+    "id": "tree",
+    "title": "tree",
+    "folder": "Turtle",
+    "path": "examples/Turtle/tree.b",
+    "notes": "Recursive binary tree; prompts for depth"
   }
 ]

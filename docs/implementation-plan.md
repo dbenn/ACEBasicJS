@@ -71,7 +71,10 @@ Keep the tree small until something earns its place:
 
 ```text
 docs/                 design + this plan
-examples/             curated .b fixtures for the program picker
+examples/             curated .b fixtures (ACE prgs/-style folders + ACEBasicJS/)
+  ACEBasicJS/         host demos (hello, window, …)
+  Turtle/ BenchMarks/ Gfx/ Sound/ Misc/ …
+  manifest.json       picker entries with folder → <optgroup>
 src/
   compiler/           lexer, parser, codegen → JS string
   runtime/            AmigaOS-ish API (console → intuition → gfx → audio → …)
@@ -104,10 +107,10 @@ No C subtree in the default product path. Optional `vendor/ace-c/` only if neede
 
 | Example | Why |
 |---|---|
-| `examples/hello.b` | Phase 0 `PRINT` smoke test (vidarh `Library/hello.b` needs `LIBRARY dos` — deferred) |
-| `examples/loops.b` | Nested `FOR` / `WHILE` / `REPEAT`, `CONST`, `TIMER` |
-| `examples/sieve.b` | `DIM`, `IF`, `GOTO`, line numbers |
-| `examples/ackermann.b` | `SUB`, recursion, `EXIT SUB` |
+| `examples/ACEBasicJS/hello.b` | Phase 0 `PRINT` smoke test (vidarh `Library/hello.b` needs `LIBRARY dos` — deferred) |
+| `examples/BenchMarks/loops.b` | Nested `FOR` / `WHILE` / `REPEAT`, `CONST`, `TIMER` |
+| `examples/BenchMarks/sieve.b` | `DIM`, `IF`, `GOTO`, line numbers |
+| `examples/BenchMarks/ackermann.b` | `SUB`, recursion, `EXIT SUB` |
 
 **Done when:** ~~a written construct checklist exists and the seed examples are in-repo with expected-behaviour notes.~~
 
@@ -155,7 +158,7 @@ Still deferred within Phase 4+: `MENU` / `GADGET`, full `PALETTE` / `COLOR` / `L
 
 **Done when:** ~~a small graphics example draws lines, boxes, and circles with a custom palette.~~
 
-~~Phase 5+ follow-up:~~ `PAINT` / `AREA` / `AREAFILL` / `PATTERN` (+ `&H` hex literals) — flood fill, polygon fill, line/area patterns. Demo: `examples/paint.b` (from vidarh `prgs/Gfx/pattern.b`).
+~~Phase 5+ follow-up:~~ `PAINT` / `AREA` / `AREAFILL` / `PATTERN` (+ `&H` hex literals) — flood fill, polygon fill, line/area patterns. Demo: `examples/Gfx/paint.b` (from vidarh `prgs/Gfx/pattern.b`).
 
 Still deferred within graphics: `SCROLL`, IFF, EHB/HAM modes, Topaz webfont, `MENU` / `GADGET` (elevate when a Gfx/Turtle example needs them).
 
@@ -176,7 +179,7 @@ Also: single-line `WHILE cond:…:WEND`, and window `PRINT` as absolutely positi
 
 ### Phase 6 — SOUND / WAVE (Web Audio)
 
-~~`SOUND` / `WAVE SIN` / `BEEP`~~ — Paula-style period (124..32767), duration 18.2 ≈ 1s, volume 0..64, voices 0..3. Frequency = `3579546 / (period * 32)` for ACE’s 32-byte sine table. Demo: `examples/sound.b`.
+~~`SOUND` / `WAVE SIN` / `BEEP`~~ — Paula-style period (124..32767), duration 18.2 ≈ 1s, volume 0..64, voices 0..3. Frequency = `3579546 / (period * 32)` for ACE’s 32-byte sine table. Demo: `examples/Sound/sound.b`.
 
 Still deferred: `WAVE` with `ALLOC`/`POKE` sample memory (white noise / 8SVX `play.b`), tracker modules.
 
@@ -188,8 +191,8 @@ Drive by visible demos and the smallest stack that works. Do **not** expand gram
 
 | Priority | Work | Why / seed |
 |---|---|---|
-| **1** | **Turtle graphics** | ~~Thin layer on existing RastPort~~ — `FORWARD` / `BACK` / `TURN*` / `PEN*` / `SETXY` / `HOME` / `SETHEADING` / `HEADING` / `XCOR` / `YCOR`. Seeds: `examples/torus.b`, `flower.b`, `boxit.b`. Still deferred: `dragon.b`, `spiro.b` (needs `MENU`) |
-| **2** | **Gfx corpus climb** | More of the original ACE graphics demos (vidarh `prgs/Gfx/`). `pattern.b` already landed as `examples/paint.b`. Next easy wins before IFF/EHB/HAM: e.g. `pattern2.b` (needs `GADGET WAIT`), `7seg.b`, `shuttle.b`, `tri.b` — unlock constructs only as each fails |
+| **1** | **Turtle graphics** | ~~Thin layer on existing RastPort~~ — `FORWARD` / `BACK` / `TURN*` / `PEN*` / `SETXY` / `HOME` / `SETHEADING` / `HEADING` / `XCOR` / `YCOR`. Seeds: `examples/Turtle/{torus,flower,boxit}.b` (full Turtle/ set in picker). `bst` still needs STRUCT/ADDRESS; `spiro` MENU deferred |
+| **2** | **Gfx corpus climb** | More of the original ACE graphics demos (vidarh `prgs/Gfx/`). `pattern.b` already landed as `examples/Gfx/paint.b`. Next easy wins before IFF/EHB/HAM: e.g. `pattern2.b` (needs `GADGET WAIT`), `7seg.b`, `shuttle.b`, `tri.b` — unlock constructs only as each fails |
 | **3** | **SAY** | Web Speech API; seed `welcome.b` (`SAY TRANSLATE$(…)`). Full `SpeechTool.b` waits on `GADGET` / requesters |
 | **4** | **`LIBRARY` selective shims** | `LIBRARY` open/close can be **no-ops**. `DECLARE FUNCTION … LIBRARY` must bind the few AmigaOS calls an example actually uses (e.g. `FPuts` → console). Not a blanket stub for every `.bmap` entry |
 | **5** | **Sequential files (demoted)** | Client-side apps rarely need `PRINT#` persistence. When an example demands it (`seq.b`), use an **in-memory VFS** first. IndexedDB only if reload survival is wanted — optional, maybe never |
@@ -234,9 +237,9 @@ The C compiler is a reference oracle during development, not the acceptance comp
 8. ~~Phase 4: Intuition basics~~ (`WINDOW` / `SCREEN` + chrome; see `examples/window.b`)
 9. ~~Phase 4.5: windowed `INPUT`~~ (same surface as `PRINT`; Enter submits; `examples/window-input.b`)
 10. ~~Phase 5: RastPort graphics~~ (`LINE` / `CIRCLE` / `PSET` / `COLOR` / `PALETTE`; see `examples/graphics.b`)
-10b. ~~Phase 5+: `PAINT` / `AREA` / `AREAFILL` / `PATTERN`~~ (see `examples/paint.b`)
+10b. ~~Phase 5+: `PAINT` / `AREA` / `AREAFILL` / `PATTERN`~~ (see `examples/Gfx/paint.b`)
 11. ~~Phase 5.5: math builtins~~ (`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS`; `hi.b` / `ahl.b` / `lines.b` / `fact.b`)
-12. ~~Phase 6: SOUND / WAVE~~ (`WAVE SIN`, `SOUND`, `BEEP`; see `examples/sound.b`)
+12. ~~Phase 6: SOUND / WAVE~~ (`WAVE SIN`, `SOUND`, `BEEP`; see `examples/Sound/sound.b`)
 13. ~~**Turtle graphics**~~ — `FORWARD` / `TURN*` / `PEN*` / `SETXY`; `torus` / `flower` / `boxit`
 14. **Gfx corpus climb** — more vidarh `prgs/Gfx/` beyond `paint.b` (defer IFF/EHB/HAM)
 15. **SAY** — Web Speech; seed `welcome.b`
