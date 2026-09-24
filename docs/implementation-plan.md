@@ -237,8 +237,8 @@ The C compiler is a reference oracle during development, not the acceptance comp
 10b. ~~Phase 5+: `PAINT` / `AREA` / `AREAFILL` / `PATTERN`~~ (see `examples/paint.b`)
 11. ~~Phase 5.5: math builtins~~ (`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS`; `hi.b` / `ahl.b` / `lines.b` / `fact.b`)
 12. ~~Phase 6: SOUND / WAVE~~ (`WAVE SIN`, `SOUND`, `BEEP`; see `examples/sound.b`)
-13. **Turtle graphics** — `FORWARD` / `TURN*` / `PEN*` / `SETXY`; seed from vidarh `prgs/Turtle/` (`torus` / `flower` / `boxit` first)
-14. **Gfx corpus** — climb vidarh `prgs/Gfx/` beyond `paint.b` (defer IFF/EHB/HAM)
+13. ~~**Turtle graphics**~~ — `FORWARD` / `TURN*` / `PEN*` / `SETXY`; `torus` / `flower` / `boxit`
+14. **Gfx corpus climb** — more vidarh `prgs/Gfx/` beyond `paint.b` (defer IFF/EHB/HAM)
 15. **SAY** — Web Speech; seed `welcome.b`
 16. **`LIBRARY` shims** — open/close no-ops; bind only calls examples need
 17. **Files (low priority)** — in-memory VFS if/when `seq.b`-class demos matter; IndexedDB optional
