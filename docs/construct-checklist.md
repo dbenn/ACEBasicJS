@@ -164,7 +164,8 @@ Precedence from the Programmer’s Guide (high → low):
 | Coloured window `PRINT` / `LOCATE` (fg/bg pens) | done (Phase 5.5; absolute text runs) |
 | `PAINT` `AREA` `AREAFILL` `PATTERN` | done (Phase 5+; flood fill + polygon + line/area patterns; see `examples/paint.b`) |
 | `SCROLL` | Phase 5+ / as examples demand |
-| Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `HOME` …) | `later` |
+| Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `SETXY` `HOME` …) | **next** (Phase 7; vidarh `prgs/Turtle/`) |
+| Further Gfx corpus (`pattern2`, `7seg`, `shuttle`, …) | **next** after turtle; IFF/EHB/HAM stay later |
 | `IFF` / images | `later` |
 | Sprites / bobs / `OBJECT.*` | `out` (not ACE focus; reserved but unimplemented in ACE) |
 
@@ -174,7 +175,7 @@ Precedence from the Programmer’s Guide (high → low):
 
 | Item | Status |
 |---|---|
-| `SOUND` / `WAVE` / `SAY` / `TRANSLATE$` | `SOUND`/`WAVE SIN`/`BEEP` done (Phase 6); `SAY` Phase 7 |
+| `SOUND` / `WAVE` / `SAY` / `TRANSLATE$` | `SOUND`/`WAVE SIN`/`BEEP` done (Phase 6); `SAY` after turtle/Gfx climb |
 | Tracker / sample detail | As examples demand |
 
 ---
@@ -183,10 +184,10 @@ Precedence from the Programmer’s Guide (high → low):
 
 | Item | Status |
 |---|---|
-| `OPEN` `CLOSE` `EOF` `LOF` `PRINT#` `INPUT#` `WRITE#` `KILL` `NAME` `FILES` `CHDIR` | Phase 8 (IndexedDB) |
+| `OPEN` `CLOSE` `EOF` `LOF` `PRINT#` `INPUT#` `WRITE#` `KILL` `NAME` `FILES` `CHDIR` | **demoted** — in-memory VFS if an example needs it; IndexedDB optional |
 | `SERIAL` | `later` / maybe `out` |
 | `MESSAGE` / ACE ports | `later` |
-| `LIBRARY` / `.bmap` shared libraries | `later` (simulate selected APIs only) |
+| `LIBRARY` / `.bmap` shared libraries | open/close may be no-ops; **shim only the calls** examples use |
 | `ALLOC` / `FRE` / `POKE*` / `PEEK*` | `later` |
 
 ---

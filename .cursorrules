@@ -109,10 +109,10 @@ banging hardware registers directly — this makes the API surface bounded and c
 - SAY command mapped to SpeechSynthesis
 - Amiga-style voice parameters where possible
 
-#### AmigaDOS → IndexedDB + JS
-- Sequential file I/O (OPEN, CLOSE, INPUT#, PRINT#, WRITE#)
-- Directory operations
-- Environment variables
+#### AmigaDOS → in-memory VFS (+ IndexedDB optional)
+- Sequential file I/O (OPEN, CLOSE, INPUT#, PRINT#, WRITE#) when demos need it
+- Prefer an in-memory named-blob store; IndexedDB only if persistence across reloads is wanted
+- Directory operations / environment variables in JS as required
 
 #### ACE Runtime Library (`db.lib` / `ami.lib` equivalents)
 - Startup and shutdown scaffolding
@@ -157,9 +157,12 @@ Source: David Benn's ACE distribution (examples/ directory)
 4. **Console I/O** — PRINT, INPUT working in a simple terminal canvas
 5. **Intuition basics** — WINDOW, SCREEN, basic drawing
 6. **Audio** — SOUND, WAVE, PLAY
-7. **Speech** — SAY
-8. **File I/O** — sequential file operations via IndexedDB
-9. **Example programs running** — work through the distribution examples
+7. **Turtle + Gfx corpus** — turtle graphics, then more original `prgs/Gfx/` demos
+8. **Speech** — SAY
+9. **Libraries / files as needed** — selective `LIBRARY` shims; in-memory VFS before IndexedDB
+10. **Example programs running** — work through the remaining distribution examples
+
+Authoritative ordering for agents: [`docs/implementation-plan.md`](docs/implementation-plan.md).
 
 ---
 
@@ -181,8 +184,9 @@ to the repo in the same PR when practical.
 | Source always visible + editable | Load from picker, see ACE source, edit freely — core product loop |
 | Demos in-repo under `demos/` | Keep feature screenshots/videos with the code for review and history |
 | Canvas for Intuition | Natural mapping; gives authentic Amiga window chrome |
-| IndexedDB for AmigaDOS | Persistent, async-friendly, browser-native |
+| IndexedDB for AmigaDOS | Persistent, async-friendly, browser-native — **optional**; prefer in-memory VFS until an example needs reload survival |
 | Web Speech API for SAY | Direct equivalent; no custom synthesis needed |
+| Turtle / Gfx before SAY & files | Visible ACE demos first; files are low value client-side |
 
 ---
 

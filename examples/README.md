@@ -27,7 +27,11 @@ expectations below (observable results in the host output / runtime).
 
 | Program | Reason |
 |---|---|
-| vidarh `prgs/Library/hello.b` | Needs `LIBRARY dos` / `DECLARE FUNCTION` — later |
+| vidarh `prgs/Turtle/*` | **Next priority** — turtle (`FORWARD`/`TURN*`/`PEN*`/`SETXY`); start with `torus` / `flower` / `boxit` |
+| vidarh `prgs/Gfx/*` (beyond `paint.b`) | **High priority** after turtle; defer IFF/EHB/HAM |
+| vidarh `prgs/welcome.b` | Needs `SAY` / `TRANSLATE$` (after turtle/Gfx) |
+| vidarh `prgs/Library/hello.b` | `LIBRARY` open/close may be no-ops; shim only the calls used (`FPuts`, …) |
+| vidarh `prgs/IO/seq.b` | File I/O demoted; in-memory VFS if/when wanted |
 | vidarh `prgs/IO/print.b` | Printer + SUBmods / Workbench args — not a PRINT demo |
 
 ## Notes

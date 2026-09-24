@@ -224,15 +224,22 @@ RastPort drawing operations, BitMap handling, colour palettes.
 ### Phase 7 — Audio
 SOUND, WAVE, PLAY commands via Web Audio API.
 
-### Phase 8 — Speech
+### Phase 8 — Turtle + Gfx corpus (priority)
+Turtle graphics (`FORWARD` / `TURN*` / `PEN*` / `SETXY` / …) and climb the
+original ACE `prgs/Gfx/` and `prgs/Turtle/` demos. Prefer visible, small
+examples; defer IFF / EHB / HAM until forced.
+
+### Phase 9 — Speech
 SAY command via Web Speech API.
 
-### Phase 9 — File I/O
-Sequential file operations via IndexedDB.
+### Phase 10 — Libraries & files (as needed)
+`LIBRARY` open/close may be no-ops; bind only the AmigaOS calls examples use.
+Sequential file I/O only when demos need it — in-memory VFS first; IndexedDB
+optional.
 
-### Phase 10 — Example Programs
-Work through the ACE distribution examples systematically. Each passing example
-is a milestone.
+### Phase 11 — Further examples
+Work through remaining ACE distribution examples systematically. Each passing
+example is a milestone.
 
 ---
 
