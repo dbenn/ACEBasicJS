@@ -164,6 +164,15 @@
         continue;
       }
 
+      // Leading-dot floats: .75 → 0.75 (AmigaBASIC / ACE)
+      if (c === "." && /[0-9]/.test(peek(1))) {
+        let n = "0" + bump(); // "0."
+        while (/[0-9]/.test(peek())) n += bump();
+        if ("!#%&".indexOf(peek()) >= 0) bump();
+        add("NUMBER", n, startLine, startCol);
+        continue;
+      }
+
       if (isIdentStart(c)) {
         let id = "";
         while (isIdentPart(peek())) id += bump();

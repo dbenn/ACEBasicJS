@@ -560,6 +560,53 @@ async function main() {
     if (rt.ycor() !== 30) throw new Error("back y " + rt.ycor());
   });
 
+  await check("leading-dot float .75 is 0.75", async function () {
+    const src = "PRINT .75\nPRINT n*.5\n";
+    // n is undeclared → 0; just check .75 tokenises. Better:
+    const src2 =
+      "n=8\n" +
+      "PRINT .75\n" +
+      "PRINT n*.75\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src2);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/\b0\.75\b/.test(compiled.js)) throw new Error("expected 0.75 in JS: " + compiled.js);
+    if (/\*\(75\)|\*75\b/.test(compiled.js.replace(/0\.75/g, ""))) {
+      throw new Error("dot float became integer 75: " + compiled.js);
+    }
+    await ACE.run(compiled, rt);
+    const lines = sink.textContent.split("\n").filter(Boolean);
+    if (Number(lines[0]) !== 0.75) throw new Error("print .75 → " + lines[0]);
+    if (Number(lines[1]) !== 6) throw new Error("8*.75 → " + lines[1]);
+  });
+
+  await check("examples/Turtle/tree.b depth 5 terminates", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Turtle/tree.b"), "utf8");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink, inputLines: ["5"] });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/\*\(0\.75\)/.test(compiled.js) && !/\*0\.75/.test(compiled.js)) {
+      throw new Error("tree scale factor wrong: " + compiled.js.match(/__v_tree[\s\S]*?return __ret/)[0]);
+    }
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 150); });
+    const text = rt.windowText(1);
+    if (!/depth of tree is/.test(text)) throw new Error("missing depth text: " + text);
+    if (!/press 'q'/.test(text)) throw new Error("tree never reached quit prompt: " + text);
+    // Depth 5 draws a short trunk; sample near the setxy start.
+    let ink = 0;
+    for (let y = 140; y < 160; y++) {
+      for (let x = 300; x < 340; x++) {
+        if (rt.windowPixel(1, x, y) === 1) ink++;
+      }
+    }
+    if (ink < 5) throw new Error("expected tree ink near root, got " + ink);
+    rt.stop();
+    await runPromise;
+  });
+
   await check("examples/Turtle/flower.b compiles and draws", async function () {
     const src = fs.readFileSync(path.join(root, "examples/Turtle/flower.b"), "utf8");
     const sink = { textContent: "" };
