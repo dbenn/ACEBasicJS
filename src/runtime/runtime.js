@@ -399,6 +399,31 @@
       return w && w.contentEl ? w.contentEl : null;
     }
 
+    /**
+     * Pixel pen for inline window INPUT (after the prompt).
+     * Coordinates are relative to .ace-committed (same space as .ace-text-run).
+     */
+    function inputCaretPos() {
+      if (!intuiMode || !currentWindowId) return null;
+      const w = windows[currentWindowId];
+      if (!w) return null;
+      return {
+        x: w.penX | 0,
+        y: w.penY | 0,
+        row: w.cursorRow | 0,
+        col: w.cursorCol | 0,
+        windowId: currentWindowId,
+      };
+    }
+
+    /** Preferred mount node for live INPUT draft inside a window (committed layer). */
+    function inputMountEl() {
+      if (!intuiMode || !currentWindowId) return null;
+      const w = windows[currentWindowId];
+      if (!w) return null;
+      return w.committedEl || w.contentEl || null;
+    }
+
     function clearOutput() {
       if (output) output.textContent = "";
       write._buf = "";
@@ -1350,6 +1375,8 @@
       windowText: windowText,
       windowPixel: windowPixel,
       activeTextSurface: activeTextSurface,
+      inputCaretPos: inputCaretPos,
+      inputMountEl: inputMountEl,
       randomize: randomize,
       rnd: rnd,
       abs: abs,

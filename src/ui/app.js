@@ -20,33 +20,89 @@
   /** @type {HTMLElement|null} surface holding live-input + caret (console or window) */
   let inputMount = consoleEl;
 
+  function clearInlineDraftStyles() {
+    liveInput.classList.remove("ace-inline-draft");
+    caret.classList.remove("ace-inline-draft");
+    liveInput.style.left = "";
+    liveInput.style.top = "";
+    caret.style.left = "";
+    caret.style.top = "";
+  }
+
+  function applyInlineDraftAtPen() {
+    const pos = runtime.inputCaretPos && runtime.inputCaretPos();
+    if (!pos) {
+      clearInlineDraftStyles();
+      return;
+    }
+    liveInput.classList.add("ace-inline-draft");
+    caret.classList.add("ace-inline-draft");
+    liveInput.style.left = pos.x + "px";
+    liveInput.style.top = pos.y + "px";
+    // Caret sits after the typed draft; update on each keystroke via syncLiveInput.
+    positionCaretAfterDraft(pos);
+  }
+
+  function positionCaretAfterDraft(pos) {
+    const p = pos || (runtime.inputCaretPos && runtime.inputCaretPos());
+    if (!p || !caret.classList.contains("ace-inline-draft")) return;
+    // Match .ace-text-run glyph width (8px) used for window PRINT.
+    const draftPx = (consoleInput.value || "").length * 8;
+    caret.style.left = p.x + draftPx + "px";
+    caret.style.top = p.y + "px";
+  }
+
   function syncLiveInput() {
     liveInput.textContent = consoleInput.value;
+    positionCaretAfterDraft();
   }
 
   function scrollMountToEnd() {
     if (!inputMount) return;
-    // Window content scrolls; console scrolls on itself.
-    const scroller = inputMount.classList && inputMount.classList.contains("ace-content")
+    // For absolute inline drafts, scroll so the pen row is visible.
+    const scroller = (inputMount.classList && inputMount.classList.contains("ace-content"))
       ? inputMount
-      : consoleEl;
-    scroller.scrollTop = scroller.scrollHeight;
+      : (inputMount.closest && inputMount.closest(".ace-content")) || consoleEl;
+    if (!scroller) return;
+    const pos = runtime.inputCaretPos && runtime.inputCaretPos();
+    if (pos && scroller.classList && scroller.classList.contains("ace-content")) {
+      const pad = 16;
+      scroller.scrollTop = Math.max(0, pos.y - pad);
+    } else {
+      scroller.scrollTop = scroller.scrollHeight;
+    }
   }
 
   /** Mount live draft + caret + mirror field on the active text surface. */
   function mountInputOnSurface(surface) {
-    const mount = surface || consoleEl;
+    clearInlineDraftStyles();
+    // Window: mount inside .ace-committed so pen coords match coloured PRINT runs.
+    // Console: mount on the console shell (inline after #output).
+    const useWindow = !!(surface && surface !== consoleEl);
+    let mount = consoleEl;
+    if (useWindow) {
+      const committed = runtime.inputMountEl && runtime.inputMountEl();
+      mount = committed || surface;
+    }
     inputMount = mount;
-    // Keep committed text first; append live draft after it.
     mount.appendChild(liveInput);
     mount.appendChild(caret);
     mount.appendChild(consoleInput);
-    mount.classList.toggle("awaiting-input", awaitingInput);
-    if (mount !== consoleEl) consoleEl.classList.remove("awaiting-input");
-    else if (screensHost) {
-      // Clear awaiting mark on any prior window content.
+
+    if (screensHost) {
       const prev = screensHost.querySelectorAll(".ace-content.awaiting-input");
       for (let i = 0; i < prev.length; i++) prev[i].classList.remove("awaiting-input");
+    }
+    consoleEl.classList.remove("awaiting-input");
+
+    if (useWindow) {
+      const contentEl = (mount.classList && mount.classList.contains("ace-content"))
+        ? mount
+        : (mount.closest && mount.closest(".ace-content"));
+      if (contentEl) contentEl.classList.toggle("awaiting-input", awaitingInput);
+      if (awaitingInput) applyInlineDraftAtPen();
+    } else {
+      consoleEl.classList.toggle("awaiting-input", awaitingInput);
     }
   }
 

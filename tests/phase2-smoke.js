@@ -218,6 +218,34 @@ async function main() {
     await runPromise;
   });
 
+  await check("window INPUT caret follows pen after prompt", async function () {
+    const src =
+      "SCREEN 1,320,200,3,1\n" +
+      'WINDOW 1,"In",(0,0)-(320,200),32,1\n' +
+      'PRINT "Title"\n' +
+      'INPUT "Name"; n$\n';
+    const sink = { textContent: "" };
+    let sawPos = null;
+    const rt = ACE.createRuntime({
+      output: sink,
+      onInputRequest: function () {
+        sawPos = rt.inputCaretPos();
+      },
+      inputLines: [],
+    });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 50); });
+    if (!sawPos) throw new Error("onInputRequest never fired");
+    // PRINT "Title\n" then prompt "Name? " — pen should be past the prompt on row 2.
+    if (sawPos.y < 8) throw new Error("expected pen below first line: " + JSON.stringify(sawPos));
+    if (sawPos.x < 8) throw new Error("expected pen after prompt chars: " + JSON.stringify(sawPos));
+    rt.provideInput("Zed");
+    rt.stop();
+    await runPromise;
+  });
+
   await check("LINE / CIRCLE / PSET / PALETTE / POINT", async function () {
     const src =
       "SCREEN 1,160,100,3,1\n" +
