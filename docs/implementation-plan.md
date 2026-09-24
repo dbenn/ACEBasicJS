@@ -188,7 +188,7 @@ Drive by visible demos and the smallest stack that works. Do **not** expand gram
 
 | Priority | Work | Why / seed |
 |---|---|---|
-| **1** | **Turtle graphics** | Thin layer on existing RastPort (`FORWARD` / `BACK` / `TURN*` / `PEN*` / `SETXY` / `HOME`…). Seeds: vidarh `prgs/Turtle/` — start with `torus.b`, `flower.b`, `boxit.b`; then `dragon.b`, `spiro.b` (latter needs `MENU`) |
+| **1** | **Turtle graphics** | ~~Thin layer on existing RastPort~~ — `FORWARD` / `BACK` / `TURN*` / `PEN*` / `SETXY` / `HOME` / `SETHEADING` / `HEADING` / `XCOR` / `YCOR`. Seeds: `examples/torus.b`, `flower.b`, `boxit.b`. Still deferred: `dragon.b`, `spiro.b` (needs `MENU`) |
 | **2** | **Gfx corpus climb** | More of the original ACE graphics demos (vidarh `prgs/Gfx/`). `pattern.b` already landed as `examples/paint.b`. Next easy wins before IFF/EHB/HAM: e.g. `pattern2.b` (needs `GADGET WAIT`), `7seg.b`, `shuttle.b`, `tri.b` — unlock constructs only as each fails |
 | **3** | **SAY** | Web Speech API; seed `welcome.b` (`SAY TRANSLATE$(…)`). Full `SpeechTool.b` waits on `GADGET` / requesters |
 | **4** | **`LIBRARY` selective shims** | `LIBRARY` open/close can be **no-ops**. `DECLARE FUNCTION … LIBRARY` must bind the few AmigaOS calls an example actually uses (e.g. `FPuts` → console). Not a blanket stub for every `.bmap` entry |

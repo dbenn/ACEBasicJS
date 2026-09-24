@@ -36,6 +36,24 @@
     "notes": "Phase 5+ — AREA / AREAFILL / PAINT / PATTERN"
   },
   {
+    "id": "torus",
+    "title": "Turtle torus",
+    "path": "examples/torus.b",
+    "notes": "Phase 7 — FORWARD / TURNRIGHT nested loops"
+  },
+  {
+    "id": "flower",
+    "title": "Turtle flower",
+    "path": "examples/flower.b",
+    "notes": "Phase 7 — turtle SUBs; press q"
+  },
+  {
+    "id": "boxit",
+    "title": "Turtle boxit",
+    "path": "examples/boxit.b",
+    "notes": "Phase 7 — recursive FORWARD / TURN*; press q"
+  },
+  {
     "id": "sound",
     "title": "SOUND / WAVE",
     "path": "examples/sound.b",

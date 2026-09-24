@@ -1,4 +1,4 @@
-/* ACEBasicJS runtime — console I/O, TIMER, INPUT, SCREEN/WINDOW, RastPort graphics (Phase 5). */
+/* ACEBasicJS runtime — console I/O, TIMER, INPUT, SCREEN/WINDOW, RastPort graphics, turtle. */
 (function (global) {
   "use strict";
 
@@ -836,7 +836,8 @@
       t = t | 0;
       let sid = screenId;
       if (sid === undefined || sid === null || sid < 0) {
-        sid = currentScreenId || 0;
+        // Omit screen-id → current screen, or open screen 1 (Workbench-style WINDOW alone).
+        sid = currentScreenId || 1;
       } else {
         sid = sid | 0;
       }
@@ -1129,6 +1130,114 @@
       const win = currentWin();
       if (!win) return -1;
       return getIndex(win, Number(x), Number(y));
+    }
+
+    // --- Turtle graphics (ACE turtle.lib) ---
+    // Heading 0° = +X (right); degrees increase clockwise (TURNRIGHT).
+    // Y grows downward on the rastport (Amiga screen coords). Square-pixel
+    // displays use xyRatio 1 (Amiga hi-res used ~1.875 to compensate pixels).
+    let tgDegs = 0;
+    let tgPen = 0; // 0 = up, 1 = down (matches ACE BSS / turtle.s)
+    let tgInitX = 0;
+    let tgInitY = 0;
+    const TG_XY_RATIO = 1;
+
+    function normalizeHeading(deg) {
+      let d = Math.trunc(Number(deg));
+      if (!isFinite(d)) d = 0;
+      d = d % 360;
+      if (d < 0) d += 360;
+      return d;
+    }
+
+    function turtleMove(kind, dist) {
+      const win = currentWin();
+      if (!win || !win.indices) return;
+      let distance = Number(dist);
+      if (!isFinite(distance)) distance = 0;
+      let degs = tgDegs;
+      if (String(kind).toUpperCase() === "BACK") {
+        degs = normalizeHeading(degs + 180);
+      }
+      const theta = (degs * Math.PI) / 180;
+      const dx = Math.trunc(TG_XY_RATIO * distance * Math.cos(theta));
+      const dy = Math.trunc(distance * Math.sin(theta));
+      const nx = (win.penX | 0) + dx;
+      const ny = (win.penY | 0) + dy;
+      if (tgPen === 1) {
+        drawLineIndices(win, win.penX, win.penY, nx, ny, win.fgd | 0);
+        markDirty(win);
+      }
+      win.penX = nx;
+      win.penY = ny;
+    }
+
+    function turtleTurn(kind, deg) {
+      const n = Number(deg);
+      const k = String(kind).toUpperCase();
+      if (k === "TURNLEFT") {
+        tgDegs = normalizeHeading(tgDegs - n);
+      } else if (k === "TURNRIGHT" || k === "TURN") {
+        // TURN: positive = clockwise (same as TURNRIGHT); negative = counter-clockwise.
+        tgDegs = normalizeHeading(tgDegs + n);
+      } else {
+        tgDegs = normalizeHeading(tgDegs + n);
+      }
+    }
+
+    function turtleSimple(kind) {
+      const k = String(kind).toUpperCase();
+      if (k === "PENUP") {
+        tgPen = 0;
+        return;
+      }
+      if (k === "PENDOWN") {
+        tgPen = 1;
+        return;
+      }
+      if (k === "HOME") {
+        setxy(tgInitX, tgInitY);
+      }
+    }
+
+    function setxy(x, y) {
+      const win = currentWin();
+      if (!win || !win.indices) return;
+      const nx = Number(x);
+      const ny = Number(y);
+      const ax = isFinite(nx) ? Math.trunc(nx) : 0;
+      const ay = isFinite(ny) ? Math.trunc(ny) : 0;
+      if (tgPen === 1) {
+        drawLineIndices(win, win.penX, win.penY, ax, ay, win.fgd | 0);
+        markDirty(win);
+      }
+      win.penX = ax;
+      win.penY = ay;
+    }
+
+    function setheading(deg) {
+      tgDegs = normalizeHeading(deg);
+    }
+
+    function heading() {
+      return tgDegs;
+    }
+
+    function xcor() {
+      const win = currentWin();
+      return win ? (win.penX | 0) : 0;
+    }
+
+    function ycor() {
+      const win = currentWin();
+      return win ? (win.penY | 0) : 0;
+    }
+
+    /** FONT name,size — Topaz webfont deferred; accept and ignore. */
+    function font(/* name, size */) {}
+
+    function ucase(s) {
+      return String(s == null ? "" : s).toUpperCase();
     }
 
     /**
@@ -1513,6 +1622,10 @@
       pendingInput = null;
       keyQueue = [];
       sleepWaiters = [];
+      tgDegs = 0;
+      tgPen = 0;
+      tgInitX = 0;
+      tgInitY = 0;
       if (options && options.inputLines) inputLines = options.inputLines.slice();
       destroyAllWindowsAndScreens();
       clearOutput();
@@ -1545,6 +1658,15 @@
       pset: pset,
       circle: circle,
       point: point,
+      turtleMove: turtleMove,
+      turtleTurn: turtleTurn,
+      turtleSimple: turtleSimple,
+      setxy: setxy,
+      setheading: setheading,
+      heading: heading,
+      xcor: xcor,
+      ycor: ycor,
+      font: font,
       paint: paint,
       area: area,
       areafill: areafill,
@@ -1580,6 +1702,7 @@
       fix: fix,
       cint: cint,
       clng: clng,
+      ucase: ucase,
       get stopped() {
         return stopped;
       },
