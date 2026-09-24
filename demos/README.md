@@ -10,6 +10,7 @@ Keep media small and descriptive; prefer one short video plus 1–2 stills per p
 | [`phase35/`](phase35/) | Unified console: in-place `INPUT` + caret (Amiga CLI feel) |
 | [`phase4/`](phase4/) | Intuition `SCREEN` / `WINDOW` chrome + PRINT-to-window |
 | [`phase45/`](phase45/) | `INPUT` in-window (same surface as `PRINT`; Enter submits) |
+| [`phase45-inline/`](phase45-inline/) | Window INPUT draft inline at prompt (not bottom) |
 | [`phase5/`](phase5/) | RastPort `LINE` / `CIRCLE` / `PSET` / `PALETTE` |
 | [`phase55/`](phase55/) | Math builtins: `RND` / `COLOR` text (`hi.b`), `lines.b` |
 | [`phase6/`](phase6/) | `SOUND` / `WAVE SIN` / `BEEP` (Web Audio) |
