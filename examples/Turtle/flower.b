@@ -2,10 +2,11 @@
 ' SUBs + FORWARD / TURNRIGHT. Press q (or Stop) to quit.
 ' Loop vars differ per SUB so nested FOR does not clobber the caller
 ' (ACE FOR frames isolate this; our JS codegen uses one binding per name).
+' Window taller than the Amiga 200-line original so petals are not clipped.
 
 DEFINT i,j
 
-WINDOW 1,"Flower",(0,0)-(640,200),6
+WINDOW 1,"Flower",(0,0)-(640,256),6
 FONT "topaz",8
 COLOR 2,1
 CLS
@@ -27,12 +28,12 @@ SUB flower
 END SUB
 
 PENUP
-SETXY 320,100
+SETXY 320,128
 PENDOWN
 
 flower
 
-LOCATE 21,1
+LOCATE 28,1
 PRINT "press 'q'..."
 
 WHILE UCASE$(INKEY$)<>"Q"
