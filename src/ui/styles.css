@@ -364,6 +364,11 @@ button:disabled {
   pointer-events: none;
 }
 
+/* INPUT needs hit-testing so click-to-focus reaches the draft chrome. */
+.ace-window.borderless .ace-content.awaiting-input {
+  pointer-events: auto;
+}
+
 .ace-window.borderless .ace-content .live-input {
   color: #fff;
 }

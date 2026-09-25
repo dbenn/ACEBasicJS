@@ -226,10 +226,12 @@ async function main() {
       'INPUT "Name"; n$\n';
     const sink = { textContent: "" };
     let sawPos = null;
+    let sawPens = null;
     const rt = ACE.createRuntime({
       output: sink,
       onInputRequest: function () {
         sawPos = rt.inputCaretPos();
+        sawPens = rt.inputPenColors();
       },
       inputLines: [],
     });
@@ -241,9 +243,40 @@ async function main() {
     // PRINT "Title\n" then prompt "Name? " — pen should be past the prompt on row 2.
     if (sawPos.y < 8) throw new Error("expected pen below first line: " + JSON.stringify(sawPos));
     if (sawPos.x < 8) throw new Error("expected pen after prompt chars: " + JSON.stringify(sawPos));
+    if (!sawPens || !sawPens.fg) throw new Error("expected inputPenColors: " + JSON.stringify(sawPens));
     rt.provideInput("Zed");
     rt.stop();
     await runPromise;
+  });
+
+  await check("CLS preserves host INPUT chrome nodes", async function () {
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(
+      "SCREEN 1,160,100,2,1\n" +
+      'WINDOW 1,"C",(0,0)-(160,100),32,1\n' +
+      'PRINT "hi"\n'
+    );
+    if (!compiled.ok) throw compiled.diagnostics;
+    await ACE.run(compiled, rt);
+    // Simulate host mounting draft chrome inside the window committed layer.
+    const mount = rt.inputMountEl();
+    if (!mount || typeof document === "undefined") {
+      // Headless: just ensure CLS does not throw and clears window text.
+      rt.cls();
+      if (rt.windowText(1) !== "") throw new Error("CLS should clear text");
+      return;
+    }
+    const live = document.createElement("span");
+    live.id = "live-input";
+    live.textContent = "draft";
+    mount.appendChild(live);
+    rt.cls();
+    if (rt.windowText(1) !== "") throw new Error("CLS should clear text");
+    if (!document.getElementById("live-input")) {
+      throw new Error("CLS removed #live-input from the document");
+    }
+    if (!mount.contains(live)) throw new Error("CLS did not keep #live-input in the window");
   });
 
   await check("LINE / CIRCLE / PSET / PALETTE / POINT", async function () {
