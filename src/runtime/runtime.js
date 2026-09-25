@@ -443,6 +443,17 @@
       };
     }
 
+    /** Current COLOR pens for the live INPUT draft (match PRINT runs). */
+    function inputPenColors() {
+      if (!intuiMode || !currentWindowId) return null;
+      const w = windows[currentWindowId];
+      if (!w) return null;
+      return {
+        fg: penColor(w, w.fgd),
+        bg: penColor(w, w.bgd),
+      };
+    }
+
     /** Preferred mount node for live INPUT draft inside a window (committed layer). */
     function inputMountEl() {
       if (!intuiMode || !currentWindowId) return null;
@@ -993,9 +1004,19 @@
       }
       win.text = "";
       if (win.committedEl) {
+        // Remove PRINT runs only — keep host INPUT chrome (#live-input / caret /
+        // #console-input) if it is currently mounted inside this window.
+        const keep = [];
+        const kids = win.committedEl.childNodes;
+        for (let i = 0; i < kids.length; i++) {
+          const n = kids[i];
+          if (n && n.nodeType === 1 && n.id &&
+              (n.id === "live-input" || n.id === "caret" || n.id === "console-input")) {
+            keep.push(n);
+          }
+        }
         win.committedEl.textContent = "";
-        // Drop coloured absolute runs from prior PRINTs.
-        while (win.committedEl.firstChild) win.committedEl.removeChild(win.committedEl.firstChild);
+        for (let k = 0; k < keep.length; k++) win.committedEl.appendChild(keep[k]);
       } else if (win.contentEl) win.contentEl.textContent = "";
       win.cursorRow = 1;
       win.cursorCol = 1;
@@ -1687,6 +1708,7 @@
       windowPixel: windowPixel,
       activeTextSurface: activeTextSurface,
       inputCaretPos: inputCaretPos,
+      inputPenColors: inputPenColors,
       inputMountEl: inputMountEl,
       randomize: randomize,
       rnd: rnd,

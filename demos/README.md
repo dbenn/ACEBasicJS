@@ -11,6 +11,7 @@ Keep media small and descriptive; prefer one short video plus 1–2 stills per p
 | [`phase4/`](phase4/) | Intuition `SCREEN` / `WINDOW` chrome + PRINT-to-window |
 | [`phase45/`](phase45/) | `INPUT` in-window (same surface as `PRINT`; Enter submits) |
 | [`phase45-inline/`](phase45-inline/) | Window INPUT draft inline at prompt (not bottom) |
+| [`phase45-draft-focus/`](phase45-draft-focus/) | Window INPUT draft visible while typing (focus after Run) |
 | [`phase5/`](phase5/) | RastPort `LINE` / `CIRCLE` / `PSET` / `PALETTE` |
 | [`phase5-paint/`](phase5-paint/) | `PAINT` / `AREA` / `AREAFILL` / `PATTERN` |
 | [`phase55/`](phase55/) | Math builtins: `RND` / `COLOR` text (`hi.b`), `lines.b` |

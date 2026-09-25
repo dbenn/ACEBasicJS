@@ -25,8 +25,11 @@
     caret.classList.remove("ace-inline-draft");
     liveInput.style.left = "";
     liveInput.style.top = "";
+    liveInput.style.color = "";
+    liveInput.style.backgroundColor = "";
     caret.style.left = "";
     caret.style.top = "";
+    caret.style.background = "";
   }
 
   function applyInlineDraftAtPen() {
@@ -39,6 +42,17 @@
     caret.classList.add("ace-inline-draft");
     liveInput.style.left = pos.x + "px";
     liveInput.style.top = pos.y + "px";
+    // Match window COLOR so the draft is never white-on-white / invisible.
+    const pens = runtime.inputPenColors && runtime.inputPenColors();
+    if (pens) {
+      liveInput.style.color = pens.fg;
+      liveInput.style.backgroundColor = pens.bg;
+      caret.style.background = pens.fg;
+    } else {
+      liveInput.style.color = "";
+      liveInput.style.backgroundColor = "";
+      caret.style.background = "";
+    }
     // Caret sits after the typed draft; update on each keystroke via syncLiveInput.
     positionCaretAfterDraft(pos);
   }
@@ -106,6 +120,15 @@
     }
   }
 
+  function focusConsoleInput() {
+    if (!awaitingInput || consoleInput.disabled) return;
+    try {
+      consoleInput.focus({ preventScroll: true });
+    } catch (err) {
+      consoleInput.focus();
+    }
+  }
+
   function setInputEnabled(on) {
     awaitingInput = on;
     consoleInput.disabled = !on;
@@ -118,8 +141,14 @@
       }
       consoleInput.value = "";
       syncLiveInput();
-      consoleInput.focus();
       scrollMountToEnd();
+      // Leave the source editor so the next keystrokes feed INPUT, not the textarea.
+      if (source && typeof source.blur === "function" && document.activeElement === source) {
+        source.blur();
+      }
+      // Defer past the Run-button click so focus is not stolen back by the button.
+      focusConsoleInput();
+      setTimeout(focusConsoleInput, 0);
       setStatus(
         surface
           ? "Type in the window — press Enter to submit."
@@ -155,13 +184,49 @@
         const surface = runtime.activeTextSurface();
         mountInputOnSurface(surface);
         if (outputPanel) outputPanel.classList.toggle("input-in-window", !!surface);
-        consoleInput.focus();
+        syncLiveInput();
+        focusConsoleInput();
       }
     },
   });
 
+  /**
+   * While INPUT is awaiting, route typing into the draft even if focus stuck on
+   * Run / Stop / the window chrome (common after clicking Run). Skip the source
+   * editor and picker so editing ACE source still works.
+   */
+  function handleAwaitingInputKey(ev) {
+    if (!awaitingInput || consoleInput.disabled) return false;
+    if (ev.target === source || ev.target === picker) return false;
+    // Native handling when the mirror field already has focus.
+    if (ev.target === consoleInput) return false;
+
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      submitConsoleInput();
+      return true;
+    }
+    if (ev.key === "Backspace") {
+      ev.preventDefault();
+      consoleInput.value = String(consoleInput.value || "").slice(0, -1);
+      syncLiveInput();
+      scrollMountToEnd();
+      return true;
+    }
+    if (ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
+      ev.preventDefault();
+      consoleInput.value = String(consoleInput.value || "") + ev.key;
+      syncLiveInput();
+      scrollMountToEnd();
+      return true;
+    }
+    return false;
+  }
+
   // Feed INKEY$ / SLEEP from keyboard when Display or screens have focus.
+  // Also keep windowed INPUT draft in sync when focus is not on #console-input.
   document.addEventListener("keydown", function (ev) {
+    if (handleAwaitingInputKey(ev)) return;
     if (awaitingInput) return;
     if (ev.target === source || ev.target === picker || ev.target === consoleInput) return;
     if (ev.key && ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
@@ -293,7 +358,7 @@
     // Don't steal clicks from window gadgets (close / depth).
     if (ev.target && ev.target.classList && ev.target.classList.contains("ace-gadget")) return;
     ev.preventDefault();
-    consoleInput.focus();
+    focusConsoleInput();
   }
 
   picker.addEventListener("change", function () {
