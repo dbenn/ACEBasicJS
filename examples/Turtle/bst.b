@@ -1,6 +1,6 @@
 ' Turtle/bst.b — Binary Search Tree (ACE prgs/Turtle/bst.b)
-' Needs STRUCT / ADDRESS / CASE / PRINTS / ALLOC — not yet in ACEBasicJS.
-' Included so the Turtle folder matches the ACE distribution picker.
+' Deferred: STRUCT / ADDRESS / CASE / PRINTS / ALLOC — not a turtle-graphics
+' gate. Kept in the picker for corpus parity; implement after Gfx climb.
 '
 {*
 ** A program that implements the Binary Search Tree operations 
