@@ -1,4 +1,4 @@
-' Turtle/bst.b — Binary Search Tree (vidarh ACE prgs/Turtle/bst.b)
+' Turtle/bst.b — Binary Search Tree (ACE prgs/Turtle/bst.b)
 ' Needs STRUCT / ADDRESS / CASE / PRINTS / ALLOC — not yet in ACEBasicJS.
 ' Included so the Turtle folder matches the ACE distribution picker.
 '

@@ -1,4 +1,4 @@
-'...Recursive factorial. (vidarh prgs/Misc/fact.b)
+'...Recursive factorial. (ACE prgs/Misc/fact.b)
 
 Defsng f,n,x
 

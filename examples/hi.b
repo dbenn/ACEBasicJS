@@ -1,4 +1,4 @@
-' vidarh prgs/hi.b — colourful LOCATE / COLOR / RND text demo.
+' ACE prgs/hi.b — colourful LOCATE / COLOR / RND text demo.
 ' Press q (or Stop) to quit. SLEEP yields so the browser can see keys.
 
 defint a-z

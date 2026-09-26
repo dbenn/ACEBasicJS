@@ -1,4 +1,4 @@
-' Turtle/dragon.b — recursive dragon curve (vidarh ACE prgs/Turtle/dragon.b)
+' Turtle/dragon.b — recursive dragon curve (ACE prgs/Turtle/dragon.b)
 ' Press y/n when prompted. SLEEP yields so the browser can see keys.
 
 SUB dragon(depth,side)

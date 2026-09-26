@@ -67,11 +67,14 @@ clean reimplementation.
 
 ### Starting Point
 
-The base is vidarh's Linux fork of ACE 2.4, available at
-https://github.com/vidarh/ACE. vidarh ported ACE to compile and run on Linux
-(it still targets M68k output), and did some retargeting groundwork in
-`codegen.c|h` with a view to eventual x86 support. That groundwork is directly
-useful here.
+The original ACE 2.4 sources and example programs (`prgs/`) are at
+https://github.com/dbenn/ACE (David Benn, 1992–1996). Those `prgs/` demos are
+the acceptance corpus for this project.
+
+[vidarh's Linux fork](https://github.com/vidarh/ACE) ported ACE to compile and
+run on Linux (it still targets M68k output) and did some retargeting groundwork
+in `codegen.c|h` with a view to eventual x86 support. That groundwork is useful
+as a parser/codegen reference; it is not the source of the example programs.
 
 The original ACE source was written before object-oriented design was well
 understood by the author — it is a recursive descent parser with code generation
@@ -247,5 +250,6 @@ example is a milestone.
 
 - Original ACE documentation: https://dbenn.github.io/docs/projects.html#ace
 - ACE v2.3 Programmer's Guide: http://www.users.on.net/~dbenn/docs/ace.html
-- vidarh's Linux fork (ACE 2.4 base): https://github.com/vidarh/ACE
+- Original ACE 2.4 (source + `prgs/` examples): https://github.com/dbenn/ACE
+- vidarh's Linux fork (parser/codegen notes): https://github.com/vidarh/ACE
 - mdbergmann's ACEBasic (ACE 3.0 fork, for reference): https://github.com/mdbergmann/ACEBasic

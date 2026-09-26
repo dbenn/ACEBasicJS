@@ -36,4 +36,5 @@ Site URL: `https://dbenn.github.io/ACEBasicJS/`
 - Seed expectations: [`examples/README.md`](examples/README.md)
 - Feature demos (screenshots / videos): [`demos/`](demos/)
 - ACE docs (v2.3): https://dbenn.github.io/docs/doc_index.html
-- Reference fork / examples: https://github.com/vidarh/ACE
+- Original ACE 2.4 (source + examples): https://github.com/dbenn/ACE
+- Linux fork (parser/codegen notes): https://github.com/vidarh/ACE

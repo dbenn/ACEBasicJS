@@ -1,4 +1,4 @@
-' Turtle/snowflake.b — Koch snowflake (vidarh ACE prgs/Turtle/snowflake.b)
+' Turtle/snowflake.b — Koch snowflake (ACE prgs/Turtle/snowflake.b)
 ' Press y/n when prompted. SLEEP yields so the browser can see keys.
 
 SUB koch(depth,side)

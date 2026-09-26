@@ -1,4 +1,4 @@
-' Phase 7 — recursive turtle boxes (vidarh prgs/Turtle/boxit.b)
+' Phase 7 — recursive turtle boxes (ACE prgs/Turtle/boxit.b)
 ' Press q (or Stop) to quit.
 ' Window taller than the Amiga 200-line original so the curve is not clipped.
 

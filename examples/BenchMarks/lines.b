@@ -1,5 +1,5 @@
 '..time how long it takes to draw random lines.
-'..vidarh prgs/BenchMarks/lines.b — drives RANDOMIZE / RND / INT.
+'..ACE prgs/BenchMarks/lines.b — drives RANDOMIZE / RND / INT.
 '..Wait loop uses SLEEP so the browser event loop can see a key.
 
 screen 1,640,200,2,2

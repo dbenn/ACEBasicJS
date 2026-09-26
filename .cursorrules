@@ -39,10 +39,13 @@ This is NOT hardware emulation. It is API-level **simulation** at the AmigaOS la
 ## Starting Point
 
 - **Language / semantics reference**: original ACE docs + David Benn’s intent
-- **Parser/codegen reference**: [vidarh's Linux fork of ACE 2.4](https://github.com/vidarh/ACE)
-  (`parse*.c`, `codegen.c|h`, `prgs/` examples) — reverse-engineer, do not ship
+- **Example programs**: [dbenn/ACE](https://github.com/dbenn/ACE) `prgs/` — David Benn’s
+  original ACE 2.4 distribution demos (not third-party)
+- **Parser/codegen reference**: original C sources in [dbenn/ACE](https://github.com/dbenn/ACE);
+  [vidarh's Linux fork](https://github.com/vidarh/ACE) for Linux-port / retargeting notes
+  (`parse*.c`, `codegen.c|h`) — reverse-engineer, do not ship
 - All semantic authority rests with David Benn as original author — if anything
-  is ambiguous, the original intent takes precedence over the fork
+  is ambiguous, the original intent takes precedence over later forks
 
 ---
 
@@ -144,7 +147,8 @@ ACE ships with example programs in the distribution. These serve as the primary
 acceptance test suite. A program "works" when it compiles via the modified ACE
 and runs in the browser with behaviour equivalent to the original Amiga execution.
 
-Source: David Benn's ACE distribution (examples/ directory)
+Source: David Benn's original ACE 2.4 distribution
+([dbenn/ACE](https://github.com/dbenn/ACE) `prgs/`; mirrored under `examples/`)
 
 ---
 
@@ -193,5 +197,6 @@ to the repo in the same PR when practical.
 ## References
 
 - Original ACE documentation: https://dbenn.github.io/docs/projects.html#ace
-- vidarh's Linux fork: https://github.com/vidarh/ACE
+- Original ACE 2.4 (source + `prgs/` examples): https://github.com/dbenn/ACE
+- vidarh's Linux fork (parser/codegen notes): https://github.com/vidarh/ACE
 - ACE v2.3 Programmer's Guide: http://www.users.on.net/~dbenn/docs/ace.html

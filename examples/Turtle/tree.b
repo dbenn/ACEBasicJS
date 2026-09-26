@@ -1,4 +1,4 @@
-' Turtle/tree.b — recursive binary tree (vidarh ACE prgs/Turtle/tree.b)
+' Turtle/tree.b — recursive binary tree (ACE prgs/Turtle/tree.b)
 ' "Depth" here is initial branch length in pixels (ACE original).
 ' Base case is n<5, so try ~40 (not 5). Press q (or Stop) to quit.
 ' CLI ARGCOUNT/ARG$ omitted; always prompts in-browser.
