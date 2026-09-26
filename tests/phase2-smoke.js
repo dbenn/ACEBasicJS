@@ -767,9 +767,7 @@ async function main() {
       }
     }
     if (ink < 20) throw new Error("expected spiro ink, got " + ink);
-    rt.pushKey("q");
-    await new Promise(function (r) { setTimeout(r, 200); });
-    // Outer WHILE also waits for q — push again in case EXIT SUB already left the loop.
+    // One q must suffice: SUB spiro consumes INKEY$ and exits (no second wait).
     rt.pushKey("q");
     await Promise.race([
       runPromise,
@@ -777,6 +775,33 @@ async function main() {
         setTimeout(function () { reject(new Error("spiro did not exit after q")); }, 2000);
       }),
     ]);
+  });
+
+  await check("spiro-like: one q exits SUB (no second INKEY wait)", async function () {
+    const src =
+      "CONST false = 0&\n" +
+      "SUB spin\n" +
+      "  REPEAT\n" +
+      "    IF UCASE$(INKEY$)=\"Q\" THEN EXIT SUB\n" +
+      "    SLEEP\n" +
+      "  UNTIL false\n" +
+      "END SUB\n" +
+      "spin\n" +
+      "PRINT \"done\"\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 150); });
+    rt.pushKey("q");
+    await Promise.race([
+      runPromise,
+      new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error("did not exit")); }, 2000);
+      }),
+    ]);
+    if (sink.textContent.indexOf("done") < 0) throw new Error("missing done: " + sink.textContent);
   });
 
   if (failed) {

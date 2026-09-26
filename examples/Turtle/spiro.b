@@ -43,11 +43,8 @@ PENUP
 SETXY 320,200
 PENDOWN
 
+'.. SUB spiro exits on q (consumes INKEY$); do not wait for q again here.
 spiro(sides,length)
-
-WHILE UCASE$(INKEY$)<>"Q"
-  SLEEP
-WEND
 
 WINDOW CLOSE 1
 END
