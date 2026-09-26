@@ -235,6 +235,15 @@ body.split-dragging * {
   display: none !important;
 }
 
+.screens:focus {
+  outline: none;
+}
+
+.screens:focus-visible {
+  outline: 2px solid var(--amber, #ffaa00);
+  outline-offset: -2px;
+}
+
 .ace-screen {
   position: relative;
   margin: 0 auto;

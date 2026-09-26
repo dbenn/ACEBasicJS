@@ -132,6 +132,21 @@
     }
   }
 
+  /**
+   * After INPUT (or when clicking the Display), put focus on the program surface
+   * so INKEY$ / SLEEP see keypresses. Leftover focus on the disabled #console-input
+   * or the source editor otherwise swallows q/any-key quit loops (spiro, flower, …).
+   */
+  function focusProgramSurface() {
+    const el = (screensHost && !screensHost.hidden) ? screensHost : consoleEl;
+    if (!el || typeof el.focus !== "function") return;
+    try {
+      el.focus({ preventScroll: true });
+    } catch (err) {
+      el.focus();
+    }
+  }
+
   function setInputEnabled(on) {
     awaitingInput = on;
     consoleInput.disabled = !on;
@@ -165,7 +180,13 @@
       mountInputOnSurface(consoleEl);
       consoleInput.value = "";
       syncLiveInput();
-      if (runBtn.disabled) setStatus("Running…", "info");
+      if (runBtn.disabled) {
+        setStatus("Running…", "info");
+        // Drop focus off the (now disabled) INPUT field so q reaches INKEY$.
+        if (consoleInput && typeof consoleInput.blur === "function") consoleInput.blur();
+        focusProgramSurface();
+        setTimeout(focusProgramSurface, 0);
+      }
     }
   }
 
@@ -226,12 +247,14 @@
     return false;
   }
 
-  // Feed INKEY$ / SLEEP from keyboard when Display or screens have focus.
-  // Also keep windowed INPUT draft in sync when focus is not on #console-input.
+  // Feed INKEY$ / SLEEP from keyboard while a program runs.
+  // Skip the source editor and picker (editing ACE source). Do not skip the
+  // disabled #console-input — focus often remains there after INPUT and used
+  // to swallow quit keys (q) for spiro / flower / tree / …
   document.addEventListener("keydown", function (ev) {
     if (handleAwaitingInputKey(ev)) return;
     if (awaitingInput) return;
-    if (ev.target === source || ev.target === picker || ev.target === consoleInput) return;
+    if (ev.target === source || ev.target === picker) return;
     if (ev.key && ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
       runtime.pushKey(ev.key);
     }
@@ -377,7 +400,14 @@
 
   consoleEl.addEventListener("mousedown", focusInputIfAwaiting);
   if (screensHost) {
-    screensHost.addEventListener("mousedown", focusInputIfAwaiting);
+    screensHost.addEventListener("mousedown", function (ev) {
+      if (awaitingInput) {
+        focusInputIfAwaiting(ev);
+        return;
+      }
+      // Clicking the Display focuses the screen so subsequent keys hit INKEY$.
+      if (runBtn.disabled) focusProgramSurface();
+    });
   }
 
   consoleInput.addEventListener("input", function () {
