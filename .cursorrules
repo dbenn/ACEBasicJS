@@ -161,7 +161,8 @@ Source: David Benn's original ACE 2.4 distribution
 4. **Console I/O** — PRINT, INPUT working in a simple terminal canvas
 5. **Intuition basics** — WINDOW, SCREEN, basic drawing
 6. **Audio** — SOUND, WAVE, PLAY
-7. **Turtle + Gfx corpus** — turtle graphics, then more original `prgs/Gfx/` demos
+7. **Turtle + Gfx corpus** — turtle graphics, async SUBs/`spiro`, then `prgs/Gfx/`;
+   defer `Turtle/bst.b` (STRUCT/pointer stack) until after Gfx
 8. **Speech** — SAY
 9. **Libraries / files as needed** — selective `LIBRARY` shims; in-memory VFS before IndexedDB
 10. **Example programs running** — work through the remaining distribution examples

@@ -62,8 +62,8 @@ C ACE (`parse*.c` / `codegen.c` in [dbenn/ACE](https://github.com/dbenn/ACE); [v
 | `SHORTINT` / `LONGINT` / `SINGLE` / `STRING` / `BYTE` / `ADDRESS` | Explicit declarations | `next` |
 | `CONST` | Named numeric constants | `next` |
 | `DIM` | Arrays; simple variable ≠ array of same name | `next` |
-| `SHARED` | Cross-SUB visibility | `later` |
-| `STRUCT` / `END STRUCT` | Guide chapter; not in seeds | `later` |
+| `SHARED` | Cross-SUB visibility | `later` (forced by `bst` — deferred) |
+| `STRUCT` / `END STRUCT` | Guide chapter; only `Turtle/bst.b` needs it now | **deferred** with `bst` (after Gfx climb) |
 | `OPTION` | Compiler options in source | `later` |
 
 ---
@@ -94,7 +94,7 @@ Precedence from the Programmer’s Guide (high → low):
 | Math builtins (`ABS` `INT` `SQR` `SIN` `COS` `RND` …) | done (Phase 5.5) |
 | `RANDOMIZE` | done (Phase 5.5) |
 | String concatenation / `$` functions | `later` (after console I/O) |
-| `@` address-of / indirection | `later` |
+| `@` address-of / indirection (`*&` `*!` `->`) | **deferred** with `bst` |
 | `SHL` / `SHR` | `later` |
 
 ---
@@ -110,7 +110,7 @@ Precedence from the Programmer’s Guide (high → low):
 | `GOTO` | Needs labels / line numbers | `next` |
 | `GOSUB`…`RETURN` | | `later` |
 | `ON`…`GOTO` / `GOSUB` | | `later` |
-| `CASE`…`END CASE` | ACE-specific | `later` |
+| `CASE`…`END CASE` | ACE-specific; only `bst` needs it in corpus now | **deferred** with `bst` |
 | `EXIT FOR` / `EXIT WHILE` / `EXIT SUB` | | `next` (`EXIT SUB`) |
 | `STOP` / `END` / `SYSTEM` | | `later` |
 
@@ -164,8 +164,10 @@ Precedence from the Programmer’s Guide (high → low):
 | Coloured window `PRINT` / `LOCATE` (fg/bg pens) | done (Phase 5.5; absolute text runs) |
 | `PAINT` `AREA` `AREAFILL` `PATTERN` | done (Phase 5+; flood fill + polygon + line/area patterns; see `examples/Gfx/paint.b`) |
 | `SCROLL` | Phase 5+ / as examples demand |
-| Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `SETXY` `HOME` …) | **done** (Phase 7; `torus` / `flower` / `boxit`) |
-| Further Gfx corpus (`pattern2`, `7seg`, `shuttle`, …) | **next**; IFF/EHB/HAM stay later |
+| Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `SETXY` `HOME` …) | **done** (Phase 7; `torus` / `flower` / `boxit` / `dragon` / `snowflake` / `tree`) |
+| Async SUBs (JS codegen) so `SLEEP`/`INPUT` work inside `SUB` | **next** — unblocks `spiro.b`; before Gfx climb |
+| `Turtle/bst.b` (STRUCT / ADDRESS / ALLOC / PRINTS / …) | **deferred** — not a turtle milestone; after Gfx (see implementation plan) |
+| Further Gfx corpus (`pattern2`, `7seg`, `shuttle`, …) | after async SUBs / `spiro`; IFF/EHB/HAM stay later |
 | `IFF` / images | `later` |
 | Sprites / bobs / `OBJECT.*` | `out` (not ACE focus; reserved but unimplemented in ACE) |
 
@@ -188,7 +190,7 @@ Precedence from the Programmer’s Guide (high → low):
 | `SERIAL` | `later` / maybe `out` |
 | `MESSAGE` / ACE ports | `later` |
 | `LIBRARY` / `.bmap` shared libraries | open/close may be no-ops; **shim only the calls** examples use |
-| `ALLOC` / `FRE` / `POKE*` / `PEEK*` | `later` |
+| `ALLOC` / `FRE` / `POKE*` / `PEEK*` / `SIZEOF` | `later` (`ALLOC`/`SIZEOF` forced by `bst` — deferred) |
 
 ---
 
