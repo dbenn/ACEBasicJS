@@ -7,6 +7,8 @@
   const consoleEl = document.getElementById("console");
   const output = document.getElementById("output");
   const screensHost = document.getElementById("screens");
+  const mainEl = document.querySelector(".main");
+  const splitter = document.getElementById("splitter");
   const outputPanel = document.querySelector(".output-panel");
   const liveInput = document.getElementById("live-input");
   const caret = document.getElementById("caret");
@@ -14,6 +16,7 @@
   const status = document.getElementById("status");
   const runBtn = document.getElementById("run");
   const stopBtn = document.getElementById("stop");
+  const SPLIT_STORAGE_KEY = "acebasicjs-split-editor";
 
   let runToken = 0;
   let awaitingInput = false;
@@ -394,6 +397,127 @@
     ? new MutationObserver(scrollMountToEnd)
     : null;
   if (mo) mo.observe(output, { childList: true, characterData: true, subtree: true });
+
+  function isWideSplit() {
+    return window.matchMedia && window.matchMedia("(min-width: 900px)").matches;
+  }
+
+  function clampSplitPercent(pct) {
+    const n = Number(pct);
+    if (!isFinite(n)) return 48;
+    return Math.min(80, Math.max(20, n));
+  }
+
+  function applySplitPercent(pct) {
+    if (!mainEl) return;
+    const value = clampSplitPercent(pct);
+    mainEl.style.setProperty("--split-editor", value + "%");
+    if (splitter) {
+      splitter.setAttribute("aria-valuenow", String(Math.round(value)));
+      splitter.setAttribute("aria-valuemin", "20");
+      splitter.setAttribute("aria-valuemax", "80");
+      splitter.setAttribute(
+        "aria-orientation",
+        isWideSplit() ? "vertical" : "horizontal"
+      );
+    }
+  }
+
+  function persistSplitPercent(pct) {
+    try {
+      localStorage.setItem(SPLIT_STORAGE_KEY, String(clampSplitPercent(pct)));
+    } catch (e) {
+      /* ignore quota / private mode */
+    }
+  }
+
+  function loadSplitPercent() {
+    try {
+      const raw = localStorage.getItem(SPLIT_STORAGE_KEY);
+      if (raw != null && raw !== "") return clampSplitPercent(raw);
+    } catch (e) {
+      /* ignore */
+    }
+    return 48;
+  }
+
+  function bindSplitter() {
+    if (!mainEl || !splitter) return;
+    applySplitPercent(loadSplitPercent());
+
+    let dragging = false;
+
+    function splitFromPointer(clientX, clientY) {
+      const rect = mainEl.getBoundingClientRect();
+      if (isWideSplit()) {
+        if (rect.width <= 0) return;
+        return ((clientX - rect.left) / rect.width) * 100;
+      }
+      if (rect.height <= 0) return;
+      return ((clientY - rect.top) / rect.height) * 100;
+    }
+
+    function onPointerMove(ev) {
+      if (!dragging) return;
+      const pct = splitFromPointer(ev.clientX, ev.clientY);
+      if (pct == null) return;
+      applySplitPercent(pct);
+    }
+
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      document.body.classList.remove("split-dragging");
+      const raw = getComputedStyle(mainEl).getPropertyValue("--split-editor");
+      persistSplitPercent(parseFloat(raw));
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+    }
+
+    splitter.addEventListener("pointerdown", function (ev) {
+      if (ev.button != null && ev.button !== 0) return;
+      dragging = true;
+      document.body.classList.add("split-dragging");
+      try {
+        splitter.setPointerCapture(ev.pointerId);
+      } catch (e) {
+        /* ignore */
+      }
+      const pct = splitFromPointer(ev.clientX, ev.clientY);
+      if (pct != null) applySplitPercent(pct);
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", endDrag);
+      window.addEventListener("pointercancel", endDrag);
+      ev.preventDefault();
+    });
+
+    splitter.addEventListener("keydown", function (ev) {
+      const step = ev.shiftKey ? 5 : 2;
+      let delta = 0;
+      if (isWideSplit()) {
+        if (ev.key === "ArrowLeft") delta = -step;
+        else if (ev.key === "ArrowRight") delta = step;
+      } else {
+        if (ev.key === "ArrowUp") delta = -step;
+        else if (ev.key === "ArrowDown") delta = step;
+      }
+      if (!delta) return;
+      ev.preventDefault();
+      const raw = getComputedStyle(mainEl).getPropertyValue("--split-editor");
+      const next = clampSplitPercent(parseFloat(raw) + delta);
+      applySplitPercent(next);
+      persistSplitPercent(next);
+    });
+
+    window.addEventListener("resize", function () {
+      applySplitPercent(
+        parseFloat(getComputedStyle(mainEl).getPropertyValue("--split-editor"))
+      );
+    });
+  }
+
+  bindSplitter();
 
   loadManifest()
     .then(function () {
