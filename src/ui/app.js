@@ -13,6 +13,8 @@
   const liveInput = document.getElementById("live-input");
   const caret = document.getElementById("caret");
   const consoleInput = document.getElementById("console-input");
+  const inkeyBar = document.getElementById("inkey-bar");
+  const inkeyCapture = document.getElementById("inkey-capture");
   const status = document.getElementById("status");
   const runBtn = document.getElementById("run");
   const stopBtn = document.getElementById("stop");
@@ -20,6 +22,7 @@
 
   let runToken = 0;
   let awaitingInput = false;
+  let inkeyArmed = false;
   /** @type {HTMLElement|null} surface holding live-input + caret (console or window) */
   let inputMount = consoleEl;
 
@@ -133,9 +136,8 @@
   }
 
   /**
-   * After INPUT (or when clicking the Display), put focus on the program surface
-   * so INKEY$ / SLEEP see keypresses. Leftover focus on the disabled #console-input
-   * or the source editor otherwise swallows q/any-key quit loops (spiro, flower, …).
+   * Desktop fallback: focus Display/console so physical keyboards hit document keydown.
+   * iOS/Android need armInkeyCapture() instead (soft keyboard requires a text field).
    */
   function focusProgramSurface() {
     const el = (screensHost && !screensHost.hidden) ? screensHost : consoleEl;
@@ -147,11 +149,74 @@
     }
   }
 
+  function isCoarsePointer() {
+    try {
+      return !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  /** Push characters from the INKEY capture field into the runtime key queue. */
+  function flushInkeyCapture() {
+    if (!inkeyCapture || !runtime) return;
+    const v = String(inkeyCapture.value || "");
+    if (!v) return;
+    inkeyCapture.value = "";
+    for (let i = 0; i < v.length; i++) {
+      runtime.pushKey(v.charAt(i));
+    }
+  }
+
+  /**
+   * Show a real <input> for INKEY$/SLEEP wait loops. Soft keyboards (iOS especially)
+   * only open for text fields; many mobile browsers deliver keys via `input`, not keydown.
+   * Call synchronously from a tap/Enter handler when possible so iOS allows focus.
+   */
+  function armInkeyCapture(opts) {
+    const doFocus = !opts || opts.focus !== false;
+    if (!inkeyBar || !inkeyCapture) {
+      if (doFocus) focusProgramSurface();
+      return;
+    }
+    inkeyArmed = true;
+    inkeyBar.hidden = false;
+    inkeyCapture.disabled = false;
+    inkeyCapture.value = "";
+    if (doFocus) {
+      try {
+        inkeyCapture.focus({ preventScroll: true });
+      } catch (err) {
+        inkeyCapture.focus();
+      }
+    }
+    if (runBtn.disabled) {
+      setStatus(
+        isCoarsePointer()
+          ? "Tap Keys, then press q to quit."
+          : "Running… (press q to quit, or use Keys)",
+        "info"
+      );
+    }
+  }
+
+  function disarmInkeyCapture() {
+    inkeyArmed = false;
+    if (inkeyCapture) {
+      inkeyCapture.value = "";
+      if (document.activeElement === inkeyCapture && typeof inkeyCapture.blur === "function") {
+        inkeyCapture.blur();
+      }
+    }
+    if (inkeyBar) inkeyBar.hidden = true;
+  }
+
   function setInputEnabled(on) {
     awaitingInput = on;
     consoleInput.disabled = !on;
     caret.hidden = !on;
     if (on) {
+      disarmInkeyCapture();
       const surface = runtime.activeTextSurface();
       mountInputOnSurface(surface);
       if (outputPanel) {
@@ -181,11 +246,10 @@
       consoleInput.value = "";
       syncLiveInput();
       if (runBtn.disabled) {
-        setStatus("Running…", "info");
-        // Drop focus off the (now disabled) INPUT field so q reaches INKEY$.
+        // Arm INKEY capture in this turn (same gesture as Enter on INPUT) so iOS
+        // will open the soft keyboard for q-to-quit / any-key waits.
         if (consoleInput && typeof consoleInput.blur === "function") consoleInput.blur();
-        focusProgramSurface();
-        setTimeout(focusProgramSurface, 0);
+        armInkeyCapture({ focus: true });
       }
     }
   }
@@ -210,6 +274,9 @@
         if (outputPanel) outputPanel.classList.toggle("input-in-window", !!surface);
         syncLiveInput();
         focusConsoleInput();
+      } else if (runBtn.disabled && info && info.intuiMode) {
+        // Show Keys bar (no forced focus — iOS only opens the keyboard on a tap).
+        armInkeyCapture({ focus: false });
       }
     },
   });
@@ -247,14 +314,14 @@
     return false;
   }
 
-  // Feed INKEY$ / SLEEP from keyboard while a program runs.
-  // Skip the source editor and picker (editing ACE source). Do not skip the
-  // disabled #console-input — focus often remains there after INPUT and used
-  // to swallow quit keys (q) for spiro / flower / tree / …
+  // Feed INKEY$ / SLEEP from a physical keyboard while a program runs.
+  // Soft keyboards use #inkey-capture `input` instead (see armInkeyCapture).
+  // Skip source/picker (editing). Skip #inkey-capture (its own handlers).
+  // Do not skip disabled #console-input — leftover focus used to swallow quit keys.
   document.addEventListener("keydown", function (ev) {
     if (handleAwaitingInputKey(ev)) return;
     if (awaitingInput) return;
-    if (ev.target === source || ev.target === picker) return;
+    if (ev.target === source || ev.target === picker || ev.target === inkeyCapture) return;
     if (ev.key && ev.key.length === 1 && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
       runtime.pushKey(ev.key);
     }
@@ -270,7 +337,10 @@
   function setRunning(isRunning) {
     runBtn.disabled = isRunning;
     stopBtn.disabled = !isRunning;
-    if (!isRunning) setInputEnabled(false);
+    if (!isRunning) {
+      setInputEnabled(false);
+      disarmInkeyCapture();
+    }
   }
 
   /** Folder order: ACEBasicJS first (host demos), then ACE prgs folders A–Z. */
@@ -376,6 +446,11 @@
     syncLiveInput();
     runtime.provideInput(line);
     scrollMountToEnd();
+    // provideInput → onInputDone → setInputEnabled(false) → armInkeyCapture.
+    // Re-focus capture here too so the Enter gesture still counts on iOS.
+    if (runBtn.disabled && !awaitingInput) {
+      armInkeyCapture({ focus: true });
+    }
   }
 
   function focusInputIfAwaiting(ev) {
@@ -400,13 +475,16 @@
 
   consoleEl.addEventListener("mousedown", focusInputIfAwaiting);
   if (screensHost) {
-    screensHost.addEventListener("mousedown", function (ev) {
+    // pointerdown (not only mouse) so iOS taps arm the Keys field / open keyboard.
+    screensHost.addEventListener("pointerdown", function (ev) {
       if (awaitingInput) {
         focusInputIfAwaiting(ev);
         return;
       }
-      // Clicking the Display focuses the screen so subsequent keys hit INKEY$.
-      if (runBtn.disabled) focusProgramSurface();
+      if (ev.target && ev.target.classList && ev.target.classList.contains("ace-gadget")) return;
+      if (runBtn.disabled) {
+        armInkeyCapture({ focus: true });
+      }
     });
   }
 
@@ -421,6 +499,27 @@
       submitConsoleInput();
     }
   });
+
+  if (inkeyCapture) {
+    // Soft keyboards (and desktop when Keys is focused): chars arrive on `input`.
+    // Prefer `input` only — pairing with keydown pushKey double-fires on some browsers.
+    inkeyCapture.addEventListener("input", function () {
+      if (!inkeyArmed || awaitingInput) return;
+      flushInkeyCapture();
+    });
+    inkeyCapture.addEventListener("keydown", function (ev) {
+      if (!inkeyArmed || awaitingInput) return;
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        flushInkeyCapture();
+      }
+    });
+  }
+  if (inkeyBar) {
+    inkeyBar.addEventListener("pointerdown", function () {
+      if (runBtn.disabled && !awaitingInput) armInkeyCapture({ focus: true });
+    });
+  }
 
   // Keep typed characters visible; scroll as PRINT / prompt text grows.
   const mo = typeof MutationObserver !== "undefined"
