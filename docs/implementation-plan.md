@@ -192,8 +192,8 @@ Drive by visible demos and the smallest stack that works. Do **not** expand gram
 
 | Priority | Work | Why / seed |
 |---|---|---|
-| **1** | **Turtle graphics** | ~~Thin layer on existing RastPort~~ — `FORWARD` / `BACK` / `TURN*` / `PEN*` / `SETXY` / `HOME` / `SETHEADING` / `HEADING` / `XCOR` / `YCOR`. Seeds: `torus` / `flower` / `boxit` / `dragon` / `snowflake` / `tree` (and `spiro` once async SUBs land). **`bst` deferred** — see below |
-| **1b** | **Async SUBs (codegen)** | Emit SUBs as JS `async function` and `await` SUB/`SLEEP`/`INPUT` calls so `SLEEP` inside `SUB` works. Unblocks `examples/Turtle/spiro.b` (MENU→`q` adaptation stays). Small fix; do **before** Gfx climb |
+| **1** | **Turtle graphics** | ~~Thin layer on existing RastPort~~ — `FORWARD` / `BACK` / `TURN*` / `PEN*` / `SETXY` / `HOME` / `SETHEADING` / `HEADING` / `XCOR` / `YCOR`. Seeds: `torus` / `flower` / `boxit` / `dragon` / `snowflake` / `tree` / `spiro`. **`bst` deferred** — see below |
+| **1b** | **Async SUBs (codegen)** | ~~Emit SUBs as JS `async function` and `await` SUB/`SLEEP`/`INPUT` calls~~ — unblocks `examples/Turtle/spiro.b` (MENU→`q` adaptation stays) |
 | **2** | **Gfx corpus climb** | More of the original ACE graphics demos ([dbenn/ACE](https://github.com/dbenn/ACE) `prgs/Gfx/`). `pattern.b` already landed as `examples/Gfx/paint.b`. Next easy wins before IFF/EHB/HAM: e.g. `pattern2.b` (needs `GADGET WAIT`), `7seg.b`, `shuttle.b`, `tri.b` — unlock constructs only as each fails |
 | **3** | **SAY** | Web Speech API; seed `welcome.b` (`SAY TRANSLATE$(…)`). Full `SpeechTool.b` waits on `GADGET` / requesters |
 | **4** | **`LIBRARY` selective shims** | `LIBRARY` open/close can be **no-ops**. `DECLARE FUNCTION … LIBRARY` must bind the few AmigaOS calls an example actually uses (e.g. `FPuts` → console). Not a blanket stub for every `.bmap` entry |
@@ -244,7 +244,7 @@ The C compiler is a reference oracle during development, not the acceptance comp
 11. ~~Phase 5.5: math builtins~~ (`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS`; `hi.b` / `ahl.b` / `lines.b` / `fact.b`)
 12. ~~Phase 6: SOUND / WAVE~~ (`WAVE SIN`, `SOUND`, `BEEP`; see `examples/Sound/sound.b`)
 13. ~~**Turtle graphics**~~ — `FORWARD` / `TURN*` / `PEN*` / `SETXY`; `torus` / `flower` / `boxit` (+ `dragon` / `snowflake` / `tree`)
-13b. **Async SUBs** — fix `spiro.b` (`SLEEP` inside `SUB`); do before Gfx climb
+13b. ~~**Async SUBs**~~ — `spiro.b` (`SLEEP` inside `SUB`); MENU→`q` adaptation stays
 14. **Gfx corpus climb** — more ACE `prgs/Gfx/` beyond `paint.b` (defer IFF/EHB/HAM)
 15. **SAY** — Web Speech; seed `welcome.b`
 16. **`LIBRARY` shims** — open/close no-ops; bind only calls examples need

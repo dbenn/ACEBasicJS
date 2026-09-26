@@ -45,7 +45,7 @@ expectations below (observable results in the host output / runtime).
 | `dragon` | `Turtle/dragon.b` | Dragon curve; prompts for depth/sides. |
 | `flower` | `Turtle/flower.b` | Flower; press `q`. |
 | `snowflake` | `Turtle/snowflake.b` | Koch snowflake; prompts for depth/sides. |
-| `spiro` | `Turtle/spiro.b` | SpiroGraph; press `q` (needs async SUBs for `SLEEP` inside `SUB`; `MENU` deferred). |
+| `spiro` | `Turtle/spiro.b` | SpiroGraph; press `q` (original `MENU` deferred). |
 | `torus` | `Turtle/torus.b` | Nested turtle loops; press a key or close. |
 | `tree` | `Turtle/tree.b` | Recursive tree; prompt is **branch length in pixels** (try **40**, not 5 — base case is `n<5`); press `q`. |
 

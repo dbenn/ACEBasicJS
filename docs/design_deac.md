@@ -230,8 +230,8 @@ RastPort drawing operations, BitMap handling, colour palettes.
 SOUND, WAVE, PLAY commands via Web Audio API.
 
 ### Phase 8 — Turtle + Gfx corpus (priority)
-Turtle graphics (`FORWARD` / `TURN*` / `PEN*` / `SETXY` / …) are in. Finish
-`spiro` via async SUB codegen, then climb original ACE `prgs/Gfx/` demos.
+Turtle graphics (`FORWARD` / `TURN*` / `PEN*` / `SETXY` / …) are in, including
+`spiro` (async SUB codegen; MENU→`q`). Next: climb original ACE `prgs/Gfx/` demos.
 Prefer visible, small examples; defer IFF / EHB / HAM until forced.
 **Defer `Turtle/bst.b`** (STRUCT / ADDRESS / pointer stack) — it is a
 data-structures demo that uses turtle for display, not a turtle-graphics gate.

@@ -164,10 +164,10 @@ Precedence from the Programmer’s Guide (high → low):
 | Coloured window `PRINT` / `LOCATE` (fg/bg pens) | done (Phase 5.5; absolute text runs) |
 | `PAINT` `AREA` `AREAFILL` `PATTERN` | done (Phase 5+; flood fill + polygon + line/area patterns; see `examples/Gfx/paint.b`) |
 | `SCROLL` | Phase 5+ / as examples demand |
-| Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `SETXY` `HOME` …) | **done** (Phase 7; `torus` / `flower` / `boxit` / `dragon` / `snowflake` / `tree`) |
-| Async SUBs (JS codegen) so `SLEEP`/`INPUT` work inside `SUB` | **next** — unblocks `spiro.b`; before Gfx climb |
+| Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `SETXY` `HOME` …) | **done** (Phase 7; `torus` / `flower` / `boxit` / `dragon` / `snowflake` / `tree` / `spiro`) |
+| Async SUBs (JS codegen) so `SLEEP`/`INPUT` work inside `SUB` | **done** — unblocks `spiro.b` |
 | `Turtle/bst.b` (STRUCT / ADDRESS / ALLOC / PRINTS / …) | **deferred** — not a turtle milestone; after Gfx (see implementation plan) |
-| Further Gfx corpus (`pattern2`, `7seg`, `shuttle`, …) | after async SUBs / `spiro`; IFF/EHB/HAM stay later |
+| Further Gfx corpus (`pattern2`, `7seg`, `shuttle`, …) | **next**; IFF/EHB/HAM stay later |
 | `IFF` / images | `later` |
 | Sprites / bobs / `OBJECT.*` | `out` (not ACE focus; reserved but unimplemented in ACE) |
 
