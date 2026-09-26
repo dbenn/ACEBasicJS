@@ -11,10 +11,20 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="src/ui/styles.css" />
+    <link rel="icon" href="public/ace.gif" type="image/gif" />
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">ACEBasic<span>JS</span></div>
+      <a class="brand" href="https://github.com/dbenn/ACEBasicJS" title="ACEBasicJS">
+        <img
+          class="brand-logo"
+          src="public/ace.gif"
+          width="249"
+          height="125"
+          alt="ACE Basic"
+        />
+        <span class="brand-text">ACEBasic<span class="brand-js">JS</span></span>
+      </a>
       <div class="controls">
         <label for="program-picker">Program</label>
         <select id="program-picker" aria-label="Program picker"></select>
@@ -24,11 +34,20 @@
     </header>
 
     <main class="main">
-      <section class="panel editor-panel" aria-label="ACE source">
+      <section class="panel editor-panel" id="source-panel" aria-label="ACE source">
         <h1 class="panel-title">ACE source (always visible · editable)</h1>
         <textarea id="source" spellcheck="false" aria-label="ACE program source"></textarea>
       </section>
-      <section class="panel output-panel" aria-label="Program display">
+      <div
+        class="splitter"
+        id="splitter"
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize source and display panes"
+        aria-controls="source-panel display-panel"
+        tabindex="0"
+      ></div>
+      <section class="panel output-panel" aria-label="Program display" id="display-panel">
         <h2 class="panel-title">Display</h2>
         <div
           id="screens"

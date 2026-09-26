@@ -1,5 +1,5 @@
 ' Phase 5+ — PAINT / AREA / AREAFILL / PATTERN
-' Port of vidarh prgs/Gfx/pattern.b (DATA/READ inlined as assignments).
+' Port of ACE prgs/Gfx/pattern.b (DATA/READ inlined as assignments).
 ' Press a key or close the window to quit.
 
 DEFINT a-z

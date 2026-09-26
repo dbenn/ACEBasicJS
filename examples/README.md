@@ -1,24 +1,26 @@
 # Seed examples — expected behaviour
 
-Curated fixtures for the program picker. Layout mirrors
-[vidarh/ACE](https://github.com/vidarh/ACE) `prgs/` folders so the dropdown
-shows **optgroups** (`Turtle`, `BenchMarks`, `Gfx`, …). Host-only demos live
-under `ACEBasicJS/`. ACE root-level programs (e.g. `hi.b`) use the `prgs` group.
+Curated fixtures for the program picker. Folder layout mirrors the original ACE
+2.4 [`prgs/`](https://github.com/dbenn/ACE) tree so the dropdown shows
+**optgroups** (`Turtle`, `BenchMarks`, `Gfx`, …). The `.b` demos themselves are
+**David Benn’s** programs from that distribution (not third-party). Host-only
+demos live under `ACEBasicJS/`. ACE root-level programs (e.g. `hi.b`) use the
+`prgs` group.
 
 Phase 0 only runs simple `PRINT "..."` lines. Later phases must meet the
 expectations below (observable results in the host output / runtime).
 
 ## Folder map
 
-| Folder | Origin | Contents |
+| Folder | Author / origin | Contents |
 |---|---|---|
 | `ACEBasicJS/` | This project | `hello`, `input`, `window`, `window-input`, `graphics` |
-| `BenchMarks/` | vidarh `prgs/BenchMarks/` | `Ackermann`, `Ahl`, `lines`, `loops`, `sieve` |
-| `Gfx/` | vidarh `prgs/Gfx/` | `paint` (from `pattern.b`) |
-| `Misc/` | vidarh `prgs/Misc/` | `fact` |
-| `prgs` (group) | vidarh `prgs/*.b` | `hi` (`examples/hi.b`) |
-| `Sound/` | vidarh `prgs/Sound/` | `sound` |
-| `Turtle/` | vidarh `prgs/Turtle/` | **all** TG demos: `boxit`, `bst`, `dragon`, `flower`, `snowflake`, `spiro`, `torus`, `tree` |
+| `BenchMarks/` | David Benn — original ACE `prgs/BenchMarks/` | `Ackermann`, `Ahl`, `lines`, `loops`, `sieve` |
+| `Gfx/` | David Benn — original ACE `prgs/Gfx/` | `paint` (from `pattern.b`) |
+| `Misc/` | David Benn — original ACE `prgs/Misc/` | `fact` |
+| `prgs` (group) | David Benn — original ACE `prgs/*.b` | `hi` (`examples/hi.b`) |
+| `Sound/` | David Benn — original ACE `prgs/Sound/` | `sound` |
+| `Turtle/` | David Benn — original ACE `prgs/Turtle/` | **all** TG demos: `boxit`, `bst`, `dragon`, `flower`, `snowflake`, `spiro`, `torus`, `tree` |
 
 ## Programs
 
@@ -51,10 +53,10 @@ expectations below (observable results in the host output / runtime).
 
 | Program | Reason |
 |---|---|
-| vidarh `prgs/Gfx/*` (beyond `paint.b`) | Next priority after turtle climb; defer IFF/EHB/HAM |
-| vidarh `prgs/welcome.b` | Needs `SAY` / `TRANSLATE$` |
-| vidarh `prgs/Library/hello.b` | `LIBRARY` selective shims later |
-| vidarh `prgs/IO/seq.b` | File I/O demoted |
+| ACE `prgs/Gfx/*` (beyond `paint.b`) | Next priority after turtle climb; defer IFF/EHB/HAM |
+| ACE `prgs/welcome.b` | Needs `SAY` / `TRANSLATE$` |
+| ACE `prgs/Library/hello.b` | `LIBRARY` selective shims later |
+| ACE `prgs/IO/seq.b` | File I/O demoted |
 
 ## Notes
 

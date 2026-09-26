@@ -7,7 +7,7 @@ Spec harvest for the pure client-side JS compiler and runtime. Sources:
 - [Reserved Words v2.3](https://dbenn.github.io/docs/rwords.html)
 - Seed programs in [`examples/`](../examples/) (see [`examples/README.md`](../examples/README.md))
 
-C ACE (`parse*.c` / `codegen.c` in [vidarh/ACE](https://github.com/vidarh/ACE)) is consulted only when docs and examples disagree — it is a **reference**, not the product.
+C ACE (`parse*.c` / `codegen.c` in [dbenn/ACE](https://github.com/dbenn/ACE); [vidarh/ACE](https://github.com/vidarh/ACE) for Linux-port notes) is consulted only when docs and examples disagree — it is a **reference**, not the product. Example programs are from the original ACE `prgs/` corpus.
 
 **Status legend:** `stub` = Phase 0 behaviour · `next` = needed for seed suite · `later` = after seeds · `out` = out of scope for near-term browser target
 

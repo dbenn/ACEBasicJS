@@ -1,4 +1,4 @@
-' Phase 7 — turtle flower (vidarh prgs/Turtle/flower.b)
+' Phase 7 — turtle flower (ACE prgs/Turtle/flower.b)
 ' SUBs + FORWARD / TURNRIGHT. Press q (or Stop) to quit.
 ' Loop vars differ per SUB so nested FOR does not clobber the caller
 ' (ACE FOR frames isolate this; our JS codegen uses one binding per name).

@@ -43,7 +43,7 @@ No native toolchain required for end users. No Amiga hardware emulation.
 | Compile ACE C → WASM once; emit JS in-browser | Possible, but **not lightweight** |
 | **JS compiler + JS runtime**; use C ACE as a **spec** | **Chosen** |
 
-The recursive-descent parser in vidarh’s ACE fork (and the original docs) are reverse-engineering sources for grammar and semantics. The shipped product does not include the C compiler.
+The recursive-descent parser in the original [ACE 2.4](https://github.com/dbenn/ACE) sources (and the original docs) are reverse-engineering sources for grammar and semantics; [vidarh’s Linux fork](https://github.com/vidarh/ACE) is useful for Linux-port / retargeting notes. The shipped product does not include the C compiler.
 
 Compiler **output** remains JavaScript (not WASM), for the reasons already logged in the design doc: DOM/API calls live in JS, debuggability, and ACE programs are not compute-bound.
 
@@ -57,7 +57,8 @@ Compiler **output** remains JavaScript (not WASM), for the reasons already logge
 | [Language Reference v2.3](https://dbenn.github.io/docs/ref.html) | Commands/functions → runtime surface |
 | [Reserved Words v2.3](https://dbenn.github.io/docs/rwords.html) | Lexer keyword set |
 | [Doc index](https://dbenn.github.io/docs/doc_index.html) | Entry point for the above |
-| [vidarh/ACE](https://github.com/vidarh/ACE) | Parser/codegen reference; `prgs/` examples as acceptance corpus |
+| [dbenn/ACE](https://github.com/dbenn/ACE) | Original ACE 2.4; `prgs/` demos **by David Benn** (acceptance corpus); C parser/codegen reference |
+| [vidarh/ACE](https://github.com/vidarh/ACE) | Linux-port / retargeting notes for `parse*.c` / `codegen.c` — not the author of `prgs/` |
 | `docs/design_deac.md` | Architecture and UX intent |
 | `.cursorrules` | Standing project guidance for agents |
 
@@ -107,7 +108,7 @@ No C subtree in the default product path. Optional `vendor/ace-c/` only if neede
 
 | Example | Why |
 |---|---|
-| `examples/ACEBasicJS/hello.b` | Phase 0 `PRINT` smoke test (vidarh `Library/hello.b` needs `LIBRARY dos` — deferred) |
+| `examples/ACEBasicJS/hello.b` | Phase 0 `PRINT` smoke test (ACE `Library/hello.b` needs `LIBRARY dos` — deferred) |
 | `examples/BenchMarks/loops.b` | Nested `FOR` / `WHILE` / `REPEAT`, `CONST`, `TIMER` |
 | `examples/BenchMarks/sieve.b` | `DIM`, `IF`, `GOTO`, line numbers |
 | `examples/BenchMarks/ackermann.b` | `SUB`, recursion, `EXIT SUB` |
@@ -158,13 +159,13 @@ Still deferred within Phase 4+: `MENU` / `GADGET`, full `PALETTE` / `COLOR` / `L
 
 **Done when:** ~~a small graphics example draws lines, boxes, and circles with a custom palette.~~
 
-~~Phase 5+ follow-up:~~ `PAINT` / `AREA` / `AREAFILL` / `PATTERN` (+ `&H` hex literals) — flood fill, polygon fill, line/area patterns. Demo: `examples/Gfx/paint.b` (from vidarh `prgs/Gfx/pattern.b`).
+~~Phase 5+ follow-up:~~ `PAINT` / `AREA` / `AREAFILL` / `PATTERN` (+ `&H` hex literals) — flood fill, polygon fill, line/area patterns. Demo: `examples/Gfx/paint.b` (from ACE `prgs/Gfx/pattern.b`).
 
 Still deferred within graphics: `SCROLL`, IFF, EHB/HAM modes, Topaz webfont, `MENU` / `GADGET` (elevate when a Gfx/Turtle example needs them).
 
 ### Phase 5.5 — Math builtins (program-driven)
 
-~~`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS` / `SIN` / `COS` / …~~ unlocked by climbing the vidarh corpus:
+~~`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS` / `SIN` / `COS` / …~~ unlocked by climbing the original ACE `prgs/` corpus:
 
 | Example | Features exercised |
 |---|---|
@@ -192,7 +193,7 @@ Drive by visible demos and the smallest stack that works. Do **not** expand gram
 | Priority | Work | Why / seed |
 |---|---|---|
 | **1** | **Turtle graphics** | ~~Thin layer on existing RastPort~~ — `FORWARD` / `BACK` / `TURN*` / `PEN*` / `SETXY` / `HOME` / `SETHEADING` / `HEADING` / `XCOR` / `YCOR`. Seeds: `examples/Turtle/{torus,flower,boxit}.b` (full Turtle/ set in picker). `bst` still needs STRUCT/ADDRESS; `spiro` MENU deferred |
-| **2** | **Gfx corpus climb** | More of the original ACE graphics demos (vidarh `prgs/Gfx/`). `pattern.b` already landed as `examples/Gfx/paint.b`. Next easy wins before IFF/EHB/HAM: e.g. `pattern2.b` (needs `GADGET WAIT`), `7seg.b`, `shuttle.b`, `tri.b` — unlock constructs only as each fails |
+| **2** | **Gfx corpus climb** | More of the original ACE graphics demos ([dbenn/ACE](https://github.com/dbenn/ACE) `prgs/Gfx/`). `pattern.b` already landed as `examples/Gfx/paint.b`. Next easy wins before IFF/EHB/HAM: e.g. `pattern2.b` (needs `GADGET WAIT`), `7seg.b`, `shuttle.b`, `tri.b` — unlock constructs only as each fails |
 | **3** | **SAY** | Web Speech API; seed `welcome.b` (`SAY TRANSLATE$(…)`). Full `SpeechTool.b` waits on `GADGET` / requesters |
 | **4** | **`LIBRARY` selective shims** | `LIBRARY` open/close can be **no-ops**. `DECLARE FUNCTION … LIBRARY` must bind the few AmigaOS calls an example actually uses (e.g. `FPuts` → console). Not a blanket stub for every `.bmap` entry |
 | **5** | **Sequential files (demoted)** | Client-side apps rarely need `PRINT#` persistence. When an example demands it (`seq.b`), use an **in-memory VFS** first. IndexedDB only if reload survival is wanted — optional, maybe never |
@@ -241,7 +242,7 @@ The C compiler is a reference oracle during development, not the acceptance comp
 11. ~~Phase 5.5: math builtins~~ (`RND` / `RANDOMIZE` / `INT` / `SQR` / `ABS`; `hi.b` / `ahl.b` / `lines.b` / `fact.b`)
 12. ~~Phase 6: SOUND / WAVE~~ (`WAVE SIN`, `SOUND`, `BEEP`; see `examples/Sound/sound.b`)
 13. ~~**Turtle graphics**~~ — `FORWARD` / `TURN*` / `PEN*` / `SETXY`; `torus` / `flower` / `boxit`
-14. **Gfx corpus climb** — more vidarh `prgs/Gfx/` beyond `paint.b` (defer IFF/EHB/HAM)
+14. **Gfx corpus climb** — more ACE `prgs/Gfx/` beyond `paint.b` (defer IFF/EHB/HAM)
 15. **SAY** — Web Speech; seed `welcome.b`
 16. **`LIBRARY` shims** — open/close no-ops; bind only calls examples need
 17. **Files (low priority)** — in-memory VFS if/when `seq.b`-class demos matter; IndexedDB optional
@@ -253,4 +254,5 @@ The C compiler is a reference oracle during development, not the acceptance comp
 - Design: [`docs/design_deac.md`](design_deac.md)
 - Agent rules: [`.cursorrules`](../.cursorrules)
 - ACE docs: https://dbenn.github.io/docs/doc_index.html
-- Base fork / examples: https://github.com/vidarh/ACE
+- Original ACE 2.4 (source + examples): https://github.com/dbenn/ACE
+- Linux fork (parser/codegen notes): https://github.com/vidarh/ACE

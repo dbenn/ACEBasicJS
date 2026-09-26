@@ -1,4 +1,4 @@
-' Turtle/spiro.b — SpiroGraph (vidarh ACE prgs/Turtle/spiro.b)
+' Turtle/spiro.b — SpiroGraph (ACE prgs/Turtle/spiro.b)
 ' Original uses MENU Quit; browser port: press q (or Stop) to quit.
 ' MENU / ON MENU still deferred — see construct checklist.
 
