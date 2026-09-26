@@ -1394,15 +1394,15 @@
           if (bi) {
             return "rt." + bi.rt + "(" + node.args.map(this.expr.bind(this)).join(", ") + ")";
           }
-          // array index vs function: if known sub, call; else array
+          // array index vs function: if known sub, await call (SUBs are async)
           if (this.subs[n.toLowerCase()]) {
-            return jsName(n) + "(" + node.args.map(this.expr.bind(this)).join(", ") + ")";
+            return "(await " + jsName(n) + "(" + node.args.map(this.expr.bind(this)).join(", ") + "))";
           }
           // single-arg Call on var → array access by default; multi-arg → function call attempt
           if (node.args.length === 1 && !this.subs[n.toLowerCase()]) {
             return jsName(n) + "[" + this.expr(node.args[0]) + "]";
           }
-          return jsName(n) + "(" + node.args.map(this.expr.bind(this)).join(", ") + ")";
+          return "(await " + jsName(n) + "(" + node.args.map(this.expr.bind(this)).join(", ") + "))";
         }
         break;
       default: break;
@@ -1546,7 +1546,8 @@
         return ind + jsName(stmt.name) + "++;";
       case "CallStmt": {
         const fn = jsName(stmt.name);
-        const call = fn + "(" + stmt.args.map(this.expr.bind(this)).join(", ") + ")";
+        // SUBs are async so SLEEP/INPUT inside them work; always await statement-level calls.
+        const call = "await " + fn + "(" + stmt.args.map(this.expr.bind(this)).join(", ") + ")";
         // ACE: bare call to SUB sets function return value when inside that SUB — handled in emitSub
         return ind + call + ";";
       }
@@ -1660,12 +1661,14 @@
       const ind = indent || "";
       if (stmt.type === "AssignRet") return ind + "__ret = " + self.expr(stmt.expr) + ";";
       if (stmt.type === "AssignRetCall") {
-        return ind + "__ret = " + jsName(stmt.name) + "(" + stmt.args.map(self.expr.bind(self)).join(", ") + ");";
+        return ind + "__ret = await " + jsName(stmt.name) + "(" +
+          stmt.args.map(self.expr.bind(self)).join(", ") + ");";
       }
       return prevEmit(stmt, indent);
     };
+    // Async so await SLEEP / INPUT / nested SUB calls inside the body are legal JS.
     const code =
-      "function " + name + "(" + params + ") {\n" +
+      "async function " + name + "(" + params + ") {\n" +
       "  let __ret = 0;\n" +
       this.emitBlock(body, "  ") + "\n" +
       "  return __ret;\n" +

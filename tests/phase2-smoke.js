@@ -725,6 +725,60 @@ async function main() {
     await runPromise;
   });
 
+  await check("SLEEP inside SUB (async SUBs)", async function () {
+    const src =
+      "SUB tick\n" +
+      "  SLEEP\n" +
+      "  PRINT \"woke\"\n" +
+      "END SUB\n" +
+      "tick\n";
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/async function __v_tick/.test(compiled.js)) {
+      throw new Error("SUB should emit async function: " + compiled.js.slice(0, 200));
+    }
+    if (!/await __v_tick\(/.test(compiled.js)) {
+      throw new Error("SUB call should be awaited: " + compiled.js);
+    }
+    if (!/await rt\.sleep\(\)/.test(compiled.js)) {
+      throw new Error("SLEEP inside SUB should await: " + compiled.js);
+    }
+    const r = await runSource(ACE, src);
+    if (r.error) throw r.error.stack || r.error;
+    if (r.lines.indexOf("woke") < 0) throw new Error("expected woke: " + r.lines.join("|"));
+  });
+
+  await check("examples/Turtle/spiro.b draws then quits on q", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Turtle/spiro.b"), "utf8");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink, inputLines: ["9", "30"] });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/async function __v_spiro/.test(compiled.js)) {
+      throw new Error("spiro SUB not async");
+    }
+    const runPromise = ACE.run(compiled, rt);
+    // Let a few SLEEP ticks draw polygons, then quit.
+    await new Promise(function (r) { setTimeout(r, 350); });
+    let ink = 0;
+    for (let y = 0; y < 400; y += 2) {
+      for (let x = 0; x < 640; x += 2) {
+        if (rt.windowPixel(1, x, y) === 2) ink++;
+      }
+    }
+    if (ink < 20) throw new Error("expected spiro ink, got " + ink);
+    rt.pushKey("q");
+    await new Promise(function (r) { setTimeout(r, 200); });
+    // Outer WHILE also waits for q — push again in case EXIT SUB already left the loop.
+    rt.pushKey("q");
+    await Promise.race([
+      runPromise,
+      new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error("spiro did not exit after q")); }, 2000);
+      }),
+    ]);
+  });
+
   if (failed) {
     console.error(failed + " failed");
     process.exit(1);

@@ -137,7 +137,7 @@
     "title": "spiro",
     "folder": "Turtle",
     "path": "examples/Turtle/spiro.b",
-    "notes": "SpiroGraph; press q — needs async SUBs (MENU deferred)"
+    "notes": "SpiroGraph; press q (MENU deferred)"
   },
   {
     "id": "torus",
