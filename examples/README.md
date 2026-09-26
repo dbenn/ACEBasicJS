@@ -41,11 +41,11 @@ expectations below (observable results in the host output / runtime).
 | `hi` | `hi.b` | Coloured "Hi There!" spray; press `q`. |
 | `sound` | `Sound/sound.b` | Tones / period sweep (unmute tab). |
 | `boxit` | `Turtle/boxit.b` | Recursive boxed edges; press `q`. |
-| `bst` | `Turtle/bst.b` | **Corpus** — needs `STRUCT` / `ADDRESS` / `CASE` / … (not yet). |
+| `bst` | `Turtle/bst.b` | **Deferred** — STRUCT / ADDRESS / CASE / ALLOC / … (after Gfx climb; not a turtle gate). |
 | `dragon` | `Turtle/dragon.b` | Dragon curve; prompts for depth/sides. |
 | `flower` | `Turtle/flower.b` | Flower; press `q`. |
 | `snowflake` | `Turtle/snowflake.b` | Koch snowflake; prompts for depth/sides. |
-| `spiro` | `Turtle/spiro.b` | SpiroGraph; press `q` (original `MENU` deferred). |
+| `spiro` | `Turtle/spiro.b` | SpiroGraph; press `q` (needs async SUBs for `SLEEP` inside `SUB`; `MENU` deferred). |
 | `torus` | `Turtle/torus.b` | Nested turtle loops; press a key or close. |
 | `tree` | `Turtle/tree.b` | Recursive tree; prompt is **branch length in pixels** (try **40**, not 5 — base case is `n<5`); press `q`. |
 
@@ -53,7 +53,8 @@ expectations below (observable results in the host output / runtime).
 
 | Program | Reason |
 |---|---|
-| ACE `prgs/Gfx/*` (beyond `paint.b`) | Next priority after turtle climb; defer IFF/EHB/HAM |
+| ACE `prgs/Gfx/*` (beyond `paint.b`) | Next after async SUBs / `spiro`; defer IFF/EHB/HAM |
+| `Turtle/bst.b` language stack | Deferred — STRUCT/pointer phase after Gfx; keep file in picker |
 | ACE `prgs/welcome.b` | Needs `SAY` / `TRANSLATE$` |
 | ACE `prgs/Library/hello.b` | `LIBRARY` selective shims later |
 | ACE `prgs/IO/seq.b` | File I/O demoted |

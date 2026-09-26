@@ -109,7 +109,7 @@
     "title": "bst",
     "folder": "Turtle",
     "path": "examples/Turtle/bst.b",
-    "notes": "Needs STRUCT / ADDRESS / CASE — corpus climb"
+    "notes": "Deferred: STRUCT / ADDRESS / CASE (after Gfx; not a turtle gate)"
   },
   {
     "id": "dragon",
@@ -137,7 +137,7 @@
     "title": "spiro",
     "folder": "Turtle",
     "path": "examples/Turtle/spiro.b",
-    "notes": "SpiroGraph; press q (MENU deferred)"
+    "notes": "SpiroGraph; press q — needs async SUBs (MENU deferred)"
   },
   {
     "id": "torus",
