@@ -137,7 +137,7 @@
     "title": "spiro",
     "folder": "Turtle",
     "path": "examples/Turtle/spiro.b",
-    "notes": "SpiroGraph; press q (MENU deferred)"
+    "notes": "SpiroGraph; press q (phone: tap Keys). MENU deferred"
   },
   {
     "id": "torus",

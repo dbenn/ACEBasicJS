@@ -78,6 +78,27 @@
             tabindex="-1"
             disabled
           /></div>
+        <!--
+          Real text field for INKEY$ / SLEEP quit keys. Required on iOS/Android:
+          the soft keyboard only opens for <input>/<textarea>, and many mobile
+          browsers deliver characters via the input event (not keydown).
+        -->
+        <div id="inkey-bar" class="inkey-bar" hidden>
+          <label class="inkey-label" for="inkey-capture">Keys</label>
+          <input
+            id="inkey-capture"
+            class="inkey-capture"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            enterkeyhint="done"
+            placeholder="Tap here, then q to quit"
+            aria-label="Program keys (tap to open keyboard, then press q to quit)"
+          />
+        </div>
       </section>
     </main>
 
