@@ -57,8 +57,8 @@ Compiler **output** remains JavaScript (not WASM), for the reasons already logge
 | [Language Reference v2.3](https://dbenn.github.io/docs/ref.html) | Commands/functions → runtime surface |
 | [Reserved Words v2.3](https://dbenn.github.io/docs/rwords.html) | Lexer keyword set |
 | [Doc index](https://dbenn.github.io/docs/doc_index.html) | Entry point for the above |
-| [dbenn/ACE](https://github.com/dbenn/ACE) | Original ACE 2.4; `prgs/` examples (David Benn) as acceptance corpus; C parser/codegen reference |
-| [vidarh/ACE](https://github.com/vidarh/ACE) | Linux-port / retargeting notes for `parse*.c` / `codegen.c` |
+| [dbenn/ACE](https://github.com/dbenn/ACE) | Original ACE 2.4; `prgs/` demos **by David Benn** (acceptance corpus); C parser/codegen reference |
+| [vidarh/ACE](https://github.com/vidarh/ACE) | Linux-port / retargeting notes for `parse*.c` / `codegen.c` — not the author of `prgs/` |
 | `docs/design_deac.md` | Architecture and UX intent |
 | `.cursorrules` | Standing project guidance for agents |
 

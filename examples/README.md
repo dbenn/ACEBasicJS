@@ -1,25 +1,26 @@
 # Seed examples — expected behaviour
 
-Curated fixtures for the program picker. Layout mirrors David Benn’s original
-ACE 2.4 [`prgs/`](https://github.com/dbenn/ACE) folders so the dropdown shows
-**optgroups** (`Turtle`, `BenchMarks`, `Gfx`, …). Those demos were written for
-the original Amiga ACE; host-only demos live under `ACEBasicJS/`. ACE root-level
-programs (e.g. `hi.b`) use the `prgs` group.
+Curated fixtures for the program picker. Folder layout mirrors the original ACE
+2.4 [`prgs/`](https://github.com/dbenn/ACE) tree so the dropdown shows
+**optgroups** (`Turtle`, `BenchMarks`, `Gfx`, …). The `.b` demos themselves are
+**David Benn’s** programs from that distribution (not third-party). Host-only
+demos live under `ACEBasicJS/`. ACE root-level programs (e.g. `hi.b`) use the
+`prgs` group.
 
 Phase 0 only runs simple `PRINT "..."` lines. Later phases must meet the
 expectations below (observable results in the host output / runtime).
 
 ## Folder map
 
-| Folder | Origin | Contents |
+| Folder | Author / origin | Contents |
 |---|---|---|
 | `ACEBasicJS/` | This project | `hello`, `input`, `window`, `window-input`, `graphics` |
-| `BenchMarks/` | [dbenn/ACE](https://github.com/dbenn/ACE) `prgs/BenchMarks/` | `Ackermann`, `Ahl`, `lines`, `loops`, `sieve` |
-| `Gfx/` | [dbenn/ACE](https://github.com/dbenn/ACE) `prgs/Gfx/` | `paint` (from `pattern.b`) |
-| `Misc/` | [dbenn/ACE](https://github.com/dbenn/ACE) `prgs/Misc/` | `fact` |
-| `prgs` (group) | [dbenn/ACE](https://github.com/dbenn/ACE) `prgs/*.b` | `hi` (`examples/hi.b`) |
-| `Sound/` | [dbenn/ACE](https://github.com/dbenn/ACE) `prgs/Sound/` | `sound` |
-| `Turtle/` | [dbenn/ACE](https://github.com/dbenn/ACE) `prgs/Turtle/` | **all** TG demos: `boxit`, `bst`, `dragon`, `flower`, `snowflake`, `spiro`, `torus`, `tree` |
+| `BenchMarks/` | David Benn — original ACE `prgs/BenchMarks/` | `Ackermann`, `Ahl`, `lines`, `loops`, `sieve` |
+| `Gfx/` | David Benn — original ACE `prgs/Gfx/` | `paint` (from `pattern.b`) |
+| `Misc/` | David Benn — original ACE `prgs/Misc/` | `fact` |
+| `prgs` (group) | David Benn — original ACE `prgs/*.b` | `hi` (`examples/hi.b`) |
+| `Sound/` | David Benn — original ACE `prgs/Sound/` | `sound` |
+| `Turtle/` | David Benn — original ACE `prgs/Turtle/` | **all** TG demos: `boxit`, `bst`, `dragon`, `flower`, `snowflake`, `spiro`, `torus`, `tree` |
 
 ## Programs
 
