@@ -18,7 +18,7 @@ Phase 2 compiles control flow, arrays/`GOTO`, and `SUB` recursion. Phase 3 adds 
 
 ## GitHub Pages
 
-The site is static (`index.html` + `src/` + `examples/`). Deployment is via `.github/workflows/pages.yml` on every push to `main`.
+The site is static (`index.html` + `src/` + `examples/` + `public/`). Deployment is via `.github/workflows/pages.yml` on every push to `main`.
 
 One-time setup on GitHub:
 
