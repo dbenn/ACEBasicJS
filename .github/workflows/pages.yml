@@ -31,6 +31,8 @@ jobs:
           cp index.html _site/
           touch _site/.nojekyll
           cp -R examples src docs _site/
+          # Static assets (ACE logo, later Topaz, …)
+          if [ -d public ]; then cp -R public _site/; fi
           # Optional: keep README out of the site root noise
           test -f README.md && cp README.md _site/
 
