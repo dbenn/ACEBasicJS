@@ -17,6 +17,8 @@ Keep media small and descriptive; prefer one short video plus 1–2 stills per p
 | [`phase55/`](phase55/) | Math builtins: `RND` / `COLOR` text (`hi.b`), `lines.b` |
 | [`phase6/`](phase6/) | `SOUND` / `WAVE SIN` / `BEEP` (Web Audio) |
 | [`phase7-turtle/`](phase7-turtle/) | Turtle `FORWARD` / `TURN*` / `PEN*` / `SETXY` |
+| [`async-subs-spiro/`](async-subs-spiro/) | Async SUBs + spiro q-to-quit (desktop) |
+| [`inkey-ios-keyboard/`](inkey-ios-keyboard/) | **Keys** field for INKEY$ / q-to-quit (iOS soft keyboard) |
 
 ## Convention
 

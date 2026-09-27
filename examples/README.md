@@ -45,7 +45,7 @@ expectations below (observable results in the host output / runtime).
 | `dragon` | `Turtle/dragon.b` | Dragon curve; prompts for depth/sides. |
 | `flower` | `Turtle/flower.b` | Flower; press `q`. |
 | `snowflake` | `Turtle/snowflake.b` | Koch snowflake; prompts for depth/sides. |
-| `spiro` | `Turtle/spiro.b` | SpiroGraph; press `q` (original `MENU` deferred). |
+| `spiro` | `Turtle/spiro.b` | SpiroGraph; press `q` (on phone: tap **Keys** to open the keyboard). Original `MENU` deferred. |
 | `torus` | `Turtle/torus.b` | Nested turtle loops; press a key or close. |
 | `tree` | `Turtle/tree.b` | Recursive tree; prompt is **branch length in pixels** (try **40**, not 5 — base case is `n<5`); press `q`. |
 
@@ -65,4 +65,5 @@ expectations below (observable results in the host output / runtime).
 - Node smoke tests feed `INPUT` via `inputLines` on the runtime; the browser types on the active text surface (console or current window) and presses Enter to submit.
 - Phase 4 Intuition programs draw into the Display panel’s screen host; CLI programs still use the console surface below.
 - Browser ports of tight Amiga wait loops add `SLEEP` so the event loop can deliver keys.
+- On phones/tablets, `INKEY$` / quit keys need the **Keys** field under Display (opens the soft keyboard). Tap it, then press `q`.
 - `manifest.json` `folder` field drives `<optgroup>` labels in the program picker.
