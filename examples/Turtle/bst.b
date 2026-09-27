@@ -339,7 +339,9 @@ window 2,"BST Output",(0,0)-(640,150),6
 font "topaz",8
 color 2,1
 cls
-window 1,"BST",(0,150)-(640,255),6
+'.. Menu needs ~11 text rows; give a little more height than Amiga 255 so the
+'.. prompt stays visible in the browser Display pane (screen grows to fit).
+window 1,"BST",(0,150)-(640,270),6
 font "topaz",8
 color 1
 

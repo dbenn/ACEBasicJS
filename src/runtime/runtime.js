@@ -654,6 +654,38 @@
       return el;
     }
 
+    /**
+     * Grow an existing screen (and its backdrop) so a WINDOW that extends past
+     * the implicit mini-screen is not clipped. bst.b opens Output at (0,0)-(640,150)
+     * then Menu at (0,150)-(640,255) — without this the menu is cut off at y=200.
+     */
+    function ensureScreenFits(sid, right, bottom) {
+      const scr = screens[sid];
+      if (!scr) return;
+      const needW = Math.max(scr.w | 0, (right | 0) + 8);
+      const needH = Math.max(scr.h | 0, (bottom | 0) + 8);
+      if (needW === (scr.w | 0) && needH === (scr.h | 0)) return;
+      scr.w = needW;
+      scr.h = needH;
+      if (scr.el) {
+        scr.el.style.width = needW + "px";
+        scr.el.style.height = needH + "px";
+      }
+      const back = scr.backdropId != null ? windows[scr.backdropId] : null;
+      if (back) {
+        back.x2 = needW;
+        back.y2 = needH;
+        back.width = needW;
+        back.height = needH;
+        if (back.el) {
+          back.el.style.width = needW + "px";
+          back.el.style.height = needH + "px";
+        }
+        // Re-init rastport so backdrop matches new size (indices / canvas).
+        initRastPort(back);
+      }
+    }
+
     function initRastPort(win) {
       const contentH = win.borderless ? win.height : Math.max(1, win.height - TITLEBAR_H);
       const contentW = Math.max(1, win.width);
@@ -895,6 +927,8 @@
         // Implicit mini-screen so WINDOW alone still shows chrome.
         openScreen(sid, Math.max(320, right + 8), Math.max(200, bottom + 8), 3, 1);
         // openScreen created a backdrop; keep user window on that screen.
+      } else if (sid >= 1 && screens[sid]) {
+        ensureScreenFits(sid, right, bottom);
       }
       windows[wid] = win;
       if (!win.backdrop) ensureScreensHostVisible();
