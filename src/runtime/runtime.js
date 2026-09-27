@@ -1262,6 +1262,149 @@
       return String(s == null ? "" : s).toUpperCase();
     }
 
+    // --- STRUCT / pointer / string helpers (bst phase) ---
+    const TYPE_SIZES = {
+      byte: 1,
+      shortint: 2,
+      longint: 4,
+      address: 4,
+      single: 4,
+      string: 320, // ACE default string size in structs
+    };
+    const structDefs = Object.create(null);
+    const heap = [null]; // index 0 unused; pointer id 0 ≡ nil
+
+    function defineStruct(name, members) {
+      const key = String(name || "").toLowerCase();
+      let size = 0;
+      const mems = (members || []).map(function (m) {
+        const t = String(m.type || "longint").toLowerCase();
+        let sz = TYPE_SIZES[t];
+        if (sz == null) {
+          // nested struct type
+          const nested = structDefs[String(m.typeName || t).toLowerCase()];
+          sz = nested ? nested.size : 4;
+        }
+        const entry = { name: String(m.name).toLowerCase(), type: t, offset: size, size: sz };
+        size += sz;
+        return entry;
+      });
+      structDefs[key] = { name: key, members: mems, size: size };
+      return structDefs[key];
+    }
+
+    function sizeof(name) {
+      const d = structDefs[String(name || "").toLowerCase()];
+      return d ? d.size : 0;
+    }
+
+    function heapGet(id) {
+      const n = Number(id) | 0;
+      if (n <= 0) return null;
+      return heap[n] || null;
+    }
+
+    function allocStruct(typeName) {
+      const d = structDefs[String(typeName || "").toLowerCase()];
+      if (!d) return 0;
+      const obj = Object.create(null);
+      obj.__aceStruct = d.name;
+      for (let i = 0; i < d.members.length; i++) {
+        const m = d.members[i];
+        obj[m.name] = m.type === "string" ? "" : 0;
+      }
+      const id = heap.length;
+      heap.push(obj);
+      return id;
+    }
+
+    function alloc(bytes /*, memtype */) {
+      const b = Number(bytes) | 0;
+      for (const k in structDefs) {
+        if (structDefs[k] && structDefs[k].size === b) return allocStruct(k);
+      }
+      const id = heap.length;
+      heap.push({ __aceBytes: b });
+      return id;
+    }
+
+    function member(id, name) {
+      const obj = heapGet(id);
+      if (!obj) return 0;
+      const v = obj[String(name).toLowerCase()];
+      return v == null ? 0 : v;
+    }
+
+    function setMember(id, name, value) {
+      const obj = heapGet(id);
+      if (!obj) return;
+      obj[String(name).toLowerCase()] = value;
+    }
+
+    function refVar(get, set) {
+      return { __aceRef: true, get: get, set: set };
+    }
+
+    function refMember(id, name) {
+      const key = String(name).toLowerCase();
+      const sid = Number(id) | 0;
+      return {
+        __aceRef: true,
+        get: function () {
+          const obj = heapGet(sid);
+          if (!obj) return 0;
+          const v = obj[key];
+          return v == null ? 0 : v;
+        },
+        set: function (v) {
+          const obj = heapGet(sid);
+          if (!obj) return;
+          obj[key] = v;
+        },
+      };
+    }
+
+    function peek(addr) {
+      if (addr && addr.__aceRef) return addr.get();
+      return addr == null ? 0 : addr;
+    }
+
+    function poke(addr, value) {
+      if (addr && addr.__aceRef) {
+        addr.set(value);
+        return;
+      }
+    }
+
+    /** AmigaBASIC/ACE STR$: leading space for non-negative numbers. */
+    function strNum(n) {
+      const v = Number(n);
+      if (!isFinite(v)) return " 0";
+      if (v < 0) return String(v);
+      return " " + String(v);
+    }
+
+    function len(s) {
+      return String(s == null ? "" : s).length;
+    }
+
+    function rightStr(s, n) {
+      const str = String(s == null ? "" : s);
+      const count = Math.max(0, Number(n) | 0);
+      if (count >= str.length) return str;
+      return str.slice(str.length - count);
+    }
+
+    function csrlin() {
+      const win = currentWin();
+      return win ? (win.cursorRow | 0) : 1;
+    }
+
+    /** PRINTS — text at current pen (same surface as PRINT in a WINDOW). */
+    function prints(parts, after) {
+      printParts(parts, after);
+    }
+
     /**
      * PATTERN [line-pattern][,area-array] — Amiga SetDrPt / SetAfPt.
      * linePat null → leave line pattern (or restore default if only area given).
@@ -1648,6 +1791,9 @@
       tgPen = 0;
       tgInitX = 0;
       tgInitY = 0;
+      for (const k in structDefs) delete structDefs[k];
+      heap.length = 1;
+      heap[0] = null;
       if (options && options.inputLines) inputLines = options.inputLines.slice();
       destroyAllWindowsAndScreens();
       clearOutput();
@@ -1726,6 +1872,21 @@
       cint: cint,
       clng: clng,
       ucase: ucase,
+      defineStruct: defineStruct,
+      sizeof: sizeof,
+      allocStruct: allocStruct,
+      alloc: alloc,
+      member: member,
+      setMember: setMember,
+      refVar: refVar,
+      refMember: refMember,
+      peek: peek,
+      poke: poke,
+      strNum: strNum,
+      len: len,
+      rightStr: rightStr,
+      csrlin: csrlin,
+      prints: prints,
       get stopped() {
         return stopped;
       },

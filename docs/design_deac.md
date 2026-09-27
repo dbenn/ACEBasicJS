@@ -233,8 +233,8 @@ SOUND, WAVE, PLAY commands via Web Audio API.
 Turtle graphics (`FORWARD` / `TURN*` / `PEN*` / `SETXY` / …) are in, including
 `spiro` (async SUB codegen; MENU→`q`). Next: climb original ACE `prgs/Gfx/` demos.
 Prefer visible, small examples; defer IFF / EHB / HAM until forced.
-**Defer `Turtle/bst.b`** (STRUCT / ADDRESS / pointer stack) — it is a
-data-structures demo that uses turtle for display, not a turtle-graphics gate.
+~~**`Turtle/bst.b`**~~ (STRUCT / ADDRESS / pointer stack) is in — data-structures
+demo that uses turtle for display.
 
 ### Phase 9 — Speech
 SAY command via Web Speech API.

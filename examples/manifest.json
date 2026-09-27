@@ -109,7 +109,7 @@
     "title": "bst",
     "folder": "Turtle",
     "path": "examples/Turtle/bst.b",
-    "notes": "Deferred: STRUCT / ADDRESS / CASE (after Gfx; not a turtle gate)"
+    "notes": "BST menu: STRUCT / ADDRESS / turtle graph; try Insert then Show"
   },
   {
     "id": "dragon",
