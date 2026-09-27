@@ -7,15 +7,17 @@
   "use strict";
 
   const KEYWORDS = {
-    AND: 1, AREA: 1, AREAFILL: 1, AS: 1, BACK: 1, BEEP: 1, CALL: 1, CIRCLE: 1, CLOSE: 1, CLS: 1,
-    COLOR: 1, CONST: 1, DATA: 1, DEFINT: 1, DEFLNG: 1, DEFSNG: 1, DEFSTR: 1, DEFDBL: 1,
+    ADDRESS: 1, AND: 1, AREA: 1, AREAFILL: 1, AS: 1, BACK: 1, BEEP: 1, BYTE: 1, CALL: 1,
+    CASE: 1, CIRCLE: 1, CLOSE: 1, CLS: 1, COLOR: 1, CONST: 1, CSRLIN: 1, DATA: 1,
+    DECLARE: 1, DEFINT: 1, DEFLNG: 1, DEFSNG: 1, DEFSTR: 1, DEFDBL: 1,
     DIM: 1, ELSE: 1, ELSEIF: 1, END: 1, EXIT: 1, FONT: 1, FOR: 1, FORWARD: 1, GOTO: 1, GOSUB: 1,
     HOME: 1, IF: 1, INPUT: 1, LET: 1, LINE: 1, LOCATE: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1,
-    OUTPUT: 1, PAINT: 1, PALETTE: 1, PATTERN: 1, PENDOWN: 1, PENUP: 1, PRINT: 1, PSET: 1,
-    RANDOMIZE: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1, SETHEADING: 1,
-    SETXY: 1, SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, SOUND: 1, LONGINT: 1, STEP: 1,
-    SUB: 1, THEN: 1, TO: 1, TURN: 1, TURNLEFT: 1, TURNRIGHT: 1, UNTIL: 1, WAVE: 1,
-    WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1, TIMER: 1, FUNCTION: 1, LIBRARY: 1,
+    OUTPUT: 1, PAINT: 1, PALETTE: 1, PATTERN: 1, PENDOWN: 1, PENUP: 1, PRINT: 1, PRINTS: 1,
+    PSET: 1, RANDOMIZE: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1,
+    SETHEADING: 1, SETXY: 1, SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, SOUND: 1,
+    LONGINT: 1, STEP: 1, STRING: 1, STRUCT: 1, SUB: 1, THEN: 1, TO: 1, TURN: 1,
+    TURNLEFT: 1, TURNRIGHT: 1, UNTIL: 1, WAVE: 1, WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1,
+    TIMER: 1, FUNCTION: 1, LIBRARY: 1,
   };
 
   /**
@@ -24,6 +26,7 @@
    */
   const BUILTINS = {
     ABS: { arity: 1, rt: "abs" },
+    ALLOC: { arity: -1, rt: "alloc" }, // 1 or 2 args
     ATN: { arity: 1, rt: "atn" },
     CINT: { arity: 1, rt: "cint" },
     CLNG: { arity: 1, rt: "clng" },
@@ -32,11 +35,15 @@
     FIX: { arity: 1, rt: "fix" },
     HEADING: { arity: 0, rt: "heading" },
     INT: { arity: 1, rt: "int" },
+    LEN: { arity: 1, rt: "len" },
     LOG: { arity: 1, rt: "log" },
+    RIGHT: { arity: 2, rt: "rightStr" },
     RND: { arity: -1, rt: "rnd" }, // 0 or 1 arg
     SGN: { arity: 1, rt: "sgn" },
     SIN: { arity: 1, rt: "sin" },
+    SIZEOF: { arity: 1, rt: "sizeof" },
     SQR: { arity: 1, rt: "sqr" },
+    STR: { arity: 1, rt: "strNum" },
     TAN: { arity: 1, rt: "tan" },
     UCASE: { arity: 1, rt: "ucase" },
     XCOR: { arity: 0, rt: "xcor" },
@@ -88,11 +95,14 @@
         continue;
       }
 
-      // {* block comment *}
-      if (c === "{" && peek(1) === "*") {
-        bump(); bump();
-        while (i < src.length && !(peek() === "*" && peek(1) === "}")) bump();
+      // { … } or {* … *} block comments (ACE / APP)
+      if (c === "{") {
+        bump();
         if (peek() === "*") bump();
+        while (i < src.length && peek() !== "}") {
+          if (peek() === "*" && peek(1) === "}") { bump(); break; }
+          bump();
+        }
         if (peek() === "}") bump();
         continue;
       }
@@ -101,6 +111,35 @@
       if (c === "+" && peek(1) === "+") {
         bump(); bump();
         add("PLUSPLUS", "++", startLine, startCol);
+        continue;
+      }
+
+      // := becomes (indirection poke assign)
+      if (c === ":" && peek(1) === "=") {
+        bump(); bump();
+        add("OP", ":=", startLine, startCol);
+        continue;
+      }
+
+      // -> structure member
+      if (c === "-" && peek(1) === ">") {
+        bump(); bump();
+        add("OP", "->", startLine, startCol);
+        continue;
+      }
+
+      // Indirection: *% *& *!
+      if (c === "*" && (peek(1) === "%" || peek(1) === "&" || peek(1) === "!")) {
+        bump();
+        const sigil = bump();
+        add("INDIR", sigil, startLine, startCol);
+        continue;
+      }
+
+      // @ address-of
+      if (c === "@") {
+        bump();
+        add("OP", "@", startLine, startCol);
         continue;
       }
 
@@ -336,6 +375,14 @@
       this.eat();
       return this.parseUnary();
     }
+    return this.parseIndirect();
+  };
+  /** *% *& *! indirection (peek). Tighter than unary -, looser than -> / (). */
+  Parser.prototype.parseIndirect = function () {
+    if (this.at("INDIR")) {
+      const sigil = this.eat().value;
+      return { type: "Indirect", sigil: sigil, expr: this.parseIndirect() };
+    }
     return this.parsePow();
   };
   Parser.prototype.parsePow = function () {
@@ -348,27 +395,47 @@
   };
   Parser.prototype.parsePostfix = function () {
     let expr = this.parsePrimary();
-    while (this.at("LPAREN")) {
-      // array index or function call — decided later by name
-      this.eat();
-      const args = [];
-      if (!this.at("RPAREN")) {
-        args.push(this.parseExpr());
-        while (this.at("COMMA")) {
-          this.eat();
+    for (;;) {
+      if (this.at("OP") && this.peek().value === "->") {
+        this.eat();
+        const mem = this.expect("IDENT");
+        expr = { type: "Member", obj: expr, member: mem.value };
+        continue;
+      }
+      if (this.at("LPAREN")) {
+        // array index or function call — decided later by name
+        this.eat();
+        const args = [];
+        if (!this.at("RPAREN")) {
           args.push(this.parseExpr());
+          while (this.at("COMMA")) {
+            this.eat();
+            args.push(this.parseExpr());
+          }
         }
+        this.expect("RPAREN");
+        if (expr.type === "Var" || expr.type === "Timer") {
+          expr = { type: "Call", callee: expr, args: args };
+        } else if (expr.type === "SizeofName") {
+          // SIZEOF is handled in primary; shouldn't reach here
+          expr = { type: "Call", callee: expr, args: args };
+        } else {
+          throw new CompileError("Unexpected call", this.peek());
+        }
+        continue;
       }
-      this.expect("RPAREN");
-      if (expr.type === "Var" || expr.type === "Timer") {
-        expr = { type: "Call", callee: expr, args: args };
-      } else {
-        throw new CompileError("Unexpected call", this.peek());
-      }
+      break;
     }
     return expr;
   };
   Parser.prototype.parsePrimary = function () {
+    // @object — address-of (VARPTR)
+    if (this.at("OP") && this.peek().value === "@") {
+      this.eat();
+      // @ident or @ident->member (possibly chained)
+      const obj = this.parsePostfix();
+      return { type: "AddrOf", expr: obj };
+    }
     if (this.at("NUMBER")) {
       const t = this.eat();
       return { type: "Number", value: Number(t.value) };
@@ -380,6 +447,10 @@
     if (this.atKw("TIMER")) {
       this.eat();
       return { type: "Timer" };
+    }
+    if (this.atKw("CSRLIN")) {
+      this.eat();
+      return { type: "Csrlin" };
     }
     if (this.atKw("WINDOW")) {
       this.eat();
@@ -408,6 +479,13 @@
         this.expect("RPAREN");
         return { type: "Point", x: x, y: y };
       }
+      // SIZEOF(type-or-var) — type name may not be a normal expression
+      if (upper === "SIZEOF") {
+        this.expect("LPAREN");
+        const id = this.expect("IDENT");
+        this.expect("RPAREN");
+        return { type: "Sizeof", name: id.value };
+      }
       // RND / HEADING / XCOR / YCOR without (): AmigaBASIC / ACE allow bare forms
       const bare = upper.replace(/[!%&$]+$/g, "");
       if (builtinInfo(name) && (bare === "RND" || bare === "HEADING" || bare === "XCOR" || bare === "YCOR") &&
@@ -426,7 +504,8 @@
   };
 
   Parser.prototype.parsePrint = function () {
-    this.expect("KW", "PRINT");
+    if (this.atKw("PRINTS")) this.expect("KW", "PRINTS");
+    else this.expect("KW", "PRINT");
     const parts = [];
     const after = [];
     if (this.at("EOL") || this.at("EOF") || this.atKw("ELSE") || this.atKw("UNTIL") || this.at("COLON")) {
@@ -476,7 +555,25 @@
       return { type: "Inc", name: id.value };
     }
     if (this.atKw("LET")) this.eat();
+    // *&addr := expr  (and *% / *!)
+    if (this.at("INDIR")) {
+      const sigil = this.eat().value;
+      const addr = this.parseIndirect();
+      this.expect("OP", ":=");
+      return { type: "PokeAssign", sigil: sigil, addr: addr, expr: this.parseExpr() };
+    }
     const id = this.expect("IDENT");
+    // name->member = expr  (structure member assign; allows chained ->)
+    if (this.at("OP") && this.peek().value === "->") {
+      let target = { type: "Var", name: id.value };
+      while (this.at("OP") && this.peek().value === "->") {
+        this.eat();
+        const mem = this.expect("IDENT");
+        target = { type: "Member", obj: target, member: mem.value };
+      }
+      this.expect("OP", "=");
+      return { type: "MemberAssign", target: target, expr: this.parseExpr() };
+    }
     // name(args) = expr  |  name(index) = expr  |  name(args) statement
     if (this.at("LPAREN")) {
       this.eat();
@@ -504,6 +601,136 @@
     }
     // Bare name → SUB call with no args (ACE: `fourside` without parentheses).
     return { type: "CallStmt", name: id.value, args: [] };
+  };
+
+  /** Parse optional type keyword before a name (SUB params / DECLARE). */
+  Parser.prototype.parseOptionalType = function () {
+    if (this.atKw("ADDRESS") || this.atKw("LONGINT") || this.atKw("SHORTINT") ||
+        this.atKw("SINGLE") || this.atKw("STRING") || this.atKw("BYTE")) {
+      return this.eat().value;
+    }
+    return null;
+  };
+
+  Parser.prototype.parseStructDef = function () {
+    this.expect("KW", "STRUCT");
+    const name = this.expect("IDENT").value;
+    this.skipEols();
+    const members = [];
+    while (!this.at("EOF") && !(this.atKw("END") && this.tokens[this.pos + 1] &&
+        this.tokens[this.pos + 1].type === "KW" && this.tokens[this.pos + 1].value === "STRUCT")) {
+      this.skipEols();
+      if (this.atKw("END")) break;
+      const typ = this.parseOptionalType();
+      if (!typ) {
+        // member type may be another struct name (IDENT)
+        if (this.at("IDENT")) {
+          const typeName = this.eat().value;
+          const memName = this.expect("IDENT").value;
+          members.push({ type: "STRUCT", typeName: typeName, name: memName });
+        } else {
+          throw new CompileError("Expected structure member", this.peek());
+        }
+      } else {
+        const memName = this.expect("IDENT").value;
+        members.push({ type: typ, name: memName });
+      }
+      this.skipEols();
+    }
+    this.expect("KW", "END");
+    this.expect("KW", "STRUCT");
+    return { type: "StructDef", name: name, members: members };
+  };
+
+  Parser.prototype.parseDeclare = function () {
+    this.expect("KW", "DECLARE");
+    if (this.atKw("STRUCT")) {
+      this.eat();
+      const typeName = this.expect("IDENT").value;
+      const names = [];
+      for (;;) {
+        let isPtr = false;
+        if (this.at("OP") && this.peek().value === "*") {
+          this.eat();
+          isPtr = true;
+        }
+        const n = this.expect("IDENT").value;
+        names.push({ name: n, pointer: isPtr });
+        if (this.at("COMMA")) { this.eat(); continue; }
+        break;
+      }
+      return { type: "DeclareStruct", typeName: typeName, names: names };
+    }
+    if (this.atKw("SUB")) {
+      // Forward declaration — accept and ignore body signature for now
+      this.eat();
+      const name = this.expect("IDENT").value;
+      if (this.at("LPAREN")) {
+        this.eat();
+        while (!this.at("RPAREN") && !this.at("EOF") && !this.at("EOL")) this.eat();
+        if (this.at("RPAREN")) this.eat();
+      }
+      return { type: "DeclareSub", name: name };
+    }
+    throw new CompileError("DECLARE what?", this.peek());
+  };
+
+  Parser.prototype.parseCase = function () {
+    this.expect("KW", "CASE");
+    this.skipEols();
+    const arms = [];
+    while (!this.at("EOF") && !(this.atKw("END") && this.tokens[this.pos + 1] &&
+        this.tokens[this.pos + 1].type === "KW" && this.tokens[this.pos + 1].value === "CASE")) {
+      this.skipEols();
+      if (this.atKw("END")) break;
+      const cond = this.parseExpr();
+      this.expect("COLON");
+      // rest of line (colon-separated stmts) until EOL
+      const body = [];
+      if (!this.at("EOL") && !this.at("EOF")) {
+        body.push(this.parseStatementContent());
+        while (this.at("COLON")) {
+          this.eat();
+          if (this.at("EOL") || this.at("EOF")) break;
+          body.push(this.parseStatementContent());
+        }
+      }
+      arms.push({ cond: cond, body: body });
+      if (this.at("EOL")) this.eat();
+    }
+    this.expect("KW", "END");
+    this.expect("KW", "CASE");
+    return { type: "Case", arms: arms };
+  };
+
+  Parser.prototype.parseShared = function () {
+    this.expect("KW", "SHARED");
+    const names = [];
+    names.push(this.expect("IDENT").value);
+    while (this.at("COMMA")) {
+      this.eat();
+      names.push(this.expect("IDENT").value);
+    }
+    return { type: "Shared", names: names };
+  };
+
+  Parser.prototype.parseCall = function () {
+    this.expect("KW", "CALL");
+    // CALL name[(args)] — reuse assign/call but force call
+    const id = this.expect("IDENT");
+    const args = [];
+    if (this.at("LPAREN")) {
+      this.eat();
+      if (!this.at("RPAREN")) {
+        args.push(this.parseExpr());
+        while (this.at("COMMA")) {
+          this.eat();
+          args.push(this.parseExpr());
+        }
+      }
+      this.expect("RPAREN");
+    }
+    return { type: "CallStmt", name: id.value, args: args };
   };
 
   Parser.prototype.parseIf = function () {
@@ -557,11 +784,30 @@
       this.eat();
       step = this.parseExpr();
     }
+    // Support FOR ... : stmt : NEXT on one line (bst prepare_for_output).
+    const body = [];
+    if (this.at("COLON")) {
+      while (this.at("COLON")) {
+        this.eat();
+        if (this.atKw("NEXT") || this.at("EOL") || this.at("EOF")) break;
+        body.push(this.parseStatementContent());
+        while (this.at("COLON")) {
+          this.eat();
+          if (this.atKw("NEXT") || this.at("EOL") || this.at("EOF")) break;
+          body.push(this.parseStatementContent());
+        }
+      }
+      if (this.atKw("NEXT")) {
+        this.eat();
+        if (this.at("IDENT")) this.eat();
+        return { type: "For", name: varTok.value, from: from, to: to, step: step, body: body };
+      }
+    }
     this.skipEols();
-    const body = this.parseBlockUntil(["NEXT"]);
+    const more = this.parseBlockUntil(["NEXT"]);
     this.expect("KW", "NEXT");
     if (this.at("IDENT")) this.eat(); // optional NEXT var
-    return { type: "For", name: varTok.value, from: from, to: to, step: step, body: body };
+    return { type: "For", name: varTok.value, from: from, to: to, step: step, body: body.concat(more) };
   };
 
   Parser.prototype.parseWhile = function () {
@@ -608,10 +854,12 @@
     if (this.at("LPAREN")) {
       this.eat();
       if (!this.at("RPAREN")) {
-        params.push(this.expect("IDENT").value);
-        while (this.at("COMMA")) {
-          this.eat();
-          params.push(this.expect("IDENT").value);
+        for (;;) {
+          const typ = this.parseOptionalType();
+          const pname = this.expect("IDENT").value;
+          params.push({ name: pname, type: typ });
+          if (this.at("COMMA")) { this.eat(); continue; }
+          break;
         }
       }
       this.expect("RPAREN");
@@ -1205,7 +1453,12 @@
   };
 
   Parser.prototype.parseStatementContent = function () {
-    if (this.atKw("PRINT")) return this.parsePrint();
+    if (this.atKw("PRINT") || this.atKw("PRINTS")) {
+      const isPrints = this.atKw("PRINTS");
+      const stmt = this.parsePrint();
+      if (isPrints) stmt.type = "Prints";
+      return stmt;
+    }
     if (this.atKw("INPUT")) return this.parseInput();
     if (this.atKw("WINDOW")) return this.parseWindow();
     if (this.atKw("SCREEN")) return this.parseScreen();
@@ -1240,13 +1493,19 @@
     if (this.atKw("FOR")) return this.parseFor();
     if (this.atKw("WHILE")) return this.parseWhile();
     if (this.atKw("REPEAT")) return this.parseRepeat();
+    if (this.atKw("CASE")) return this.parseCase();
     if (this.atKw("SUB")) return this.parseSub();
+    if (this.atKw("STRUCT")) return this.parseStructDef();
+    if (this.atKw("DECLARE")) return this.parseDeclare();
+    if (this.atKw("SHARED")) return this.parseShared();
+    if (this.atKw("CALL")) return this.parseCall();
     if (this.atKw("DIM")) return this.parseDim();
     if (this.atKw("CONST")) return this.parseConst();
     if (this.atKw("DEFINT") || this.atKw("DEFLNG") || this.atKw("DEFSNG") || this.atKw("DEFSTR") || this.atKw("DEFDBL")) {
       return this.parseDefType(this.peek().value);
     }
-    if (this.atKw("SINGLE") || this.atKw("LONGINT") || this.atKw("SHORTINT")) {
+    if (this.atKw("SINGLE") || this.atKw("LONGINT") || this.atKw("SHORTINT") ||
+        this.atKw("ADDRESS") || this.atKw("STRING") || this.atKw("BYTE")) {
       return this.parseDeclareVars(this.peek().value);
     }
     if (this.atKw("EXIT")) return this.parseExit();
@@ -1255,7 +1514,7 @@
       this.eat();
       return { type: "End" };
     }
-    if (this.at("PLUSPLUS") || this.at("IDENT") || this.atKw("LET")) {
+    if (this.at("PLUSPLUS") || this.at("IDENT") || this.atKw("LET") || this.at("INDIR")) {
       return this.parseAssignOrCall();
     }
     throw new CompileError("Unknown statement: " + this.peek().type + " " + this.peek().value, this.peek());
@@ -1350,11 +1609,20 @@
       case "String": return JSON.stringify(node.value);
       case "Var": return jsName(node.name);
       case "Timer": return "rt.timer()";
+      case "Csrlin": return "rt.csrlin()";
       case "Inkey": return "rt.inkey()";
       case "WindowFunc": return "rt.windowFunc(" + this.expr(node.arg) + ")";
       case "ScreenFunc": return "rt.screenFunc(" + this.expr(node.arg) + ")";
       case "Point":
         return "rt.point(" + this.expr(node.x) + ", " + this.expr(node.y) + ")";
+      case "Sizeof":
+        return "rt.sizeof(" + JSON.stringify(String(node.name).toLowerCase()) + ")";
+      case "Member":
+        return "rt.member(" + this.expr(node.obj) + ", " + JSON.stringify(node.member.toLowerCase()) + ")";
+      case "Indirect":
+        return "rt.peek(" + this.expr(node.expr) + ")";
+      case "AddrOf":
+        return this.emitAddrOf(node.expr);
       case "Builtin": {
         const info = builtinInfo(node.name);
         const rtName = info ? info.rt : String(node.name).toLowerCase();
@@ -1392,6 +1660,9 @@
           const n = node.callee.name;
           const bi = builtinInfo(n);
           if (bi) {
+            if (bi.rt === "alloc" && node.args.length >= 1 && node.args[0].type === "Sizeof") {
+              return "rt.allocStruct(" + JSON.stringify(String(node.args[0].name).toLowerCase()) + ")";
+            }
             return "rt." + bi.rt + "(" + node.args.map(this.expr.bind(this)).join(", ") + ")";
           }
           // array index vs function: if known sub, await call (SUBs are async)
@@ -1408,6 +1679,19 @@
       default: break;
     }
     this.diagnostics.push({ message: "Unimplemented expression " + node.type, line: null });
+    return "0";
+  };
+
+  /** @var or @var->member → runtime ref for *& poke/peek */
+  Codegen.prototype.emitAddrOf = function (expr) {
+    if (expr.type === "Var") {
+      const v = jsName(expr.name);
+      return "rt.refVar(function(){return " + v + ";},function(__n){" + v + "=__n;})";
+    }
+    if (expr.type === "Member") {
+      return "rt.refMember(" + this.expr(expr.obj) + ", " + JSON.stringify(expr.member.toLowerCase()) + ")";
+    }
+    this.diagnostics.push({ message: "AddrOf unsupported target " + expr.type, line: null });
     return "0";
   };
 
@@ -1437,6 +1721,13 @@
           return s === null || s === undefined ? "null" : JSON.stringify(s);
         }).join(", ") + "]";
         return ind + "rt.printParts(" + args + ", " + after + ");";
+      }
+      case "Prints": {
+        const args = "[" + stmt.parts.map(this.expr.bind(this)).join(", ") + "]";
+        const after = "[" + (stmt.after || []).map(function (s) {
+          return s === null || s === undefined ? "null" : JSON.stringify(s);
+        }).join(", ") + "]";
+        return ind + "rt.prints(" + args + ", " + after + ");";
       }
       case "Input": {
         const raw = "await rt.input(" + JSON.stringify(stmt.prompt || "") + ")";
@@ -1542,8 +1833,47 @@
         return ind + jsName(stmt.name) + " = " + this.expr(stmt.expr) + ";";
       case "AssignIndex":
         return ind + jsName(stmt.name) + "[" + this.expr(stmt.index) + "] = " + this.expr(stmt.expr) + ";";
+      case "MemberAssign":
+        return ind + "rt.setMember(" + this.expr(stmt.target.obj) + ", " +
+          JSON.stringify(stmt.target.member.toLowerCase()) + ", " + this.expr(stmt.expr) + ");";
+      case "PokeAssign":
+        return ind + "rt.poke(" + this.expr(stmt.addr) + ", " + this.expr(stmt.expr) + ");";
       case "Inc":
         return ind + jsName(stmt.name) + "++;";
+      case "StructDef": {
+        const mems = stmt.members.map(function (m) {
+          return "{name:" + JSON.stringify(m.name.toLowerCase()) + ",type:" +
+            JSON.stringify(String(m.type).toLowerCase()) +
+            (m.typeName ? ",typeName:" + JSON.stringify(String(m.typeName).toLowerCase()) : "") + "}";
+        }).join(",");
+        return ind + "rt.defineStruct(" + JSON.stringify(stmt.name.toLowerCase()) + ", [" + mems + "]);";
+      }
+      case "DeclareStruct": {
+        // Pointer form → nil (0); non-pointer → allocate BSS instance
+        return stmt.names.map(function (n) {
+          if (n.pointer) {
+            return ind + jsName(n.name) + " = 0;";
+          }
+          return ind + jsName(n.name) + " = rt.allocStruct(" +
+            JSON.stringify(stmt.typeName.toLowerCase()) + ");";
+        }).join("\n");
+      }
+      case "DeclareSub":
+      case "Shared":
+        return ind + "/* " + stmt.type + " */";
+      case "Case": {
+        // ACE CASE: evaluate arms until one cond is true, run that body, then done
+        let code = ind + "{\n";
+        for (let i = 0; i < stmt.arms.length; i++) {
+          const arm = stmt.arms[i];
+          const kw = i === 0 ? "if" : "else if";
+          code += ind + "  " + kw + " (" + this.truthy(arm.cond) + ") {\n";
+          code += this.emitBlock(arm.body, ind + "    ") + "\n";
+          code += ind + "  }\n";
+        }
+        code += ind + "}";
+        return code;
+      }
       case "CallStmt": {
         const fn = jsName(stmt.name);
         // SUBs are async so SLEEP/INPUT inside them work; always await statement-level calls.
@@ -1626,7 +1956,9 @@
 
   Codegen.prototype.emitSub = function (sub) {
     const self = this;
-    const params = sub.params.map(jsName).join(", ");
+    const params = sub.params.map(function (p) {
+      return jsName(typeof p === "string" ? p : p.name);
+    }).join(", ");
     const name = jsName(sub.name);
     const subNameLower = sub.name.toLowerCase();
     // Rewrite Assign to sub name → __ret; CallStmt to self → __ret = call
@@ -1652,9 +1984,51 @@
       if (stmt.type === "While" || stmt.type === "Repeat" || stmt.type === "Block") {
         return Object.assign({}, stmt, { body: (stmt.body || []).map(rewrite) });
       }
+      if (stmt.type === "Case") {
+        return {
+          type: "Case",
+          arms: stmt.arms.map(function (arm) {
+            return { cond: arm.cond, body: arm.body.map(rewrite) };
+          }),
+        };
+      }
       return stmt;
     }
     const body = sub.body.map(rewrite);
+    // Collect SHARED names and local bindings so recursive SUBs don't share one `t`.
+    const paramSet = Object.create(null);
+    sub.params.forEach(function (p) {
+      paramSet[jsName(typeof p === "string" ? p : p.name)] = 1;
+    });
+    const sharedSet = Object.create(null);
+    const localSet = Object.create(null);
+    function scanSub(node) {
+      if (!node) return;
+      if (Array.isArray(node)) { node.forEach(scanSub); return; }
+      if (typeof node !== "object") return;
+      if (node.type === "Shared") {
+        (node.names || []).forEach(function (n) { sharedSet[jsName(n)] = 1; });
+      }
+      if (node.type === "Assign" || node.type === "Inc" || node.type === "Dim" ||
+          node.type === "AssignIndex" || node.type === "For" || node.type === "Input") {
+        if (node.name && node.name.toLowerCase() !== subNameLower) localSet[jsName(node.name)] = 1;
+      }
+      if (node.type === "DeclareVars") {
+        (node.names || []).forEach(function (n) { localSet[jsName(n)] = 1; });
+      }
+      if (node.type === "DeclareStruct") {
+        (node.names || []).forEach(function (n) { localSet[jsName(n.name)] = 1; });
+      }
+      Object.keys(node).forEach(function (k) {
+        if (k === "type") return;
+        scanSub(node[k]);
+      });
+    }
+    scanSub(body);
+    const localDecls = Object.keys(localSet).filter(function (n) {
+      return !paramSet[n] && !sharedSet[n];
+    });
+
     // extend emit for AssignRet
     const prevEmit = this.emitStmt.bind(this);
     this.emitStmt = function (stmt, indent) {
@@ -1667,9 +2041,13 @@
       return prevEmit(stmt, indent);
     };
     // Async so await SLEEP / INPUT / nested SUB calls inside the body are legal JS.
-    const code =
+    let code =
       "async function " + name + "(" + params + ") {\n" +
-      "  let __ret = 0;\n" +
+      "  let __ret = 0;\n";
+    if (localDecls.length) {
+      code += localDecls.map(function (n) { return "  let " + n + " = 0;\n"; }).join("");
+    }
+    code +=
       this.emitBlock(body, "  ") + "\n" +
       "  return __ret;\n" +
       "}\n";
@@ -1704,6 +2082,18 @@
       }
       if (node.type === "DeclareVars") {
         node.names.forEach(function (n) { names[jsName(n)] = 1; });
+      }
+      if (node.type === "DeclareStruct") {
+        node.names.forEach(function (n) { names[jsName(n.name)] = 1; });
+      }
+      if (node.type === "Shared") {
+        node.names.forEach(function (n) { names[jsName(n)] = 1; });
+      }
+      if (node.type === "MemberAssign" && node.target && node.target.type === "Member") {
+        // ensure root var is declared
+        let root = node.target;
+        while (root && root.type === "Member") root = root.obj;
+        if (root && root.type === "Var") names[jsName(root.name)] = 1;
       }
       if (node.type === "Call" && node.callee && node.callee.type === "Var") {
         const cname = node.callee.name;

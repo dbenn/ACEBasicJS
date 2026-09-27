@@ -19,6 +19,7 @@ Keep media small and descriptive; prefer one short video plus 1–2 stills per p
 | [`phase7-turtle/`](phase7-turtle/) | Turtle `FORWARD` / `TURN*` / `PEN*` / `SETXY` |
 | [`async-subs-spiro/`](async-subs-spiro/) | Async SUBs + spiro q-to-quit (desktop) |
 | [`inkey-ios-keyboard/`](inkey-ios-keyboard/) | **Keys** field for INKEY$ / q-to-quit (iOS soft keyboard) |
+| [`bst-struct/`](bst-struct/) | STRUCT / pointer / `bst.b` binary search tree |
 
 ## Convention
 

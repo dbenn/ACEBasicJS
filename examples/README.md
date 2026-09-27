@@ -41,7 +41,7 @@ expectations below (observable results in the host output / runtime).
 | `hi` | `hi.b` | Coloured "Hi There!" spray; press `q`. |
 | `sound` | `Sound/sound.b` | Tones / period sweep (unmute tab). |
 | `boxit` | `Turtle/boxit.b` | Recursive boxed edges; press `q`. |
-| `bst` | `Turtle/bst.b` | **Deferred** — STRUCT / ADDRESS / CASE / ALLOC / … (after Gfx climb; not a turtle gate). |
+| `bst` | `Turtle/bst.b` | Binary search tree menu; Insert nodes then height/count/graph. |
 | `dragon` | `Turtle/dragon.b` | Dragon curve; prompts for depth/sides. |
 | `flower` | `Turtle/flower.b` | Flower; press `q`. |
 | `snowflake` | `Turtle/snowflake.b` | Koch snowflake; prompts for depth/sides. |
@@ -53,8 +53,7 @@ expectations below (observable results in the host output / runtime).
 
 | Program | Reason |
 |---|---|
-| ACE `prgs/Gfx/*` (beyond `paint.b`) | Next after async SUBs / `spiro`; defer IFF/EHB/HAM |
-| `Turtle/bst.b` language stack | Deferred — STRUCT/pointer phase after Gfx; keep file in picker |
+| ACE `prgs/Gfx/*` (beyond `paint.b`) | Next; defer IFF/EHB/HAM |
 | ACE `prgs/welcome.b` | Needs `SAY` / `TRANSLATE$` |
 | ACE `prgs/Library/hello.b` | `LIBRARY` selective shims later |
 | ACE `prgs/IO/seq.b` | File I/O demoted |

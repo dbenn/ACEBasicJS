@@ -1,6 +1,6 @@
 ' Turtle/bst.b — Binary Search Tree (ACE prgs/Turtle/bst.b)
-' Deferred: STRUCT / ADDRESS / CASE / PRINTS / ALLOC — not a turtle-graphics
-' gate. Kept in the picker for corpus parity; implement after Gfx climb.
+' STRUCT / ADDRESS / CASE / PRINTS / ALLOC — data-structures demo that draws
+' with the turtle (not a turtle-graphics gate).
 '
 {*
 ** A program that implements the Binary Search Tree operations 
