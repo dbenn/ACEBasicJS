@@ -1434,9 +1434,42 @@
       return win ? (win.cursorRow | 0) : 1;
     }
 
-    /** PRINTS — text at current pen (same surface as PRINT in a WINDOW). */
+    /**
+     * PRINTS — draw text at the current graphics pen (x,y) without moving it.
+     * ACE: faster than PRINT for Intuition windows/screens; not for CLI.
+     * GraphTree (bst.b) does setxy … : prints num$ : setxy xcor+… which only
+     * works if PRINTS leaves XCOR/YCOR unchanged (unlike PRINT / write()).
+     */
     function prints(parts, after) {
-      printParts(parts, after);
+      if (stopped) return;
+      const ps = parts || [];
+      const seps = after || [];
+      let text = "";
+      for (let i = 0; i < ps.length; i++) {
+        text += formatValue(ps[i]);
+        const sep = seps[i];
+        if (sep === ",") text += "\t";
+        // Trailing ";" suppresses a linefeed; PRINTS linefeed must not move the
+        // graphics pen (turtle), so we omit "\n" from the painted string either way.
+      }
+      if (!text) return;
+      const w = currentWindowId && windows[currentWindowId];
+      if (intuiMode && w) {
+        w.text += text;
+        if (w.committedEl && typeof document !== "undefined") {
+          paintWindowText(w, text);
+        } else if (w.committedEl) {
+          w.committedEl.textContent = w.text;
+        } else if (w.contentEl) {
+          w.contentEl.textContent = w.text;
+        }
+        // Do not advance penX/penY or the text cursor — XCOR/YCOR stay put.
+        return;
+      }
+      if (output) output.textContent += text;
+      else if (typeof console !== "undefined") {
+        console.log(text);
+      }
     }
 
     /**

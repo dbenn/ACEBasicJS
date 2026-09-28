@@ -124,6 +124,135 @@ async function main() {
     if (!compiled.ok) throw compiled.diagnostics;
   });
 
+  await check("PRINTS leaves graphics pen unmoved (bst GraphTree labels)", async function () {
+    const src =
+      "WINDOW 1,\"T\",(0,0)-(640,200),6\n" +
+      "CLS\n" +
+      "penup\n" +
+      "setxy 100,40\n" +
+      "prints \"AB\"\n" +
+      "x%=xcor\n" +
+      "y%=ycor\n" +
+      "setxy xcor+8,ycor\n" +
+      "prints \"C\"\n" +
+      "x2%=xcor\n" +
+      "y2%=ycor\n" +
+      "CLS\n" +
+      "print x%\n" +
+      "print y%\n" +
+      "print x2%\n" +
+      "print y2%\n";
+    const r = await runSource(ACE, src);
+    if (r.error) throw r.error;
+    const lines = (r.rt.windowText(1) || "").split("\n").map(function (s) {
+      return s.trim();
+    }).filter(Boolean);
+    // xcor/ycor unchanged by PRINTS; after setxy +8 → 108,40
+    if (lines[0] !== "100") throw new Error("xcor after prints: " + JSON.stringify(lines));
+    if (lines[1] !== "40") throw new Error("ycor after prints: " + JSON.stringify(lines));
+    if (lines[2] !== "108") throw new Error("xcor after setxy: " + JSON.stringify(lines));
+    if (lines[3] !== "40") throw new Error("ycor after setxy: " + JSON.stringify(lines));
+  });
+
+  await check("bst GraphTree node labels at distinct turtle positions", async function () {
+    const src =
+      "struct node\n" +
+      "  single item\n" +
+      "  longint lchild\n" +
+      "  longint rchild\n" +
+      "end struct\n" +
+      "declare struct node *t\n" +
+      "const nil=0&\n" +
+      "SUB Insert(ADDRESS taddr,newitem)\n" +
+      "declare struct node *t\n" +
+      "  t = *&taddr\n" +
+      "  if t = nil then\n" +
+      "    t = Alloc(sizeof(node))\n" +
+      "    t->item = newitem\n" +
+      "    t->lchild = nil\n" +
+      "    t->rchild = nil\n" +
+      "    *&taddr := t\n" +
+      "  else\n" +
+      "    if newitem < t->item then\n" +
+      "      Insert(@t->lchild, newitem)\n" +
+      "    else\n" +
+      "      Insert(@t->rchild, newitem)\n" +
+      "    end if\n" +
+      "  end if\n" +
+      "END SUB\n" +
+      "SUB GraphTree(ADDRESS taddr)\n" +
+      "declare struct node *t\n" +
+      "  t = taddr\n" +
+      "  if t <> nil then\n" +
+      "    setheading 135\n" +
+      "    if t->lchild then pendown:forward 20\n" +
+      "    GraphTree(t->lchild)\n" +
+      "    setheading 135\n" +
+      "    if t->lchild then penup:back 20\n" +
+      "    setheading 45\n" +
+      "    if t->rchild then pendown:forward 20\n" +
+      "    GraphTree(t->rchild)\n" +
+      "    setheading 45\n" +
+      "    if t->rchild then penup:back 20\n" +
+      "    num$=str$(t->item)\n" +
+      "    if sgn(t->item) <> -1 then num$=right$(num$,len(num$)-1)\n" +
+      "    halfnumlen%=len(num$)\\2\n" +
+      "    penup\n" +
+      "    setxy xcor-halfnumlen%*8,ycor\n" +
+      "    prints num$\n" +
+      "    setxy xcor+halfnumlen%*8,ycor\n" +
+      "    pendown\n" +
+      "  end if\n" +
+      "END SUB\n" +
+      "WINDOW 1,\"T\",(0,0)-(640,200),6\n" +
+      "COLOR 2,1\n" +
+      "CLS\n" +
+      "t=nil\n" +
+      "Insert(@t,50)\n" +
+      "Insert(@t,30)\n" +
+      "Insert(@t,70)\n" +
+      "setheading 90\n" +
+      "penup\n" +
+      "setxy 320,20\n" +
+      "pendown\n" +
+      "GraphTree(t)\n";
+
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const positions = [];
+    const origPrints = rt.prints;
+    rt.prints = function (parts, after) {
+      positions.push({ text: String((parts && parts[0]) || ""), x: rt.xcor(), y: rt.ycor() });
+      return origPrints.apply(this, arguments);
+    };
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    await ACE.run(compiled, rt);
+    if (positions.length !== 3) throw new Error("expected 3 labels: " + JSON.stringify(positions));
+    // Postorder: left 30, right 70, root 50 — distinct positions, root near start.
+    const byVal = {};
+    positions.forEach(function (p) { byVal[p.text] = p; });
+    if (!byVal["30"] || !byVal["50"] || !byVal["70"]) {
+      throw new Error("missing labels: " + JSON.stringify(positions));
+    }
+    if (byVal["50"].x !== 320 - 8 || byVal["50"].y !== 20) {
+      throw new Error("root label pos: " + JSON.stringify(byVal["50"]));
+    }
+    if (byVal["30"].x === byVal["50"].x && byVal["30"].y === byVal["50"].y) {
+      throw new Error("left label stacked on root: " + JSON.stringify(positions));
+    }
+    if (byVal["70"].x === byVal["50"].x && byVal["70"].y === byVal["50"].y) {
+      throw new Error("right label stacked on root: " + JSON.stringify(positions));
+    }
+    if (byVal["30"].x === byVal["70"].x && byVal["30"].y === byVal["70"].y) {
+      throw new Error("children stacked: " + JSON.stringify(positions));
+    }
+    // Left child further left / down-left; right further right.
+    if (!(byVal["30"].x < byVal["50"].x && byVal["70"].x > byVal["50"].x)) {
+      throw new Error("expected L/R spread: " + JSON.stringify(positions));
+    }
+  });
+
   await check("examples/Turtle/bst.b insert / height / count / max / inorder", async function () {
     const src = fs.readFileSync(path.join(root, "examples/Turtle/bst.b"), "utf8");
 
