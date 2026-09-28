@@ -195,7 +195,7 @@ Drive by visible demos and the smallest stack that works. Do **not** expand gram
 | **1** | **Turtle graphics** | ~~Thin layer on existing RastPort~~ — `FORWARD` / `BACK` / `TURN*` / `PEN*` / `SETXY` / `HOME` / `SETHEADING` / `HEADING` / `XCOR` / `YCOR`. Seeds: `torus` / `flower` / `boxit` / `dragon` / `snowflake` / `tree` / `spiro` |
 | **1b** | **Async SUBs (codegen)** | ~~Emit SUBs as JS `async function` and `await` SUB/`SLEEP`/`INPUT` calls~~ — unblocks `examples/Turtle/spiro.b` (MENU→`q` adaptation stays) |
 | **1c** | **`bst` / STRUCT·pointer** | ~~`STRUCT` / `DECLARE STRUCT` / `ADDRESS` / `@` / `->` / `*&` / `*!` / `:=` / `ALLOC` / `SIZEOF` / `CASE` / `SHARED` / `CALL` / `PRINTS` / `CSRLIN` / `STR$` `LEN` `RIGHT$`~~ — `examples/Turtle/bst.b` |
-| **2** | **Gfx corpus climb** | More of the original ACE graphics demos ([dbenn/ACE](https://github.com/dbenn/ACE) `prgs/Gfx/`). `pattern.b` already landed as `examples/Gfx/paint.b`. Next easy wins before IFF/EHB/HAM: e.g. `pattern2.b` (needs `GADGET WAIT`), `7seg.b`, `shuttle.b`, `tri.b` — unlock constructs only as each fails |
+| **2** | **Gfx corpus climb** | More of the original ACE graphics demos ([dbenn/ACE](https://github.com/dbenn/ACE) `prgs/Gfx/`). `pattern.b` → `paint.b`; `pattern2.b` (`GADGET WAIT`) done. Next easy wins before IFF/EHB/HAM: e.g. `7seg.b`, `shuttle.b`, `tri.b` — unlock constructs only as each fails |
 | **3** | **SAY** | Web Speech API; seed `welcome.b` (`SAY TRANSLATE$(…)`). Full `SpeechTool.b` waits on `GADGET` / requesters |
 | **4** | **`LIBRARY` selective shims** | `LIBRARY` open/close can be **no-ops**. `DECLARE FUNCTION … LIBRARY` must bind the few AmigaOS calls an example actually uses (e.g. `FPuts` → console). Not a blanket stub for every `.bmap` entry |
 | **5** | **Sequential files (demoted)** | Client-side apps rarely need `PRINT#` persistence. When an example demands it (`seq.b`), use an **in-memory VFS** first. IndexedDB only if reload survival is wanted — optional, maybe never |
@@ -246,7 +246,8 @@ The C compiler is a reference oracle during development, not the acceptance comp
 13. ~~**Turtle graphics**~~ — `FORWARD` / `TURN*` / `PEN*` / `SETXY`; `torus` / `flower` / `boxit` (+ `dragon` / `snowflake` / `tree`)
 13b. ~~**Async SUBs**~~ — `spiro.b` (`SLEEP` inside `SUB`); MENU→`q` adaptation stays
 13c. ~~**`bst` / STRUCT·pointer**~~ — `Turtle/bst.b` (`STRUCT` / `@` / `*&` / `ALLOC` / `CASE` / …)
-14. **Gfx corpus climb** — more ACE `prgs/Gfx/` beyond `paint.b` (defer IFF/EHB/HAM)
+14. **Gfx corpus climb** — more ACE `prgs/Gfx/` beyond `paint.b` / `pattern2.b` (defer IFF/EHB/HAM)
+    - ~~`pattern2.b`~~ — `GADGET WAIT 0` (close gadget)
 15. **SAY** — Web Speech; seed `welcome.b`
 16. **`LIBRARY` shims** — open/close no-ops; bind only calls examples need
 17. **Files (low priority)** — in-memory VFS if/when `seq.b`-class demos matter; IndexedDB optional

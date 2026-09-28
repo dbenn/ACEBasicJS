@@ -804,6 +804,49 @@ async function main() {
     if (sink.textContent.indexOf("done") < 0) throw new Error("missing done: " + sink.textContent);
   });
 
+  await check("GADGET WAIT 0 wakes on close (signalGadget 256)", async function () {
+    const src =
+      "WINDOW 1,,(0,0)-(40,20),14\n" +
+      "DIM ap%(1)\n" +
+      "ap%(0)=&Hcccc\n" +
+      "ap%(1)=&H3333\n" +
+      "PATTERN ,ap%\n" +
+      "PAINT (0,0)\n" +
+      "GADGET WAIT 0\n" +
+      "gid=GADGET(1)\n" +
+      "WINDOW CLOSE 1\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/await rt\.gadgetWait\(/.test(compiled.js)) throw new Error("missing gadgetWait");
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 20); });
+    // Dithered fill before close.
+    if (rt.point(0, 0) !== 1) throw new Error("pat 0,0 " + rt.point(0, 0));
+    if (rt.point(2, 0) !== 0) throw new Error("pat 2,0 " + rt.point(2, 0));
+    if (!rt.signalGadget(256)) throw new Error("signalGadget did not wake wait");
+    await runPromise;
+    if (rt.gadgetFunc(1) !== 256) throw new Error("GADGET(1) expected 256 got " + rt.gadgetFunc(1));
+  });
+
+  await check("examples/Gfx/pattern2.b paints dither then waits", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Gfx/pattern2.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 30); });
+    // Window content is ~150x100 minus title bar; seed (0,0) should be patterned.
+    const c00 = rt.point(0, 0);
+    const c20 = rt.point(2, 0);
+    if (c00 !== 1) throw new Error("pattern2 0,0 " + c00);
+    if (c20 !== 0) throw new Error("pattern2 2,0 " + c20);
+    if (!rt.signalGadget(256)) throw new Error("pattern2 wait not pending");
+    await runPromise;
+  });
+
   if (failed) {
     console.error(failed + " failed");
     process.exit(1);

@@ -150,7 +150,9 @@ Precedence from the Programmer’s Guide (high → low):
 | `WINDOW` / `WINDOW CLOSE` / `SCREEN` / `SCREEN CLOSE` | done (Phase 4 chrome + PRINT; Phase 4.5 INPUT-in-window) |
 | `WINDOW OUTPUT` / `WINDOW(n)` / `SCREEN(n)` | done (subset) |
 | `SLEEP` | done (IntuiTick-style yield; close/key wakes) |
-| `MENU` / `GADGET` / `BUTTON` / `BEVELBOX` | Phase 4+ |
+| `MENU` / `BUTTON` / `BEVELBOX` | Phase 4+ / as examples demand |
+| `GADGET WAIT` / `GADGET(n)` | **done** (close gadget → 256; create/ON/CLOSE deferred) |
+| Full `GADGET` create / `GADGET CLOSE` / `ON GADGET` | later (elevate when corpus needs) |
 | `MOUSE` / event trapping (`ON …`) | Phase 4+ |
 | `MSGBOX` / `INPUTBOX` / `FILEBOX$` | `later` |
 
@@ -167,7 +169,8 @@ Precedence from the Programmer’s Guide (high → low):
 | Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `SETXY` `HOME` …) | **done** (Phase 7; `torus` / `flower` / `boxit` / `dragon` / `snowflake` / `tree` / `spiro`) |
 | Async SUBs (JS codegen) so `SLEEP`/`INPUT` work inside `SUB` | **done** — unblocks `spiro.b` |
 | `Turtle/bst.b` (STRUCT / ADDRESS / ALLOC / PRINTS / …) | **done** — heap ids for pointers; `tests/bst-smoke.js` |
-| Further Gfx corpus (`pattern2`, `7seg`, `shuttle`, …) | **next**; IFF/EHB/HAM stay later |
+| Further Gfx corpus (`7seg`, `shuttle`, `tri`, …) | **next**; IFF/EHB/HAM stay later |
+| `Gfx/pattern2.b` (`GADGET WAIT`) | **done** |
 | `IFF` / images | `later` |
 | Sprites / bobs / `OBJECT.*` | `out` (not ACE focus; reserved but unimplemented in ACE) |
 

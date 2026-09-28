@@ -10,13 +10,15 @@
     ADDRESS: 1, AND: 1, AREA: 1, AREAFILL: 1, AS: 1, BACK: 1, BEEP: 1, BYTE: 1, CALL: 1,
     CASE: 1, CIRCLE: 1, CLOSE: 1, CLS: 1, COLOR: 1, CONST: 1, CSRLIN: 1, DATA: 1,
     DECLARE: 1, DEFINT: 1, DEFLNG: 1, DEFSNG: 1, DEFSTR: 1, DEFDBL: 1,
-    DIM: 1, ELSE: 1, ELSEIF: 1, END: 1, EXIT: 1, FONT: 1, FOR: 1, FORWARD: 1, GOTO: 1, GOSUB: 1,
+    DIM: 1, ELSE: 1, ELSEIF: 1, END: 1, EXIT: 1, FONT: 1, FOR: 1, FORWARD: 1, GADGET: 1,
+    GOTO: 1, GOSUB: 1,
     HOME: 1, IF: 1, INPUT: 1, LET: 1, LINE: 1, LOCATE: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1,
     OUTPUT: 1, PAINT: 1, PALETTE: 1, PATTERN: 1, PENDOWN: 1, PENUP: 1, PRINT: 1, PRINTS: 1,
     PSET: 1, RANDOMIZE: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1,
     SETHEADING: 1, SETXY: 1, SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, SOUND: 1,
     LONGINT: 1, STEP: 1, STRING: 1, STRUCT: 1, SUB: 1, THEN: 1, TO: 1, TURN: 1,
-    TURNLEFT: 1, TURNRIGHT: 1, UNTIL: 1, WAVE: 1, WEND: 1, WHILE: 1, WINDOW: 1, XOR: 1,
+    TURNLEFT: 1, TURNRIGHT: 1, UNTIL: 1, WAIT: 1, WAVE: 1, WEND: 1, WHILE: 1, WINDOW: 1,
+    XOR: 1,
     TIMER: 1, FUNCTION: 1, LIBRARY: 1,
   };
 
@@ -48,6 +50,7 @@
     UCASE: { arity: 1, rt: "ucase" },
     XCOR: { arity: 0, rt: "xcor" },
     YCOR: { arity: 0, rt: "ycor" },
+    GADGET: { arity: 1, rt: "gadgetFunc" },
   };
 
   function builtinInfo(name) {
@@ -465,6 +468,13 @@
       const arg = this.parseExpr();
       this.expect("RPAREN");
       return { type: "ScreenFunc", arg: arg };
+    }
+    if (this.atKw("GADGET")) {
+      this.eat();
+      this.expect("LPAREN");
+      const arg = this.parseExpr();
+      this.expect("RPAREN");
+      return { type: "Builtin", name: "GADGET", args: [arg] };
     }
     if (this.at("IDENT")) {
       const t = this.eat();
@@ -1452,6 +1462,19 @@
     return { type: "Font", name: name, size: size };
   };
 
+  /**
+   * GADGET WAIT id — sleep until gadget selected (id=0 → any, incl. close=256).
+   * Full GADGET create / ON / CLOSE deferred until a corpus example needs them.
+   */
+  Parser.prototype.parseGadget = function () {
+    this.expect("KW", "GADGET");
+    if (this.atKw("WAIT")) {
+      this.eat();
+      return { type: "GadgetWait", id: this.parseExpr() };
+    }
+    throw new CompileError("GADGET WAIT expected (create/ON/CLOSE deferred)", this.peek());
+  };
+
   Parser.prototype.parseStatementContent = function () {
     if (this.atKw("PRINT") || this.atKw("PRINTS")) {
       const isPrints = this.atKw("PRINTS");
@@ -1478,6 +1501,7 @@
     if (this.atKw("AREA")) return this.parseArea();
     if (this.atKw("AREAFILL")) return this.parseAreafill();
     if (this.atKw("PATTERN")) return this.parsePattern();
+    if (this.atKw("GADGET")) return this.parseGadget();
     if (this.atKw("FORWARD")) return this.parseTurtleMove("FORWARD");
     if (this.atKw("BACK")) return this.parseTurtleMove("BACK");
     if (this.atKw("TURNLEFT")) return this.parseTurtleTurn("TURNLEFT");
@@ -1817,6 +1841,8 @@
         return ind + "rt.pattern(" +
           (stmt.linePat ? this.expr(stmt.linePat) : "null") + ", " +
           (stmt.areaArr ? jsName(stmt.areaArr) : "null") + ");";
+      case "GadgetWait":
+        return ind + "await rt.gadgetWait(" + this.expr(stmt.id) + ");";
       case "TurtleMove":
         return ind + "rt.turtleMove(" + JSON.stringify(stmt.kind) + ", " + this.expr(stmt.dist) + ");";
       case "TurtleTurn":
