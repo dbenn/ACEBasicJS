@@ -91,6 +91,19 @@
     } else {
       scroller.scrollTop = scroller.scrollHeight;
     }
+    // Bring the Intuition window into view inside #screens (bst menu sits low).
+    scrollActiveWindowIntoScreens();
+  }
+
+  function scrollActiveWindowIntoScreens() {
+    if (!screensHost || screensHost.hidden) return;
+    const winEl = inputMount && inputMount.closest && inputMount.closest(".ace-window");
+    if (!winEl || typeof winEl.scrollIntoView !== "function") return;
+    try {
+      winEl.scrollIntoView({ block: "nearest", inline: "nearest" });
+    } catch (err) {
+      winEl.scrollIntoView(false);
+    }
   }
 
   /** Mount live draft + caret + mirror field on the active text surface. */
@@ -234,7 +247,7 @@
       setTimeout(focusConsoleInput, 0);
       setStatus(
         surface
-          ? "Type in the window — press Enter to submit."
+          ? "Type in the window (e.g. 1), then press Enter."
           : "Type after the prompt — press Enter to submit.",
         "info"
       );
@@ -283,8 +296,8 @@
 
   /**
    * While INPUT is awaiting, route typing into the draft even if focus stuck on
-   * Run / Stop / the window chrome (common after clicking Run). Skip the source
-   * editor and picker so editing ACE source still works.
+   * Run / Stop / the window chrome / Keys bar (common after clicking Run). Skip the
+   * source editor and picker so editing ACE source still works.
    */
   function handleAwaitingInputKey(ev) {
     if (!awaitingInput || consoleInput.disabled) return false;
@@ -312,6 +325,20 @@
       return true;
     }
     return false;
+  }
+
+  /**
+   * Soft keyboards sometimes deliver only `input` events on #inkey-capture.
+   * While INPUT is awaiting, fold those chars into the draft (not INKEY$).
+   */
+  function handleAwaitingInputFromInkeyField() {
+    if (!awaitingInput || !inkeyCapture || consoleInput.disabled) return;
+    const v = String(inkeyCapture.value || "");
+    if (!v) return;
+    inkeyCapture.value = "";
+    consoleInput.value = String(consoleInput.value || "") + v;
+    syncLiveInput();
+    scrollMountToEnd();
   }
 
   // Feed INKEY$ / SLEEP from a physical keyboard while a program runs.
@@ -504,11 +531,20 @@
     // Soft keyboards (and desktop when Keys is focused): chars arrive on `input`.
     // Prefer `input` only — pairing with keydown pushKey double-fires on some browsers.
     inkeyCapture.addEventListener("input", function () {
-      if (!inkeyArmed || awaitingInput) return;
+      if (awaitingInput) {
+        handleAwaitingInputFromInkeyField();
+        return;
+      }
+      if (!inkeyArmed) return;
       flushInkeyCapture();
     });
     inkeyCapture.addEventListener("keydown", function (ev) {
-      if (!inkeyArmed || awaitingInput) return;
+      if (awaitingInput) {
+        // Enter on Keys field submits INPUT; other keys may also arrive via keydown.
+        if (handleAwaitingInputKey(ev)) return;
+        return;
+      }
+      if (!inkeyArmed) return;
       if (ev.key === "Enter") {
         ev.preventDefault();
         flushInkeyCapture();

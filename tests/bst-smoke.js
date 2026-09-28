@@ -166,6 +166,97 @@ async function main() {
     await sess.runP;
   });
 
+  await check("implicit screen grows for stacked WINDOWs (bst clip)", async function () {
+    function el(tag) {
+      const kids = [];
+      const node = {
+        tagName: String(tag || "div").toUpperCase(),
+        className: "",
+        style: {},
+        dataset: {},
+        children: kids,
+        parentNode: null,
+        textContent: "",
+        width: 0,
+        height: 0,
+        setAttribute: function () {},
+        appendChild: function (c) {
+          kids.push(c);
+          c.parentNode = node;
+          return c;
+        },
+        removeChild: function (c) {
+          const i = kids.indexOf(c);
+          if (i >= 0) kids.splice(i, 1);
+          c.parentNode = null;
+          return c;
+        },
+        addEventListener: function () {},
+        getContext: function () {
+          return {
+            createImageData: function (w, h) {
+              return { data: new Uint8ClampedArray((w | 0) * (h | 0) * 4), width: w | 0, height: h | 0 };
+            },
+            putImageData: function () {},
+          };
+        },
+      };
+      return node;
+    }
+    const screensHost = el("div");
+    screensHost.hidden = true;
+    const fakeDoc = {
+      createElement: function (tag) { return el(tag); },
+      addEventListener: function () {},
+      removeEventListener: function () {},
+    };
+    const ctx = {
+      console: console,
+      Date: Date,
+      Math: Math,
+      Array: Array,
+      Object: Object,
+      JSON: JSON,
+      Number: Number,
+      String: String,
+      isFinite: isFinite,
+      parseFloat: parseFloat,
+      Promise: Promise,
+      setTimeout: setTimeout,
+      clearTimeout: clearTimeout,
+      Uint8ClampedArray: Uint8ClampedArray,
+      document: fakeDoc,
+    };
+    vm.createContext(ctx);
+    vm.runInContext(runtimeSrc, ctx);
+    vm.runInContext(compilerSrc, ctx);
+    const sink = { textContent: "" };
+    const rt = ctx.ACE.createRuntime({ output: sink, screensHost: screensHost });
+    const src =
+      'WINDOW 2,"Out",(0,0)-(640,150),6\n' +
+      'WINDOW 1,"Menu",(0,150)-(640,270),6\n' +
+      'PRINT "menu"\n';
+    const compiled = ctx.ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    await ctx.ACE.run(compiled, rt);
+    const scr = screensHost.children[0];
+    if (!scr) throw new Error("no screen el");
+    const h = parseInt(String(scr.style.height), 10);
+    if (!(h >= 278)) throw new Error("screen height not grown: " + scr.style.height);
+    let menu = null;
+    function walk(n) {
+      if (!n) return;
+      if (n.className && String(n.className).indexOf("ace-window") >= 0 &&
+          n.style && String(n.style.top) === "150px") {
+        menu = n;
+      }
+      (n.children || []).forEach(walk);
+    }
+    walk(screensHost);
+    if (!menu) throw new Error("menu window missing");
+    if (String(menu.style.height) !== "120px") throw new Error("menu h " + menu.style.height);
+  });
+
   if (failed) {
     console.error(failed + " failure(s)");
     process.exit(1);
