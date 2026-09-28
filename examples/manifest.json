@@ -77,6 +77,13 @@
     "notes": "From prgs/Gfx/pattern.b — PAINT / AREA / PATTERN"
   },
   {
+    "id": "pattern2",
+    "title": "pattern2",
+    "folder": "Gfx",
+    "path": "examples/Gfx/pattern2.b",
+    "notes": "Dithered PAINT + GADGET WAIT 0 (close to quit)"
+  },
+  {
     "id": "fact",
     "title": "fact",
     "folder": "Misc",

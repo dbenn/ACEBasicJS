@@ -58,6 +58,9 @@
     const startMs = Date.now();
     let pendingInput = null;
     let sleepWaiters = [];
+    let pendingGadgetWait = null;
+    let lastGadgetId = 0;
+    let lastGadgetSeen = 0; // GADGET(0): -1 if event since last poll, else 0
     let keyQueue = [];
     let intuiMode = false;
     let currentScreenId = 0; // 0 = workbench / none
@@ -740,6 +743,8 @@
           closeBtn.setAttribute("aria-label", "Close window");
           closeBtn.addEventListener("click", function (ev) {
             ev.stopPropagation();
+            // GADGET WAIT 0: close gadget wakes wait (id 256); program closes itself.
+            if (signalGadget(256)) return;
             // Phase 4: close-gadget ≈ ACE -w — close window and stop program.
             closeWindow(win.id);
             stop();
@@ -1753,6 +1758,59 @@
       return sound(300, 2, 64, 0);
     }
 
+    /**
+     * GADGET WAIT id — sleep until gadget id is selected.
+     * id=0 waits for any gadget; close gadget reports as 256 (Language Reference).
+     */
+    function gadgetWait(id) {
+      flushAllDirty();
+      if (stopped) return Promise.resolve();
+      const want = id | 0;
+      return new Promise(function (resolve) {
+        pendingGadgetWait = {
+          want: want,
+          resolve: function (gid) {
+            pendingGadgetWait = null;
+            lastGadgetId = gid | 0;
+            lastGadgetSeen = -1;
+            resolve();
+          },
+        };
+      });
+    }
+
+    /** Wake a pending GADGET WAIT if id matches (0 = any). Returns true if consumed. */
+    function signalGadget(gid) {
+      const g = gid | 0;
+      if (!pendingGadgetWait) return false;
+      const want = pendingGadgetWait.want | 0;
+      if (want === 0 || want === g) {
+        pendingGadgetWait.resolve(g);
+        return true;
+      }
+      return false;
+    }
+
+    /**
+     * GADGET(n) — event info (Language Reference).
+     * 0: -1 if event since last call, else 0 (clears).
+     * 1: last gadget id (close after GADGET WAIT 0 → 256).
+     * 2/3: stub 0 until string/slider gadgets exist.
+     */
+    function gadgetFunc(n) {
+      switch (n | 0) {
+        case 0: {
+          const v = lastGadgetSeen;
+          lastGadgetSeen = 0;
+          return v;
+        }
+        case 1:
+          return lastGadgetId;
+        default:
+          return 0;
+      }
+    }
+
     /** SLEEP — wake on IntuiTick (~0.1s), key, close, or stop. */
     function sleep() {
       flushAllDirty();
@@ -1822,6 +1880,11 @@
         if (onInputDone) onInputDone();
         p.resolve("");
       }
+      if (pendingGadgetWait) {
+        const g = pendingGadgetWait;
+        pendingGadgetWait = null;
+        g.resolve(0);
+      }
       wakeSleepers();
     }
 
@@ -1852,6 +1915,9 @@
     function reset() {
       stopped = false;
       pendingInput = null;
+      pendingGadgetWait = null;
+      lastGadgetId = 0;
+      lastGadgetSeen = 0;
       keyQueue = [];
       sleepWaiters = [];
       tgDegs = 270;
@@ -1907,6 +1973,9 @@
       areafill: areafill,
       pattern: pattern,
       patternRestore: patternRestore,
+      gadgetWait: gadgetWait,
+      signalGadget: signalGadget,
+      gadgetFunc: gadgetFunc,
       sleep: sleep,
       sleepFor: sleepFor,
       sound: sound,
