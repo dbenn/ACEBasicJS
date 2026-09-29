@@ -84,6 +84,13 @@
     "notes": "Dithered PAINT + GADGET WAIT 0 (close to quit)"
   },
   {
+    "id": "shuttle",
+    "title": "shuttle",
+    "folder": "Gfx",
+    "path": "examples/Gfx/shuttle.b",
+    "notes": "Wireframe shuttle — DATA/READ + 2D DIM; angles then C/Q"
+  },
+  {
     "id": "fact",
     "title": "fact",
     "folder": "Misc",

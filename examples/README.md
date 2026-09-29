@@ -16,7 +16,7 @@ expectations below (observable results in the host output / runtime).
 |---|---|---|
 | `ACEBasicJS/` | This project | `hello`, `input`, `window`, `window-input`, `graphics` |
 | `BenchMarks/` | David Benn — original ACE `prgs/BenchMarks/` | `Ackermann`, `Ahl`, `lines`, `loops`, `sieve` |
-| `Gfx/` | David Benn — original ACE `prgs/Gfx/` | `paint` (from `pattern.b`), `pattern2` |
+| `Gfx/` | David Benn — original ACE `prgs/Gfx/` | `paint` (from `pattern.b`), `pattern2`, `shuttle` |
 | `Misc/` | David Benn — original ACE `prgs/Misc/` | `fact` |
 | `prgs` (group) | David Benn — original ACE `prgs/*.b` | `hi` (`examples/hi.b`) |
 | `Sound/` | David Benn — original ACE `prgs/Sound/` | `sound` |
@@ -38,6 +38,7 @@ expectations below (observable results in the host output / runtime).
 | `sieve` | `BenchMarks/sieve.b` | Byte sieve banner + timing. |
 | `paint` | `Gfx/paint.b` | Patterned triangle, flood-filled circle, solid boxes. |
 | `pattern2` | `Gfx/pattern2.b` | Dithered window fill; close gadget quits (`GADGET WAIT 0`). |
+| `shuttle` | `Gfx/shuttle.b` | Wireframe shuttle; enter 3 angles (try 40/80/120), then **C** redraw / **Q** quit. |
 | `fact` | `Misc/fact.b` | Factorials until `-1`. |
 | `hi` | `hi.b` | Coloured "Hi There!" spray; press `q`. |
 | `sound` | `Sound/sound.b` | Tones / period sweep (unmute tab). |
@@ -54,7 +55,7 @@ expectations below (observable results in the host output / runtime).
 
 | Program | Reason |
 |---|---|
-| ACE `prgs/Gfx/*` (beyond `paint.b` / `pattern2.b`) | Next; defer IFF/EHB/HAM |
+| ACE `prgs/Gfx/*` (beyond `paint` / `pattern2` / `shuttle`) | Next; defer IFF/EHB/HAM |
 | ACE `prgs/welcome.b` | Needs `SAY` / `TRANSLATE$` |
 | ACE `prgs/Library/hello.b` | `LIBRARY` selective shims later |
 | ACE `prgs/IO/seq.b` | File I/O demoted |

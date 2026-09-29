@@ -847,6 +847,53 @@ async function main() {
     await runPromise;
   });
 
+  await check("DATA / READ / RESTORE + 2D DIM", async function () {
+    const src =
+      "DIM A(2,2)\n" +
+      "DATA 10,20,30\n" +
+      "READ A(1,1), A(1,2), x\n" +
+      "PRINT A(1,1);A(1,2);x\n" +
+      "RESTORE\n" +
+      "READ y\n" +
+      "PRINT y\n";
+    const r = await runSource(ACE, src);
+    if (r.error) throw r.error;
+    if (!/ 10 /.test(r.lines[0]) || !/ 20 /.test(r.lines[0]) || !/ 30 /.test(r.lines[0])) {
+      throw new Error("READ values: " + r.text);
+    }
+    if (!/ 10 /.test(r.lines[1])) throw new Error("RESTORE: " + r.text);
+  });
+
+  await check("examples/Gfx/shuttle.b draws wireframe", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Gfx/shuttle.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/__aceData/.test(compiled.js)) throw new Error("missing DATA pool");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink, inputLines: ["40", "80", "120"] });
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 200); });
+    const prompt = rt.windowText(1);
+    if (!/C.*continue|Q.*quit/i.test(prompt)) throw new Error("missing prompt: " + prompt);
+    let drawn = 0;
+    for (let y = 20; y < 160; y += 3) {
+      for (let x = 40; x < 500; x += 3) {
+        if (rt.point(x, y) === 1) drawn++;
+      }
+    }
+    if (drawn < 50) throw new Error("too few wireframe pixels: " + drawn);
+    for (let i = 0; i < 30; i++) {
+      rt.pushKey("Q");
+      await new Promise(function (r) { setTimeout(r, 20); });
+    }
+    await Promise.race([
+      runPromise,
+      new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error("shuttle did not quit")); }, 3000);
+      }),
+    ]);
+  });
+
   if (failed) {
     console.error(failed + " failed");
     process.exit(1);

@@ -61,7 +61,7 @@ C ACE (`parse*.c` / `codegen.c` in [dbenn/ACE](https://github.com/dbenn/ACE); [v
 | `DEFINT` / `DEFLNG` / `DEFSNG` / `DEFSTR` / `DEFDBL` | Letter-range defaults | `next` |
 | `SHORTINT` / `LONGINT` / `SINGLE` / `STRING` / `BYTE` / `ADDRESS` | Explicit declarations | `next` |
 | `CONST` | Named numeric constants | `next` |
-| `DIM` | Arrays; simple variable ≠ array of same name | `next` |
+| `DIM` | Arrays (1D + multi-dim; multi-name `DIM a(n),b(m,k)`) | **done** |
 | `SHARED` | Cross-SUB visibility | **done** (`bst`) |
 | `STRUCT` / `END STRUCT` | Guide chapter; `Turtle/bst.b` | **done** |
 | `OPTION` | Compiler options in source | `later` |
@@ -139,7 +139,7 @@ Precedence from the Programmer’s Guide (high → low):
 | `LINE INPUT` / `INPUT$` / `INKEY$` | Phase 3+ / as examples demand |
 | `CLS` / `LOCATE` / `CSRLIN` / `POS` / `TAB` / `SPC` | `CLS`/`LOCATE` done (Phase 5); others as examples demand |
 | `ASC` `CHR$` `LEFT$` `RIGHT$` `MID$` `LEN` `VAL` `STR$` `UCASE$` … | As examples demand |
-| `DATA` / `READ` / `RESTORE` | `later` |
+| `DATA` / `READ` / `RESTORE` | **done** (pool + pointer; label RESTORE deferred) |
 
 ---
 
@@ -169,8 +169,9 @@ Precedence from the Programmer’s Guide (high → low):
 | Turtle (`FORWARD` `BACK` `TURN*` `PEN*` `SETXY` `HOME` …) | **done** (Phase 7; `torus` / `flower` / `boxit` / `dragon` / `snowflake` / `tree` / `spiro`) |
 | Async SUBs (JS codegen) so `SLEEP`/`INPUT` work inside `SUB` | **done** — unblocks `spiro.b` |
 | `Turtle/bst.b` (STRUCT / ADDRESS / ALLOC / PRINTS / …) | **done** — heap ids for pointers; `tests/bst-smoke.js` |
-| Further Gfx corpus (`7seg`, `shuttle`, `tri`, …) | **next**; IFF/EHB/HAM stay later |
+| Further Gfx corpus (`7seg`, `tri`, …) | **next**; IFF/EHB/HAM stay later |
 | `Gfx/pattern2.b` (`GADGET WAIT`) | **done** |
+| `Gfx/shuttle.b` (`DATA`/`READ` + 2D `DIM`) | **done** (GOSUB→SUB adaptation) |
 | `IFF` / images | `later` |
 | Sprites / bobs / `OBJECT.*` | `out` (not ACE focus; reserved but unimplemented in ACE) |
 
