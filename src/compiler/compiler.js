@@ -598,10 +598,10 @@
       this.expect("RPAREN");
       if (this.at("OP") && this.peek().value === "=") {
         this.eat();
-        if (args.length !== 1) {
-          throw new CompileError("Array assignment needs one index", this.peek());
+        if (args.length === 1) {
+          return { type: "AssignIndex", name: id.value, index: args[0], expr: this.parseExpr() };
         }
-        return { type: "AssignIndex", name: id.value, index: args[0], expr: this.parseExpr() };
+        return { type: "AssignIndexes", name: id.value, indexes: args, expr: this.parseExpr() };
       }
       return { type: "CallStmt", name: id.value, args: args };
     }
@@ -883,11 +883,98 @@
 
   Parser.prototype.parseDim = function () {
     this.expect("KW", "DIM");
-    const name = this.expect("IDENT").value;
-    this.expect("LPAREN");
-    const size = this.parseExpr();
-    this.expect("RPAREN");
-    return { type: "Dim", name: name, size: size };
+    const items = [];
+    for (;;) {
+      const name = this.expect("IDENT").value;
+      this.expect("LPAREN");
+      const sizes = [this.parseExpr()];
+      while (this.at("COMMA")) {
+        this.eat();
+        sizes.push(this.parseExpr());
+      }
+      this.expect("RPAREN");
+      items.push({ name: name, sizes: sizes });
+      if (this.at("COMMA")) {
+        this.eat();
+        continue;
+      }
+      break;
+    }
+    // Single-item Dim keeps legacy shape for simpler emit; multi → DimMulti
+    if (items.length === 1 && items[0].sizes.length === 1) {
+      return { type: "Dim", name: items[0].name, size: items[0].sizes[0] };
+    }
+    return { type: "DimMulti", items: items };
+  };
+
+  /**
+   * DATA v1[, v2...] — values pooled for READ (order of appearance in source).
+   * Accepts numbers (incl. leading-dot / signed) and strings.
+   */
+  Parser.prototype.parseData = function () {
+    this.expect("KW", "DATA");
+    const values = [];
+    if (this.at("EOL") || this.at("EOF") || this.at("COLON")) {
+      return { type: "Data", values: values };
+    }
+    for (;;) {
+      if (this.at("OP") && this.peek().value === "-") {
+        this.eat();
+        const n = this.expect("NUMBER");
+        values.push(-Number(n.value));
+      } else if (this.at("OP") && this.peek().value === "+") {
+        this.eat();
+        const n = this.expect("NUMBER");
+        values.push(Number(n.value));
+      } else if (this.at("NUMBER")) {
+        values.push(Number(this.eat().value));
+      } else if (this.at("STRING")) {
+        values.push(this.eat().value);
+      } else {
+        throw new CompileError("DATA expects number or string", this.peek());
+      }
+      if (this.at("COMMA")) {
+        this.eat();
+        continue;
+      }
+      break;
+    }
+    return { type: "Data", values: values };
+  };
+
+  /**
+   * READ var | arr(i[,j...]) [, ...] — pull next DATA value(s).
+   */
+  Parser.prototype.parseRead = function () {
+    this.expect("KW", "READ");
+    const targets = [];
+    for (;;) {
+      const name = this.expect("IDENT").value;
+      if (this.at("LPAREN")) {
+        this.eat();
+        const indexes = [this.parseExpr()];
+        while (this.at("COMMA")) {
+          this.eat();
+          indexes.push(this.parseExpr());
+        }
+        this.expect("RPAREN");
+        targets.push({ kind: "index", name: name, indexes: indexes });
+      } else {
+        targets.push({ kind: "var", name: name });
+      }
+      if (this.at("COMMA")) {
+        this.eat();
+        continue;
+      }
+      break;
+    }
+    return { type: "Read", targets: targets };
+  };
+
+  /** RESTORE — reset DATA pointer to start (label form deferred). */
+  Parser.prototype.parseRestore = function () {
+    this.expect("KW", "RESTORE");
+    return { type: "Restore" };
   };
 
   Parser.prototype.parseConst = function () {
@@ -1524,6 +1611,9 @@
     if (this.atKw("SHARED")) return this.parseShared();
     if (this.atKw("CALL")) return this.parseCall();
     if (this.atKw("DIM")) return this.parseDim();
+    if (this.atKw("DATA")) return this.parseData();
+    if (this.atKw("READ")) return this.parseRead();
+    if (this.atKw("RESTORE")) return this.parseRestore();
     if (this.atKw("CONST")) return this.parseConst();
     if (this.atKw("DEFINT") || this.atKw("DEFLNG") || this.atKw("DEFSNG") || this.atKw("DEFSTR") || this.atKw("DEFDBL")) {
       return this.parseDefType(this.peek().value);
@@ -1693,9 +1783,13 @@
           if (this.subs[n.toLowerCase()]) {
             return "(await " + jsName(n) + "(" + node.args.map(this.expr.bind(this)).join(", ") + "))";
           }
-          // single-arg Call on var → array access by default; multi-arg → function call attempt
-          if (node.args.length === 1 && !this.subs[n.toLowerCase()]) {
-            return jsName(n) + "[" + this.expr(node.args[0]) + "]";
+          // Array access: one or more indexes (not a SUB)
+          if (node.args.length >= 1 && !this.subs[n.toLowerCase()]) {
+            let access = jsName(n);
+            for (let ai = 0; ai < node.args.length; ai++) {
+              access += "[" + this.expr(node.args[ai]) + "]";
+            }
+            return access;
           }
           return "(await " + jsName(n) + "(" + node.args.map(this.expr.bind(this)).join(", ") + "))";
         }
@@ -1721,6 +1815,40 @@
 
   Codegen.prototype.truthy = function (node) {
     return "((" + this.expr(node) + ")!==0)";
+  };
+
+  /** DIM bounds are inclusive → length = size+1; nested for multi-dim. */
+  Codegen.prototype.emitDimArray = function (sizes) {
+    if (!sizes || !sizes.length) return "[]";
+    if (sizes.length === 1) {
+      return "new Array((" + this.expr(sizes[0]) + ") + 1)";
+    }
+    // Nested arrays: outer length = sizes[0]+1, each cell = remaining dims
+    const rest = sizes.slice(1);
+    const inner = this.emitDimArray(rest);
+    return "Array.from({length:((" + this.expr(sizes[0]) + ")+1)},function(){return " + inner + ";})";
+  };
+
+  /** Collect DATA values in source order (incl. nested in SUBs). */
+  Codegen.prototype.collectDataValues = function (body) {
+    const values = [];
+    function walk(node) {
+      if (!node) return;
+      if (Array.isArray(node)) {
+        node.forEach(walk);
+        return;
+      }
+      if (typeof node !== "object") return;
+      if (node.type === "Data" && node.values) {
+        for (let i = 0; i < node.values.length; i++) values.push(node.values[i]);
+      }
+      Object.keys(node).forEach(function (k) {
+        if (k === "type" || k === "values") return;
+        walk(node[k]);
+      });
+    }
+    walk(body);
+    return values;
   };
 
   Codegen.prototype.emitBlock = function (body, indent) {
@@ -1859,6 +1987,13 @@
         return ind + jsName(stmt.name) + " = " + this.expr(stmt.expr) + ";";
       case "AssignIndex":
         return ind + jsName(stmt.name) + "[" + this.expr(stmt.index) + "] = " + this.expr(stmt.expr) + ";";
+      case "AssignIndexes": {
+        let access = jsName(stmt.name);
+        for (let i = 0; i < stmt.indexes.length; i++) {
+          access += "[" + this.expr(stmt.indexes[i]) + "]";
+        }
+        return ind + access + " = " + this.expr(stmt.expr) + ";";
+      }
       case "MemberAssign":
         return ind + "rt.setMember(" + this.expr(stmt.target.obj) + ", " +
           JSON.stringify(stmt.target.member.toLowerCase()) + ", " + this.expr(stmt.expr) + ");";
@@ -1917,6 +2052,31 @@
       case "Dim":
         // DIM FLAGS(7000) → length 7001 (0..7000 inclusive) typically in BASIC
         return ind + jsName(stmt.name) + " = new Array((" + this.expr(stmt.size) + ") + 1);";
+      case "DimMulti": {
+        const self = this;
+        return stmt.items.map(function (it) {
+          return ind + jsName(it.name) + " = " + self.emitDimArray(it.sizes) + ";";
+        }).join("\n");
+      }
+      case "Data":
+        // Values collected into __aceData at program start; statement is a no-op.
+        return ind + "/* DATA */";
+      case "Restore":
+        return ind + "__aceDataPtr = 0;";
+      case "Read": {
+        const self = this;
+        return stmt.targets.map(function (t) {
+          const val = "__aceData[__aceDataPtr++]";
+          if (t.kind === "var") {
+            return ind + jsName(t.name) + " = " + val + ";";
+          }
+          let access = jsName(t.name);
+          for (let i = 0; i < t.indexes.length; i++) {
+            access += "[" + self.expr(t.indexes[i]) + "]";
+          }
+          return ind + access + " = " + val + ";";
+        }).join("\n");
+      }
       case "For": {
         const v = jsName(stmt.name);
         const step = stmt.step ? this.expr(stmt.step) : "1";
@@ -2084,6 +2244,11 @@
   Codegen.prototype.emitProgramStructured = function (ast) {
     const mainBody = this.collectSubs(ast.body);
     let out = "";
+    const dataValues = this.collectDataValues(ast.body);
+    if (dataValues.length) {
+      out += "const __aceData = " + JSON.stringify(dataValues) + ";\n";
+      out += "let __aceDataPtr = 0;\n";
+    }
     const subNames = Object.keys(this.subs);
     for (let i = 0; i < subNames.length; i++) {
       out += this.emitSub(this.subs[subNames[i]]) + "\n";
@@ -2099,9 +2264,15 @@
       if (Array.isArray(node)) { node.forEach(scan); return; }
       if (typeof node !== "object") return;
       if (node.type === "Var" || node.type === "Assign" || node.type === "Inc" || node.type === "Dim" ||
-          node.type === "AssignIndex" || node.type === "For" || node.type === "CallStmt" ||
-          node.type === "Input") {
+          node.type === "AssignIndex" || node.type === "AssignIndexes" || node.type === "For" ||
+          node.type === "CallStmt" || node.type === "Input" || node.type === "Read") {
         if (node.name && !builtinInfo(node.name)) names[jsName(node.name)] = 1;
+      }
+      if (node.type === "DimMulti") {
+        (node.items || []).forEach(function (it) { names[jsName(it.name)] = 1; });
+      }
+      if (node.type === "Read") {
+        (node.targets || []).forEach(function (t) { names[jsName(t.name)] = 1; });
       }
       if (node.type === "Const") {
         node.items.forEach(function (it) { names[jsName(it.name)] = 1; });
