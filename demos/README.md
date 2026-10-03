@@ -24,6 +24,7 @@ Keep media small and descriptive; prefer one short video plus 1–2 stills per p
 | [`bst-prints/`](bst-prints/) | `PRINTS` keeps turtle pen — BST labels at distinct positions |
 | [`gfx-pattern2/`](gfx-pattern2/) | Gfx corpus: `pattern2.b` dithered `PAINT` + `GADGET WAIT` (close) |
 | [`gfx-shuttle/`](gfx-shuttle/) | Gfx corpus: `shuttle.b` wireframe (`DATA`/`READ` + 2D `DIM`) |
+| [`menu-ifs/`](menu-ifs/) | `MENU` / `ON MENU` / `MsgBox` — `ifs.b` IFS fractals |
 
 ## Convention
 

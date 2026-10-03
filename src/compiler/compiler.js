@@ -8,15 +8,16 @@
 
   const KEYWORDS = {
     ADDRESS: 1, AND: 1, AREA: 1, AREAFILL: 1, AS: 1, BACK: 1, BEEP: 1, BYTE: 1, CALL: 1,
-    CASE: 1, CIRCLE: 1, CLOSE: 1, CLS: 1, COLOR: 1, CONST: 1, CSRLIN: 1, DATA: 1,
+    CASE: 1, CIRCLE: 1, CLEAR: 1, CLOSE: 1, CLS: 1, COLOR: 1, CONST: 1, CSRLIN: 1, DATA: 1,
     DECLARE: 1, DEFINT: 1, DEFLNG: 1, DEFSNG: 1, DEFSTR: 1, DEFDBL: 1,
     DIM: 1, ELSE: 1, ELSEIF: 1, END: 1, EXIT: 1, FONT: 1, FOR: 1, FORWARD: 1, GADGET: 1,
     GOTO: 1, GOSUB: 1,
-    HOME: 1, IF: 1, INPUT: 1, LET: 1, LINE: 1, LOCATE: 1, MOD: 1, NEXT: 1, NOT: 1, OR: 1,
+    HOME: 1, IF: 1, INPUT: 1, LET: 1, LINE: 1, LOCATE: 1, MENU: 1, MOD: 1, MSGBOX: 1,
+    NEXT: 1, NOT: 1, OFF: 1, ON: 1, OR: 1,
     OUTPUT: 1, PAINT: 1, PALETTE: 1, PATTERN: 1, PENDOWN: 1, PENUP: 1, PRINT: 1, PRINTS: 1,
     PSET: 1, RANDOMIZE: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1,
     SETHEADING: 1, SETXY: 1, SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, SOUND: 1,
-    LONGINT: 1, STEP: 1, STRING: 1, STRUCT: 1, SUB: 1, THEN: 1, TO: 1, TURN: 1,
+    LONGINT: 1, STEP: 1, STOP: 1, STRING: 1, STRUCT: 1, SUB: 1, THEN: 1, TO: 1, TURN: 1,
     TURNLEFT: 1, TURNRIGHT: 1, UNTIL: 1, WAIT: 1, WAVE: 1, WEND: 1, WHILE: 1, WINDOW: 1,
     XOR: 1,
     TIMER: 1, FUNCTION: 1, LIBRARY: 1,
@@ -51,6 +52,9 @@
     XCOR: { arity: 0, rt: "xcor" },
     YCOR: { arity: 0, rt: "ycor" },
     GADGET: { arity: 1, rt: "gadgetFunc" },
+    MENU: { arity: 1, rt: "menuFunc" },
+    MSGBOX: { arity: -1, rt: "msgBox" }, // 1..3 args (statement form separate)
+    CHR: { arity: 1, rt: "chr" },
   };
 
   function builtinInfo(name) {
@@ -476,6 +480,27 @@
       this.expect("RPAREN");
       return { type: "Builtin", name: "GADGET", args: [arg] };
     }
+    if (this.atKw("MENU")) {
+      this.eat();
+      this.expect("LPAREN");
+      const arg = this.parseExpr();
+      this.expect("RPAREN");
+      return { type: "Builtin", name: "MENU", args: [arg] };
+    }
+    if (this.atKw("MSGBOX")) {
+      this.eat();
+      this.expect("LPAREN");
+      const args = [];
+      if (!this.at("RPAREN")) {
+        args.push(this.parseExpr());
+        while (this.at("COMMA")) {
+          this.eat();
+          args.push(this.parseExpr());
+        }
+      }
+      this.expect("RPAREN");
+      return { type: "Builtin", name: "MSGBOX", args: args };
+    }
     if (this.at("IDENT")) {
       const t = this.eat();
       const name = t.value;
@@ -749,11 +774,20 @@
     this.expect("KW", "THEN");
     // single-line THEN stmt?
     if (!this.at("EOL") && !this.at("EOF")) {
-      // THEN GOTO n  or THEN stmt
+      // THEN GOTO n|label  or THEN stmt
       if (this.atKw("GOTO")) {
-        this.eat();
-        const t = this.expect("NUMBER");
-        const thenStmt = { type: "Goto", line: Number(t.value) };
+        const thenStmt = this.parseGoto();
+        let elseStmt = null;
+        if (this.atKw("ELSE")) {
+          this.eat();
+          elseStmt = this.parseStatementContent();
+        }
+        return { type: "If", cond: cond, thenBody: [thenStmt], elseBody: elseStmt ? [elseStmt] : [] };
+      }
+      // THEN label — bare IDENT at end of THEN clause → named GOTO (ifs.b: then quit)
+      if (this.at("IDENT") && !this.atLookingAheadAssignOrCall()) {
+        const id = this.eat();
+        const thenStmt = { type: "GotoNamed", name: id.value };
         let elseStmt = null;
         if (this.atKw("ELSE")) {
           this.eat();
@@ -780,6 +814,15 @@
     this.expect("KW", "END");
     this.expect("KW", "IF");
     return { type: "If", cond: cond, thenBody: thenBody, elseBody: elseBody };
+  };
+
+  /** True when IDENT is start of assign/call (has '(' or '='), not a bare THEN label. */
+  Parser.prototype.atLookingAheadAssignOrCall = function () {
+    const n = this.tokens[this.pos + 1];
+    if (!n) return false;
+    if (n.type === "LPAREN") return true;
+    if (n.type === "OP" && (n.value === "=" || n.value === "->" || n.value === ":=")) return true;
+    return false;
   };
 
   Parser.prototype.parseFor = function () {
@@ -1035,8 +1078,90 @@
 
   Parser.prototype.parseGoto = function () {
     this.expect("KW", "GOTO");
-    const t = this.expect("NUMBER");
-    return { type: "Goto", line: Number(t.value) };
+    if (this.at("NUMBER")) {
+      const t = this.expect("NUMBER");
+      return { type: "Goto", line: Number(t.value) };
+    }
+    const id = this.expect("IDENT");
+    return { type: "GotoNamed", name: id.value };
+  };
+
+  Parser.prototype.parseReturn = function () {
+    this.expect("KW", "RETURN");
+    return { type: "Return" };
+  };
+
+  /**
+   * MENU WAIT | MENU CLEAR | MENU ON|OFF|STOP |
+   * MENU menu-id,item-id,state[,title[,command-key]]
+   */
+  Parser.prototype.parseMenu = function () {
+    this.expect("KW", "MENU");
+    if (this.atKw("WAIT")) {
+      this.eat();
+      return { type: "MenuWait" };
+    }
+    if (this.atKw("CLEAR")) {
+      this.eat();
+      return { type: "MenuClear" };
+    }
+    if (this.atKw("ON") || this.atKw("OFF") || this.atKw("STOP")) {
+      const mode = this.eat().value.toLowerCase();
+      return { type: "MenuTrap", mode: mode };
+    }
+    const menuId = this.parseExpr();
+    this.expect("COMMA");
+    const itemId = this.parseExpr();
+    this.expect("COMMA");
+    const state = this.parseExpr();
+    let title = null;
+    let cmdKey = null;
+    if (this.at("COMMA")) {
+      this.eat();
+      title = this.parseExpr();
+      if (this.at("COMMA")) {
+        this.eat();
+        cmdKey = this.parseExpr();
+      }
+    }
+    return {
+      type: "MenuDefine",
+      menuId: menuId,
+      itemId: itemId,
+      state: state,
+      title: title,
+      cmdKey: cmdKey,
+    };
+  };
+
+  /** ON MENU GOSUB label | ON MENU GOTO label */
+  Parser.prototype.parseOn = function () {
+    this.expect("KW", "ON");
+    if (this.atKw("MENU")) {
+      this.eat();
+      let kind = "gosub";
+      if (this.atKw("GOSUB")) {
+        this.eat();
+        kind = "gosub";
+      } else if (this.atKw("GOTO")) {
+        this.eat();
+        kind = "goto";
+      } else {
+        throw new CompileError("ON MENU expects GOSUB or GOTO", this.peek());
+      }
+      const label = this.expect("IDENT").value;
+      return { type: "OnMenu", kind: kind, label: label };
+    }
+    throw new CompileError("ON MENU expected (other event traps deferred)", this.peek());
+  };
+
+  /** MSGBOX message,button-text — statement form (no return). */
+  Parser.prototype.parseMsgBoxStmt = function () {
+    this.expect("KW", "MSGBOX");
+    const message = this.parseExpr();
+    this.expect("COMMA");
+    const button = this.parseExpr();
+    return { type: "MsgBoxStmt", message: message, button: button };
   };
 
   /**
@@ -1589,6 +1714,9 @@
     if (this.atKw("AREAFILL")) return this.parseAreafill();
     if (this.atKw("PATTERN")) return this.parsePattern();
     if (this.atKw("GADGET")) return this.parseGadget();
+    if (this.atKw("MENU")) return this.parseMenu();
+    if (this.atKw("ON")) return this.parseOn();
+    if (this.atKw("MSGBOX")) return this.parseMsgBoxStmt();
     if (this.atKw("FORWARD")) return this.parseTurtleMove("FORWARD");
     if (this.atKw("BACK")) return this.parseTurtleMove("BACK");
     if (this.atKw("TURNLEFT")) return this.parseTurtleTurn("TURNLEFT");
@@ -1624,9 +1752,16 @@
     }
     if (this.atKw("EXIT")) return this.parseExit();
     if (this.atKw("GOTO")) return this.parseGoto();
+    if (this.atKw("RETURN")) return this.parseReturn();
     if (this.atKw("END")) {
       this.eat();
       return { type: "End" };
+    }
+    // Named label: ident:  (must precede bare CallStmt)
+    if (this.at("IDENT") && this.tokens[this.pos + 1] && this.tokens[this.pos + 1].type === "COLON") {
+      const name = this.eat().value;
+      this.expect("COLON");
+      return { type: "NamedLabel", name: name };
     }
     if (this.at("PLUSPLUS") || this.at("IDENT") || this.atKw("LET") || this.at("INDIR")) {
       return this.parseAssignOrCall();
@@ -1712,6 +1847,7 @@
 
   function Codegen() {
     this.subs = Object.create(null);
+    this.namedLabels = Object.create(null);
     this.usesGoto = false;
     this.diagnostics = [];
   }
@@ -1740,7 +1876,10 @@
       case "Builtin": {
         const info = builtinInfo(node.name);
         const rtName = info ? info.rt : String(node.name).toLowerCase();
-        return "rt." + rtName + "(" + (node.args || []).map(this.expr.bind(this)).join(", ") + ")";
+        const call = "rt." + rtName + "(" + (node.args || []).map(this.expr.bind(this)).join(", ") + ")";
+        // MsgBox is async (modal requester).
+        if (rtName === "msgBox") return "(await " + call + ")";
+        return call;
       }
       case "Unary":
         if (node.op === "-") return "(-(" + this.expr(node.expr) + "))";
@@ -1777,7 +1916,9 @@
             if (bi.rt === "alloc" && node.args.length >= 1 && node.args[0].type === "Sizeof") {
               return "rt.allocStruct(" + JSON.stringify(String(node.args[0].name).toLowerCase()) + ")";
             }
-            return "rt." + bi.rt + "(" + node.args.map(this.expr.bind(this)).join(", ") + ")";
+            const call = "rt." + bi.rt + "(" + node.args.map(this.expr.bind(this)).join(", ") + ")";
+            if (bi.rt === "msgBox") return "(await " + call + ")";
+            return call;
           }
           // array index vs function: if known sub, await call (SUBs are async)
           if (this.subs[n.toLowerCase()]) {
@@ -1971,6 +2112,31 @@
           (stmt.areaArr ? jsName(stmt.areaArr) : "null") + ");";
       case "GadgetWait":
         return ind + "await rt.gadgetWait(" + this.expr(stmt.id) + ");";
+      case "MenuWait":
+        return ind + "await rt.menuWait();";
+      case "MenuClear":
+        return ind + "rt.menuClear();";
+      case "MenuTrap":
+        return ind + "rt.menuTrap(" + JSON.stringify(stmt.mode) + ");";
+      case "MenuDefine":
+        return ind + "rt.menuDefine(" + this.expr(stmt.menuId) + ", " + this.expr(stmt.itemId) + ", " +
+          this.expr(stmt.state) + ", " +
+          (stmt.title ? this.expr(stmt.title) : "null") + ", " +
+          (stmt.cmdKey ? this.expr(stmt.cmdKey) : "null") + ");";
+      case "OnMenu":
+        return ind + "rt.onMenu(" + JSON.stringify(stmt.kind) + ", __label_" +
+          String(stmt.label).toLowerCase().replace(/[^a-z0-9]+/g, "_") + ");";
+      case "MsgBoxStmt":
+        return ind + "await rt.msgBox(" + this.expr(stmt.message) + ", " + this.expr(stmt.button) + ");";
+      case "NamedLabel":
+        return "";
+      case "Return":
+        return ind + "return;";
+      case "GotoNamed": {
+        const lab = "__label_" + String(stmt.name).toLowerCase().replace(/[^a-z0-9]+/g, "_");
+        // ACE GOTO from ON MENU handler abandons the GOSUB; end the program.
+        return ind + "await " + lab + "();\n" + ind + "throw { __aceEnd: 1 };";
+      }
       case "TurtleMove":
         return ind + "rt.turtleMove(" + JSON.stringify(stmt.kind) + ", " + this.expr(stmt.dist) + ");";
       case "TurtleTurn":
@@ -2036,6 +2202,12 @@
         return code;
       }
       case "CallStmt": {
+        const raw = String(stmt.name);
+        const labKey = raw.toLowerCase();
+        if (this.namedLabels && this.namedLabels[labKey]) {
+          const lab = "__label_" + labKey.replace(/[^a-z0-9]+/g, "_");
+          return ind + "await " + lab + "();\n" + ind + "throw { __aceEnd: 1 };";
+        }
         const fn = jsName(stmt.name);
         // SUBs are async so SLEEP/INPUT inside them work; always await statement-level calls.
         const call = "await " + fn + "(" + stmt.args.map(this.expr.bind(this)).join(", ") + ")";
@@ -2090,13 +2262,15 @@
         return (
           ind + "while (" + this.truthy(stmt.cond) + " && !rt.stopped) {\n" +
           this.emitBlock(stmt.body, ind + "  ") + "\n" +
+          ind + "  await rt.menuPoll();\n" +
           ind + "}"
         );
       case "Repeat":
         return (
           ind + "do {\n" +
           this.emitBlock(stmt.body, ind + "  ") + "\n" +
-          ind + "} while (!(" + this.truthy(stmt.cond) + "));"
+          ind + "  await rt.menuPoll();\n" +
+          ind + "} while (!(" + this.truthy(stmt.cond) + ") && !rt.stopped);"
         );
       case "If":
         return (
@@ -2117,7 +2291,7 @@
       case "ExitWhile":
         return ind + "break;";
       case "End":
-        return ind + "return;";
+        return ind + "throw { __aceEnd: 1 };";
       case "Sub":
         // collected separately
         return "";
@@ -2138,6 +2312,54 @@
       }
     }
     return rest;
+  };
+
+  /**
+   * Split top-level NamedLabel regions into async label functions.
+   * Main body is everything before the first NamedLabel (ACE puts handlers at the end).
+   */
+  Codegen.prototype.extractNamedLabels = function (body) {
+    const main = [];
+    let i = 0;
+    while (i < body.length && body[i].type !== "NamedLabel") {
+      main.push(body[i]);
+      i++;
+    }
+    while (i < body.length) {
+      if (body[i].type !== "NamedLabel") {
+        // Orphan stmt after labels — append to last label if any, else main
+        const keys = Object.keys(this.namedLabels);
+        if (keys.length) {
+          this.namedLabels[keys[keys.length - 1]].push(body[i]);
+        } else {
+          main.push(body[i]);
+        }
+        i++;
+        continue;
+      }
+      const name = String(body[i].name).toLowerCase();
+      i++;
+      const stmts = [];
+      while (i < body.length && body[i].type !== "NamedLabel") {
+        stmts.push(body[i]);
+        i++;
+      }
+      this.namedLabels[name] = stmts;
+    }
+    return main;
+  };
+
+  Codegen.prototype.emitNamedLabel = function (name, body) {
+    const fn = "__label_" + String(name).toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    // Drop trailing Return (becomes function return); keep End as return.
+    const stmts = (body || []).filter(function (s) {
+      return s && s.type !== "Return";
+    });
+    return (
+      "async function " + fn + "() {\n" +
+      this.emitBlock(stmts, "  ") + "\n" +
+      "}\n"
+    );
   };
 
   Codegen.prototype.emitSub = function (sub) {
@@ -2242,7 +2464,8 @@
   };
 
   Codegen.prototype.emitProgramStructured = function (ast) {
-    const mainBody = this.collectSubs(ast.body);
+    let mainBody = this.collectSubs(ast.body);
+    mainBody = this.extractNamedLabels(mainBody);
     let out = "";
     const dataValues = this.collectDataValues(ast.body);
     if (dataValues.length) {
@@ -2252,6 +2475,10 @@
     const subNames = Object.keys(this.subs);
     for (let i = 0; i < subNames.length; i++) {
       out += this.emitSub(this.subs[subNames[i]]) + "\n";
+    }
+    const labelNames = Object.keys(this.namedLabels);
+    for (let li = 0; li < labelNames.length; li++) {
+      out += this.emitNamedLabel(labelNames[li], this.namedLabels[labelNames[li]]) + "\n";
     }
     // declare vars lazily via assigning — use let in a scope; simplest: bare assignments on object
     // Use `with`-free: declare common names by scanning — for Phase 2 use global lets in function scope via assignment without let (sloppy) —
@@ -2305,15 +2532,28 @@
       });
     }
     scan(ast);
+    // also scan label bodies (shared with main scope — ACE globals)
+    labelNames.forEach(function (ln) {
+      scan(this.namedLabels[ln]);
+    }, this);
     // don't let-declare function names
     subNames.forEach(function (s) {
       delete names[jsName(this.subs[s].name)];
     }, this);
+    // don't declare label names as vars
+    labelNames.forEach(function (ln) {
+      delete names[jsName(ln)];
+    });
 
     const decls = Object.keys(names);
     out += decls.map(function (n) { return "let " + n + " = 0;"; }).join("\n");
     if (decls.length) out += "\n";
-    out += this.emitBlock(mainBody, "") + "\n";
+    // __aceEnd: GOTO/END from ON MENU handlers (and top-level END) abort the program.
+    out += "try {\n";
+    out += this.emitBlock(mainBody, "  ") + "\n";
+    out += "} catch (__aceErr) {\n";
+    out += "  if (!__aceErr || !__aceErr.__aceEnd) throw __aceErr;\n";
+    out += "}\n";
     return out;
   };
 

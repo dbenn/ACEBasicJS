@@ -894,6 +894,95 @@ async function main() {
     ]);
   });
 
+  await check("MENU WAIT / MENU() / MsgBox / CHR$", async function () {
+    const src =
+      'MENU 1,0,1,"Project"\n' +
+      'MENU 1,1,1,"Fern"\n' +
+      'MENU 2,0,1,"Colour"\n' +
+      'MENU 2,2,1,"Green"\n' +
+      "MENU WAIT\n" +
+      "m=MENU(0)\n" +
+      "i=MENU(1)\n" +
+      'dummy=MsgBox("hi","OK")\n' +
+      "PRINT m;i;CHR$(65)\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink, msgBoxHandler: function () { return -1; } });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/menuWait/.test(compiled.js)) throw new Error("missing menuWait");
+    if (!/msgBox/.test(compiled.js)) throw new Error("missing msgBox");
+    if (!/rt\.chr\(/.test(compiled.js)) throw new Error("missing chr");
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 20); });
+    if (!rt.selectMenu(1, 1)) throw new Error("selectMenu failed");
+    await runPromise;
+    if (!/\b1\b/.test(sink.textContent)) throw new Error("MENU ids: " + sink.textContent);
+    if (!/A/.test(sink.textContent)) throw new Error("CHR$: " + sink.textContent);
+  });
+
+  await check("ON MENU GOSUB during REPEAT draw", async function () {
+    const src =
+      'MENU 1,0,1,"Special"\n' +
+      'MENU 1,1,1,"Stop"\n' +
+      "ON MENU GOSUB handle\n" +
+      "MENU ON\n" +
+      "finished=0\n" +
+      "n=0\n" +
+      "REPEAT\n" +
+      "  n=n+1\n" +
+      "UNTIL n>50000 OR finished\n" +
+      "PRINT n\n" +
+      "END\n" +
+      "handle:\n" +
+      "  finished=-1\n" +
+      "RETURN\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/onMenu/.test(compiled.js)) throw new Error("missing onMenu");
+    if (!/__label_handle/.test(compiled.js)) throw new Error("missing label");
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 30); });
+    if (!rt.selectMenu(1, 1)) throw new Error("trap select failed");
+    await Promise.race([
+      runPromise,
+      new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error("ON MENU did not stop loop")); }, 3000);
+      }),
+    ]);
+    const n = Number(String(sink.textContent).trim());
+    if (!(n > 0 && n < 50000)) throw new Error("expected early stop, got " + sink.textContent);
+  });
+
+  await check("examples/ifs.b MENU draw fern", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/ifs.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink, msgBoxHandler: function () { return -1; } });
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 30); });
+    if (!rt.selectMenu(1, 3)) throw new Error("project Fern");
+    await new Promise(function (r) { setTimeout(r, 30); });
+    if (!rt.selectMenu(2, 2)) throw new Error("colour Green");
+    await new Promise(function (r) { setTimeout(r, 250); });
+    let ink = 0;
+    for (let y = 0; y < 200; y += 2) {
+      for (let x = 0; x < 640; x += 2) {
+        if (rt.windowPixel(1, x, y) > 0) ink++;
+      }
+    }
+    if (ink < 100) throw new Error("too few IFS pixels: " + ink);
+    rt.selectMenu(3, 3); // Quit
+    await Promise.race([
+      runPromise,
+      new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error("ifs did not quit")); }, 5000);
+      }),
+    ]);
+  });
+
   if (failed) {
     console.error(failed + " failed");
     process.exit(1);
