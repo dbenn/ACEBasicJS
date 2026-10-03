@@ -150,11 +150,11 @@ Precedence from the Programmer’s Guide (high → low):
 | `WINDOW` / `WINDOW CLOSE` / `SCREEN` / `SCREEN CLOSE` | done (Phase 4 chrome + PRINT; Phase 4.5 INPUT-in-window) |
 | `WINDOW OUTPUT` / `WINDOW(n)` / `SCREEN(n)` | done (subset) |
 | `SLEEP` | done (IntuiTick-style yield; close/key wakes) |
-| `MENU` / `BUTTON` / `BEVELBOX` | Phase 4+ / as examples demand |
+| `MENU` / `BUTTON` / `BEVELBOX` | `MENU` / `MENU WAIT` / `MENU(n)` / `ON MENU` / `MENU ON|OFF|STOP` / `MENU CLEAR` **done** (`ifs.b`); `BUTTON` / `BEVELBOX` later |
 | `GADGET WAIT` / `GADGET(n)` | **done** (close gadget → 256; create/ON/CLOSE deferred) |
 | Full `GADGET` create / `GADGET CLOSE` / `ON GADGET` | later (elevate when corpus needs) |
-| `MOUSE` / event trapping (`ON …`) | Phase 4+ |
-| `MSGBOX` / `INPUTBOX` / `FILEBOX$` | `later` |
+| `MOUSE` / event trapping (`ON …`) | Phase 4+ (`ON MENU` done) |
+| `MSGBOX` / `INPUTBOX` / `FILEBOX$` | `MSGBOX` **done** (`ifs.b`); others later |
 
 ---
 
@@ -172,6 +172,7 @@ Precedence from the Programmer’s Guide (high → low):
 | Further Gfx corpus (`7seg`, `tri`, …) | **next**; IFF/EHB/HAM stay later |
 | `Gfx/pattern2.b` (`GADGET WAIT`) | **done** |
 | `Gfx/shuttle.b` (`DATA`/`READ` + 2D `DIM`) | **done** (GOSUB→SUB adaptation) |
+| `prgs/ifs.b` (`MENU` / `ON MENU` / `MsgBox`) | **done** |
 | `IFF` / images | `later` |
 | Sprites / bobs / `OBJECT.*` | `out` (not ACE focus; reserved but unimplemented in ACE) |
 

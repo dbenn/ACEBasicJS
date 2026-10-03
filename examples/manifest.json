@@ -105,6 +105,13 @@
     "notes": "ACE prgs/hi.b — RND / COLOR / LOCATE; press q"
   },
   {
+    "id": "ifs",
+    "title": "ifs",
+    "folder": "prgs",
+    "path": "examples/ifs.b",
+    "notes": "IFS fractals — menus: Project + Colour, then Special/Quit"
+  },
+  {
     "id": "sound",
     "title": "sound",
     "folder": "Sound",
