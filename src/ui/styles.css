@@ -297,7 +297,8 @@ body.split-dragging * {
   margin: 0 auto;
   border: 2px solid #111;
   box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
-  overflow: hidden;
+  /* visible so MENU dropdowns are not clipped (ifs.b menubar) */
+  overflow: visible;
   background: var(--wb-blue);
 }
 
