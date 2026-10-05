@@ -1447,16 +1447,20 @@
       const hasTwo = !(button2 == null || button2 === undefined);
       const b2 = hasTwo ? String(button2) : null;
       if (stopped) return Promise.resolve(-1);
-      if (typeof document === "undefined" || !screensHost) {
+      if (typeof document === "undefined") {
         if (options && typeof options.msgBoxHandler === "function") {
           return Promise.resolve(options.msgBoxHandler(msg, b1, b2));
         }
         return Promise.resolve(-1);
       }
       flushAllDirty();
+      closeOpenMenuDropdowns();
       return new Promise(function (resolve) {
+        let done = false;
         const overlay = document.createElement("div");
         overlay.className = "ace-msgbox-overlay";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
         const box = document.createElement("div");
         box.className = "ace-msgbox";
         const title = document.createElement("div");
@@ -1468,6 +1472,9 @@
         const row = document.createElement("div");
         row.className = "ace-msgbox-buttons";
         function finish(val) {
+          if (done) return;
+          done = true;
+          document.removeEventListener("keydown", onKey, true);
           if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
           pendingMsgBox = null;
           resolve(val);
@@ -1477,23 +1484,52 @@
         btn1.type = "button";
         btn1.className = "ace-msgbox-btn";
         btn1.textContent = b1;
-        btn1.addEventListener("click", function () { finish(-1); });
+        btn1.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          finish(-1);
+        });
         row.appendChild(btn1);
+        let btn2 = null;
         if (hasTwo) {
-          const btn2 = document.createElement("button");
+          btn2 = document.createElement("button");
           btn2.type = "button";
           btn2.className = "ace-msgbox-btn";
           btn2.textContent = b2;
-          btn2.addEventListener("click", function () { finish(0); });
+          btn2.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            finish(0);
+          });
           row.appendChild(btn2);
         }
         box.appendChild(title);
         box.appendChild(body);
         box.appendChild(row);
         overlay.appendChild(box);
-        const host = screensHost.parentNode || screensHost;
-        host.appendChild(overlay);
-        btn1.focus();
+        overlay.addEventListener("click", function (ev) {
+          if (ev.target === overlay) finish(-1);
+        });
+        function onKey(ev) {
+          if (done) return;
+          if (ev.key === "Enter") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            finish(-1);
+          } else if (ev.key === "Escape") {
+            ev.preventDefault();
+            ev.stopPropagation();
+            finish(-1);
+          }
+        }
+        document.addEventListener("keydown", onKey, true);
+        // Fixed viewport layer — avoids clipping inside .output-panel / .screens scrollers.
+        document.body.appendChild(overlay);
+        requestAnimationFrame(function () {
+          try {
+            btn1.focus({ preventScroll: true });
+          } catch (e) {
+            try { btn1.focus(); } catch (e2) { /* ignore */ }
+          }
+        });
       });
     }
 
@@ -1596,6 +1632,7 @@
     }
 
     function selectMenu(menuId, itemId) {
+      if (pendingMsgBox) return false;
       const mid = menuId | 0;
       const iid = itemId | 0;
       const menu = menuStrip[mid];
