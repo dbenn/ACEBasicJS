@@ -18,7 +18,7 @@ expectations below (observable results in the host output / runtime).
 | `BenchMarks/` | David Benn — original ACE `prgs/BenchMarks/` | `Ackermann`, `Ahl`, `lines`, `loops`, `sieve` |
 | `Gfx/` | David Benn — original ACE `prgs/Gfx/` | `paint` (from `pattern.b`), `pattern2`, `shuttle` |
 | `Misc/` | David Benn — original ACE `prgs/Misc/` | `fact` |
-| `prgs` (group) | David Benn — original ACE `prgs/*.b` | `hi` (`examples/hi.b`) |
+| `prgs` (group) | David Benn — original ACE `prgs/*.b` | `hi` (`examples/hi.b`), `ifs` (`examples/ifs.b`) |
 | `Sound/` | David Benn — original ACE `prgs/Sound/` | `sound` |
 | `Turtle/` | David Benn — original ACE `prgs/Turtle/` | **all** TG demos: `boxit`, `bst`, `dragon`, `flower`, `snowflake`, `spiro`, `torus`, `tree` |
 
@@ -41,6 +41,7 @@ expectations below (observable results in the host output / runtime).
 | `shuttle` | `Gfx/shuttle.b` | Wireframe shuttle; enter 3 angles (try 40/80/120), then **C** redraw / **Q** quit. |
 | `fact` | `Misc/fact.b` | Factorials until `-1`. |
 | `hi` | `hi.b` | Coloured "Hi There!" spray; press `q`. |
+| `ifs` | `ifs.b` | IFS fractals via **Project** + **Colour** menus; **Special → Quit** (or Stop while drawing). |
 | `sound` | `Sound/sound.b` | Tones / period sweep (unmute tab). |
 | `boxit` | `Turtle/boxit.b` | Recursive boxed edges; press `q`. |
 | `bst` | `Turtle/bst.b` | Binary search tree menu; Insert nodes then height/count/graph. |

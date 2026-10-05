@@ -62,6 +62,20 @@
     let lastGadgetId = 0;
     let lastGadgetSeen = 0; // GADGET(0): -1 if event since last poll, else 0
     let keyQueue = [];
+    // --- Intuition menus (ifs.b) ---
+    let menuStrip = Object.create(null); // menuId -> { state, title, items }
+    let lastMenuId = 0;
+    let lastItemId = 0;
+    let menu0Consumed = true; // MENU(0) → 0 until a fresh selection
+    let pendingMenuWait = null;
+    let menuTrapMode = "off"; // on | off | stop
+    let menuTrapHandler = null; // async function
+    let menuTrapKind = "gosub";
+    let menuEventPending = false;
+    let menuPollCounter = 0;
+    let menuBarEl = null;
+    let menuKeyHandler = null;
+    let pendingMsgBox = null;
     let intuiMode = false;
     let currentScreenId = 0; // 0 = workbench / none
     let currentWindowId = 0; // 0 = shell/CLI
@@ -958,6 +972,8 @@
       const wid = id | 0;
       const win = windows[wid];
       if (!win) return;
+      // ACE: WINDOW CLOSE performs a menu clear for the window's strip.
+      if (!win.backdrop && wid >= 1 && wid <= 9) menuClear();
       if (win._dragCleanup) win._dragCleanup();
       if (win.el && win.el.parentNode) win.el.parentNode.removeChild(win.el);
       delete windows[wid];
@@ -1412,6 +1428,328 @@
       if (addr && addr.__aceRef) {
         addr.set(value);
         return;
+      }
+    }
+
+    function chr(n) {
+      const c = Number(n) | 0;
+      if (c <= 0) return "";
+      return String.fromCharCode(c & 255);
+    }
+
+    /**
+     * MSGBOX — Amiga-style requester. Returns -1 (first button) or 0 (second).
+     * Headless: options.msgBoxHandler or auto-accept first button.
+     */
+    function msgBox(message, button1, button2) {
+      const msg = String(message == null ? "" : message);
+      const b1 = String(button1 == null ? "OK" : button1);
+      const hasTwo = !(button2 == null || button2 === undefined);
+      const b2 = hasTwo ? String(button2) : null;
+      if (stopped) return Promise.resolve(-1);
+      if (typeof document === "undefined" || !screensHost) {
+        if (options && typeof options.msgBoxHandler === "function") {
+          return Promise.resolve(options.msgBoxHandler(msg, b1, b2));
+        }
+        return Promise.resolve(-1);
+      }
+      flushAllDirty();
+      return new Promise(function (resolve) {
+        const overlay = document.createElement("div");
+        overlay.className = "ace-msgbox-overlay";
+        const box = document.createElement("div");
+        box.className = "ace-msgbox";
+        const title = document.createElement("div");
+        title.className = "ace-msgbox-title";
+        title.textContent = "ACEBasicJS";
+        const body = document.createElement("div");
+        body.className = "ace-msgbox-body";
+        body.textContent = msg;
+        const row = document.createElement("div");
+        row.className = "ace-msgbox-buttons";
+        function finish(val) {
+          if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+          pendingMsgBox = null;
+          resolve(val);
+        }
+        pendingMsgBox = { resolve: finish, el: overlay };
+        const btn1 = document.createElement("button");
+        btn1.type = "button";
+        btn1.className = "ace-msgbox-btn";
+        btn1.textContent = b1;
+        btn1.addEventListener("click", function () { finish(-1); });
+        row.appendChild(btn1);
+        if (hasTwo) {
+          const btn2 = document.createElement("button");
+          btn2.type = "button";
+          btn2.className = "ace-msgbox-btn";
+          btn2.textContent = b2;
+          btn2.addEventListener("click", function () { finish(0); });
+          row.appendChild(btn2);
+        }
+        box.appendChild(title);
+        box.appendChild(body);
+        box.appendChild(row);
+        overlay.appendChild(box);
+        const host = screensHost.parentNode || screensHost;
+        host.appendChild(overlay);
+        btn1.focus();
+      });
+    }
+
+    function ensureMenuKeyHandler() {
+      if (menuKeyHandler || typeof document === "undefined") return;
+      menuKeyHandler = function (ev) {
+        if (stopped || pendingMsgBox) return;
+        // Amiga command-key → plain letter (or Alt+letter) when a menu strip exists.
+        if (!Object.keys(menuStrip).length) return;
+        const key = String(ev.key || "").toUpperCase();
+        if (!key || key.length !== 1) return;
+        if (!(ev.altKey || ev.metaKey || !ev.ctrlKey)) return;
+        // Prefer Alt/Meta; also accept bare letter when focus is in screens (web UX).
+        const wantAlt = ev.altKey || ev.metaKey;
+        const focusInScreens = screensHost && (
+          screensHost === document.activeElement ||
+          (screensHost.contains && screensHost.contains(document.activeElement))
+        );
+        if (!wantAlt && !focusInScreens) return;
+        for (const mid in menuStrip) {
+          const menu = menuStrip[mid];
+          if (!menu || (menu.state | 0) === 0) continue;
+          for (const iid in menu.items) {
+            const it = menu.items[iid];
+            if (!it || (it.state | 0) === 0) continue;
+            if (it.cmdKey && String(it.cmdKey).toUpperCase() === key) {
+              ev.preventDefault();
+              selectMenu(mid | 0, iid | 0);
+              return;
+            }
+          }
+        }
+      };
+      document.addEventListener("keydown", menuKeyHandler);
+    }
+
+    function removeMenuKeyHandler() {
+      if (menuKeyHandler && typeof document !== "undefined") {
+        document.removeEventListener("keydown", menuKeyHandler);
+      }
+      menuKeyHandler = null;
+    }
+
+    function menuDefine(menuId, itemId, state, title, cmdKey) {
+      const mid = menuId | 0;
+      const iid = itemId | 0;
+      const st = state | 0;
+      if (!menuStrip[mid]) {
+        menuStrip[mid] = { state: 1, title: "", items: Object.create(null) };
+      }
+      const menu = menuStrip[mid];
+      if (iid === 0) {
+        // Menu header
+        menu.state = st;
+        if (title != null && title !== undefined) menu.title = String(title);
+      } else {
+        if (!menu.items[iid]) menu.items[iid] = { state: 1, title: "", cmdKey: "" };
+        const it = menu.items[iid];
+        it.state = st;
+        if (title != null && title !== undefined) it.title = String(title);
+        if (cmdKey != null && cmdKey !== undefined) it.cmdKey = String(cmdKey);
+      }
+      ensureMenuKeyHandler();
+      renderMenuBar();
+    }
+
+    function menuClear() {
+      menuStrip = Object.create(null);
+      lastMenuId = 0;
+      lastItemId = 0;
+      menu0Consumed = true;
+      menuEventPending = false;
+      if (menuBarEl && menuBarEl.parentNode) menuBarEl.parentNode.removeChild(menuBarEl);
+      menuBarEl = null;
+      removeMenuKeyHandler();
+    }
+
+    function menuTrap(mode) {
+      const m = String(mode || "").toLowerCase();
+      if (m === "on" || m === "off" || m === "stop") menuTrapMode = m;
+    }
+
+    function onMenu(kind, handler) {
+      menuTrapKind = kind === "goto" ? "goto" : "gosub";
+      menuTrapHandler = typeof handler === "function" ? handler : null;
+    }
+
+    function menuFunc(n) {
+      switch (n | 0) {
+        case 0: {
+          if (menu0Consumed) return 0;
+          menu0Consumed = true;
+          return lastMenuId;
+        }
+        case 1:
+          return lastItemId;
+        default:
+          return 0;
+      }
+    }
+
+    function selectMenu(menuId, itemId) {
+      const mid = menuId | 0;
+      const iid = itemId | 0;
+      const menu = menuStrip[mid];
+      if (!menu || (menu.state | 0) === 0) return false;
+      const it = menu.items[iid];
+      if (!it || (it.state | 0) === 0) return false;
+      // Separators / dashed titles are not selectable even if somehow enabled.
+      if (/^-+$/.test(String(it.title || "").replace(/\s/g, ""))) return false;
+      lastMenuId = mid;
+      lastItemId = iid;
+      menu0Consumed = false;
+      closeOpenMenuDropdowns();
+      if (pendingMenuWait) {
+        const w = pendingMenuWait;
+        pendingMenuWait = null;
+        w.resolve();
+        return true;
+      }
+      if (menuTrapMode === "on" && menuTrapHandler) {
+        menuEventPending = true;
+      }
+      return true;
+    }
+
+    function menuWait() {
+      flushAllDirty();
+      if (stopped) return Promise.resolve();
+      return new Promise(function (resolve) {
+        pendingMenuWait = {
+          resolve: function () {
+            pendingMenuWait = null;
+            resolve();
+          },
+        };
+      });
+    }
+
+    function menuPoll() {
+      if (stopped) return Promise.resolve();
+      // Fast path: no menu strip / trap → avoid microtask churn in unrelated loops.
+      if (!menuTrapHandler && !menuEventPending && !Object.keys(menuStrip).length) {
+        return Promise.resolve();
+      }
+      return (async function () {
+        if (menuEventPending && menuTrapMode === "on" && menuTrapHandler) {
+          menuEventPending = false;
+          // Let __aceEnd from GOTO quit propagate to the main try/catch.
+          await menuTrapHandler();
+          if (menuTrapKind === "goto") return;
+        }
+        menuPollCounter++;
+        // Yield occasionally so Stop / menu UI stay responsive during long REPEAT draws.
+        if (menuPollCounter >= 64) {
+          menuPollCounter = 0;
+          flushAllDirty();
+          await new Promise(function (r) { setTimeout(r, 0); });
+          if (stopped) return;
+          if (menuEventPending && menuTrapMode === "on" && menuTrapHandler) {
+            menuEventPending = false;
+            await menuTrapHandler();
+          }
+        }
+      })();
+    }
+
+    function closeOpenMenuDropdowns() {
+      if (!menuBarEl) return;
+      const drops = menuBarEl.querySelectorAll(".ace-menu-dropdown.open");
+      for (let i = 0; i < drops.length; i++) drops[i].classList.remove("open");
+    }
+
+    function renderMenuBar() {
+      if (typeof document === "undefined") return;
+      const scr = currentScreenId && screens[currentScreenId];
+      const host = (scr && scr.el) || screensHost;
+      if (!host) return;
+      if (!Object.keys(menuStrip).length) {
+        if (menuBarEl && menuBarEl.parentNode) menuBarEl.parentNode.removeChild(menuBarEl);
+        menuBarEl = null;
+        return;
+      }
+      if (!menuBarEl) {
+        menuBarEl = document.createElement("div");
+        menuBarEl.className = "ace-menubar";
+        menuBarEl.setAttribute("role", "menubar");
+      }
+      menuBarEl.innerHTML = "";
+      const ids = Object.keys(menuStrip).map(Number).sort(function (a, b) { return a - b; });
+      for (let i = 0; i < ids.length; i++) {
+        const mid = ids[i];
+        const menu = menuStrip[mid];
+        if (!menu) continue;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "ace-menu-title" + ((menu.state | 0) === 0 ? " disabled" : "");
+        btn.textContent = menu.title || ("Menu " + mid);
+        btn.disabled = (menu.state | 0) === 0;
+        const drop = document.createElement("div");
+        drop.className = "ace-menu-dropdown";
+        drop.setAttribute("role", "menu");
+        const itemIds = Object.keys(menu.items).map(Number).sort(function (a, b) { return a - b; });
+        for (let j = 0; j < itemIds.length; j++) {
+          const iid = itemIds[j];
+          const it = menu.items[iid];
+          if (!it) continue;
+          const isSep = /^-+$/.test(String(it.title || "").replace(/\s/g, ""));
+          const item = document.createElement(isSep ? "div" : "button");
+          if (!isSep) item.type = "button";
+          item.className = "ace-menu-item" + (isSep ? " separator" : "") +
+            ((it.state | 0) === 0 || (menu.state | 0) === 0 ? " disabled" : "");
+          if (isSep) {
+            item.textContent = it.title || "────────";
+          } else {
+            const label = document.createElement("span");
+            label.className = "ace-menu-item-label";
+            label.textContent = it.title || ("Item " + iid);
+            item.appendChild(label);
+            if (it.cmdKey) {
+              const hk = document.createElement("span");
+              hk.className = "ace-menu-item-key";
+              hk.textContent = String(it.cmdKey).toUpperCase();
+              item.appendChild(hk);
+            }
+            item.disabled = (it.state | 0) === 0 || (menu.state | 0) === 0;
+            item.addEventListener("click", function (ev) {
+              ev.stopPropagation();
+              selectMenu(mid, iid);
+            });
+          }
+          drop.appendChild(item);
+        }
+        btn.addEventListener("click", function (ev) {
+          ev.stopPropagation();
+          if ((menu.state | 0) === 0) return;
+          const wasOpen = drop.classList.contains("open");
+          closeOpenMenuDropdowns();
+          if (!wasOpen) drop.classList.add("open");
+        });
+        const wrap = document.createElement("div");
+        wrap.className = "ace-menu";
+        wrap.appendChild(btn);
+        wrap.appendChild(drop);
+        menuBarEl.appendChild(wrap);
+      }
+      if (menuBarEl.parentNode !== host) {
+        if (menuBarEl.parentNode) menuBarEl.parentNode.removeChild(menuBarEl);
+        host.insertBefore(menuBarEl, host.firstChild);
+      }
+      // Click outside closes dropdowns
+      if (!menuBarEl._outsideBound) {
+        menuBarEl._outsideBound = true;
+        document.addEventListener("mousedown", function (ev) {
+          if (menuBarEl && !menuBarEl.contains(ev.target)) closeOpenMenuDropdowns();
+        });
       }
     }
 
@@ -1885,6 +2223,16 @@
         pendingGadgetWait = null;
         g.resolve(0);
       }
+      if (pendingMenuWait) {
+        const m = pendingMenuWait;
+        pendingMenuWait = null;
+        m.resolve();
+      }
+      if (pendingMsgBox) {
+        const mb = pendingMsgBox;
+        pendingMsgBox = null;
+        mb.resolve(-1);
+      }
       wakeSleepers();
     }
 
@@ -1920,6 +2268,14 @@
       lastGadgetSeen = 0;
       keyQueue = [];
       sleepWaiters = [];
+      menuClear();
+      menuTrapMode = "off";
+      menuTrapHandler = null;
+      menuTrapKind = "gosub";
+      menuEventPending = false;
+      menuPollCounter = 0;
+      pendingMenuWait = null;
+      pendingMsgBox = null;
       tgDegs = 270;
       tgPen = 0;
       tgInitX = 0;
@@ -1976,6 +2332,17 @@
       gadgetWait: gadgetWait,
       signalGadget: signalGadget,
       gadgetFunc: gadgetFunc,
+      menuDefine: menuDefine,
+      menuClear: menuClear,
+      menuTrap: menuTrap,
+      menuWait: menuWait,
+      menuPoll: menuPoll,
+      menuFunc: menuFunc,
+      onMenu: onMenu,
+      selectMenu: selectMenu,
+      signalMenu: selectMenu,
+      msgBox: msgBox,
+      chr: chr,
       sleep: sleep,
       sleepFor: sleepFor,
       sound: sound,
