@@ -955,6 +955,14 @@ async function main() {
     if (!(n > 0 && n < 50000)) throw new Error("expected early stop, got " + sink.textContent);
   });
 
+  await check("ifs.b Help/About use awaited MsgBox in CASE", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/ifs.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/await __v_help\(/.test(compiled.js)) throw new Error("help SUB not awaited from CASE");
+    if (!/await rt\.msgBox/.test(compiled.js)) throw new Error("missing awaited msgBox");
+  });
+
   await check("examples/ifs.b MENU draw fern", async function () {
     const src = fs.readFileSync(path.join(root, "examples/ifs.b"), "utf8");
     const compiled = ACE.compile(src);
