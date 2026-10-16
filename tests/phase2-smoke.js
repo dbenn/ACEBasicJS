@@ -955,6 +955,106 @@ async function main() {
     if (!(n > 0 && n < 50000)) throw new Error("expected early stop, got " + sink.textContent);
   });
 
+  await check("MID$ / LEFT$ / VAL / TIME$ / line continuation", async function () {
+    const src =
+      'PRINT MID$("abcdef",2,3)\n' +
+      'PRINT LEFT$("abcdef",2)\n' +
+      'PRINT VAL(" 42")\n' +
+      'PRINT VAL("&H10")\n' +
+      "PRINT LEN(TIME$)\n" +
+      "LINE (0,0)- ~\n" +
+      "(5,5),1,bf\n" +
+      'PRINT "cont"\n';
+    const r = await runSource(ACE, src);
+    if (r.error) throw r.error;
+    const lines = r.lines.map(function (s) { return String(s).trim(); });
+    if (lines[0] !== "bcd") throw new Error("MID$: " + r.text);
+    if (lines[1] !== "ab") throw new Error("LEFT$: " + r.text);
+    if (lines[2] !== "42") throw new Error("VAL: " + r.text);
+    if (lines[3] !== "16") throw new Error("VAL hex: " + r.text);
+    if (lines[4] !== "8") throw new Error("TIME$ len: " + r.text);
+    if (lines[5] !== "cont") throw new Error("continuation: " + r.text);
+  });
+
+  await check("DIM SHORTINT + STOP", async function () {
+    const src =
+      "DIM SHORTINT a(2,2)\n" +
+      "a(1,2)=9\n" +
+      "PRINT a(1,2)\n" +
+      "STOP\n" +
+      'PRINT "nope"\n';
+    const r = await runSource(ACE, src);
+    if (r.error) throw r.error;
+    if (String(r.lines[0]).trim() !== "9") throw new Error("DIM SHORTINT: " + r.text);
+    if (r.lines.length !== 1) throw new Error("STOP should end: " + r.text);
+  });
+
+  await check("ON WINDOW GOSUB + WINDOW ON", async function () {
+    const src =
+      'WINDOW 1,"T",(0,0)-(200,100),31\n' +
+      "ON WINDOW GOSUB handle\n" +
+      "WINDOW ON\n" +
+      "finished=0\n" +
+      "n=0\n" +
+      "REPEAT\n" +
+      "  n=n+1\n" +
+      "  SLEEP\n" +
+      "UNTIL finished OR n>100\n" +
+      'PRINT "N=";n\n' +
+      "STOP\n" +
+      "handle:\n" +
+      "  finished=-1\n" +
+      "RETURN\n";
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/onWindow/.test(compiled.js)) throw new Error("missing onWindow");
+    if (!/windowTrap/.test(compiled.js)) throw new Error("missing windowTrap");
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 40); });
+    if (!rt.signalWindowClose()) throw new Error("signalWindowClose failed");
+    await Promise.race([
+      runPromise,
+      new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error("ON WINDOW did not stop loop")); }, 3000);
+      }),
+    ]);
+    // PRINT lands in the Intuition window (implicit screen backdrop stays open).
+    const text = rt.windowText(1);
+    const m = /N=\s*(\d+)/.exec(text);
+    if (!m) throw new Error("expected N= in window text: " + text);
+    const n = Number(m[1]);
+    if (!(n > 0 && n < 100)) throw new Error("expected early stop, got " + text);
+  });
+
+  await check("examples/Gfx/7seg.b draws seconds then Quit", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Gfx/7seg.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/timeStr/.test(compiled.js)) throw new Error("missing TIME$");
+    if (!/midStr/.test(compiled.js)) throw new Error("missing MID$");
+    if (!/onWindow/.test(compiled.js)) throw new Error("missing ON WINDOW");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 250); });
+    let ink = 0;
+    for (let y = 40; y < 140; y += 2) {
+      for (let x = 180; x < 460; x += 2) {
+        if (rt.windowPixel(1, x, y) === 7) ink++;
+      }
+    }
+    if (ink < 20) throw new Error("too few 7-seg pixels: " + ink);
+    if (!rt.selectMenu(1, 1)) throw new Error("Quit menu failed");
+    await Promise.race([
+      runPromise,
+      new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error("7seg did not quit")); }, 5000);
+      }),
+    ]);
+  });
+
   await check("ifs.b Help/About use awaited MsgBox in CASE", async function () {
     const src = fs.readFileSync(path.join(root, "examples/ifs.b"), "utf8");
     const compiled = ACE.compile(src);

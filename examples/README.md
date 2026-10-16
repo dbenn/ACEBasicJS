@@ -16,7 +16,7 @@ expectations below (observable results in the host output / runtime).
 |---|---|---|
 | `ACEBasicJS/` | This project | `hello`, `input`, `window`, `window-input`, `graphics` |
 | `BenchMarks/` | David Benn — original ACE `prgs/BenchMarks/` | `Ackermann`, `Ahl`, `lines`, `loops`, `sieve` |
-| `Gfx/` | David Benn — original ACE `prgs/Gfx/` | `paint` (from `pattern.b`), `pattern2`, `shuttle` |
+| `Gfx/` | David Benn — original ACE `prgs/Gfx/` | `7seg`, `paint` (from `pattern.b`), `pattern2`, `shuttle` |
 | `Misc/` | David Benn — original ACE `prgs/Misc/` | `fact` |
 | `prgs` (group) | David Benn — original ACE `prgs/*.b` | `hi` (`examples/hi.b`), `ifs` (`examples/ifs.b`) |
 | `Sound/` | David Benn — original ACE `prgs/Sound/` | `sound` |
@@ -36,6 +36,7 @@ expectations below (observable results in the host output / runtime).
 | `lines` | `BenchMarks/lines.b` | Random lines; press a key when done. |
 | `loops` | `BenchMarks/loops.b` | Timing lines for FOR / WHILE / REPEAT. |
 | `sieve` | `BenchMarks/sieve.b` | Byte sieve banner + timing. |
+| `7seg` | `Gfx/7seg.b` | Live `TIME$` seconds as 7-segment digits; **Project→Quit** or close gadget. |
 | `paint` | `Gfx/paint.b` | Patterned triangle, flood-filled circle, solid boxes. |
 | `pattern2` | `Gfx/pattern2.b` | Dithered window fill; close gadget quits (`GADGET WAIT 0`). |
 | `shuttle` | `Gfx/shuttle.b` | Wireframe shuttle; enter 3 angles (try 40/80/120), then **C** redraw / **Q** quit. |
@@ -56,7 +57,7 @@ expectations below (observable results in the host output / runtime).
 
 | Program | Reason |
 |---|---|
-| ACE `prgs/Gfx/*` (beyond `paint` / `pattern2` / `shuttle`) | Next; defer IFF/EHB/HAM |
+| ACE `prgs/Gfx/*` (beyond `7seg` / `paint` / `pattern2` / `shuttle`) | Next e.g. `tri.b`; defer IFF/EHB/HAM |
 | ACE `prgs/welcome.b` | Needs `SAY` / `TRANSLATE$` |
 | ACE `prgs/Library/hello.b` | `LIBRARY` selective shims later |
 | ACE `prgs/IO/seq.b` | File I/O demoted |

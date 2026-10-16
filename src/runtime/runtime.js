@@ -73,6 +73,11 @@
     let menuTrapKind = "gosub";
     let menuEventPending = false;
     let menuPollCounter = 0;
+    // --- Window close-gadget trap (7seg.b ON WINDOW) ---
+    let windowTrapMode = "off"; // on | off | stop
+    let windowTrapHandler = null; // async function
+    let windowTrapKind = "gosub";
+    let windowEventPending = false;
     let menuBarEl = null;
     let menuKeyHandler = null;
     let pendingMsgBox = null;
@@ -759,6 +764,12 @@
             ev.stopPropagation();
             // GADGET WAIT 0: close gadget wakes wait (id 256); program closes itself.
             if (signalGadget(256)) return;
+            // ON WINDOW + WINDOW ON: close-gadget fires event trap (7seg.b).
+            if (windowTrapMode === "on" && windowTrapHandler) {
+              windowEventPending = true;
+              wakeSleepers();
+              return;
+            }
             // Phase 4: close-gadget ≈ ACE -w — close window and stop program.
             closeWindow(win.id);
             stop();
@@ -1617,6 +1628,26 @@
       menuTrapHandler = typeof handler === "function" ? handler : null;
     }
 
+    function windowTrap(mode) {
+      const m = String(mode || "").toLowerCase();
+      if (m === "on" || m === "off" || m === "stop") windowTrapMode = m;
+    }
+
+    function onWindow(kind, handler) {
+      windowTrapKind = kind === "goto" ? "goto" : "gosub";
+      windowTrapHandler = typeof handler === "function" ? handler : null;
+    }
+
+    /** Test / UI helper: simulate close-gadget when WINDOW ON trap is armed. */
+    function signalWindowClose() {
+      if (windowTrapMode === "on" && windowTrapHandler) {
+        windowEventPending = true;
+        wakeSleepers();
+        return true;
+      }
+      return false;
+    }
+
     function menuFunc(n) {
       switch (n | 0) {
         case 0: {
@@ -1672,8 +1703,11 @@
 
     function menuPoll() {
       if (stopped) return Promise.resolve();
-      // Fast path: no menu strip / trap → avoid microtask churn in unrelated loops.
-      if (!menuTrapHandler && !menuEventPending && !Object.keys(menuStrip).length) {
+      const hasMenu =
+        !!menuTrapHandler || menuEventPending || Object.keys(menuStrip).length > 0;
+      const hasWindow = !!windowTrapHandler || windowEventPending;
+      // Fast path: no menu / window traps → avoid microtask churn in unrelated loops.
+      if (!hasMenu && !hasWindow) {
         return Promise.resolve();
       }
       return (async function () {
@@ -1683,9 +1717,16 @@
           await menuTrapHandler();
           if (menuTrapKind === "goto") return;
         }
+        if (windowEventPending && windowTrapMode === "on" && windowTrapHandler) {
+          windowEventPending = false;
+          await windowTrapHandler();
+          if (windowTrapKind === "goto") return;
+        }
         menuPollCounter++;
-        // Yield occasionally so Stop / menu UI stay responsive during long REPEAT draws.
-        if (menuPollCounter >= 64) {
+        // Yield occasionally so Stop / menu UI stay responsive during long REPEAT draws
+        // and TIMER busy-waits (7seg.b). Tighter yield when only waiting on events.
+        const yieldEvery = hasWindow && !Object.keys(menuStrip).length ? 8 : 64;
+        if (menuPollCounter >= yieldEvery) {
           menuPollCounter = 0;
           flushAllDirty();
           await new Promise(function (r) { setTimeout(r, 0); });
@@ -1693,6 +1734,10 @@
           if (menuEventPending && menuTrapMode === "on" && menuTrapHandler) {
             menuEventPending = false;
             await menuTrapHandler();
+          }
+          if (windowEventPending && windowTrapMode === "on" && windowTrapHandler) {
+            windowEventPending = false;
+            await windowTrapHandler();
           }
         }
       })();
@@ -1807,6 +1852,50 @@
       const count = Math.max(0, Number(n) | 0);
       if (count >= str.length) return str;
       return str.slice(str.length - count);
+    }
+
+    function leftStr(s, n) {
+      const str = String(s == null ? "" : s);
+      const count = Math.max(0, Number(n) | 0);
+      return str.slice(0, count);
+    }
+
+    /** MID$(X$, I[, J]) — 1-based; omit J → through end. */
+    function midStr(s, start, count) {
+      const str = String(s == null ? "" : s);
+      const i = Number(start) | 0;
+      if (i < 1 || i > str.length) return "";
+      if (count === undefined || count === null) return str.slice(i - 1);
+      const j = Math.max(0, Number(count) | 0);
+      return str.slice(i - 1, i - 1 + j);
+    }
+
+    /** TIME$ — hh:mm:ss wall clock (Amiga system time). */
+    function timeStr() {
+      const d = new Date();
+      function two(n) {
+        return n < 10 ? "0" + n : String(n);
+      }
+      return two(d.getHours()) + ":" + two(d.getMinutes()) + ":" + two(d.getSeconds());
+    }
+
+    /**
+     * VAL(X$) — numeric value; strips leading whitespace; &H / &O prefixes.
+     */
+    function valNum(s) {
+      let str = String(s == null ? "" : s).replace(/^[ \t]+/, "");
+      if (!str) return 0;
+      const u = str.toUpperCase();
+      if (u.indexOf("&H") === 0) {
+        const hex = u.slice(2).replace(/[^0-9A-F].*$/, "");
+        return hex ? parseInt(hex, 16) : 0;
+      }
+      if (u.indexOf("&O") === 0) {
+        const oct = u.slice(2).replace(/[^0-7].*$/, "");
+        return oct ? parseInt(oct, 8) : 0;
+      }
+      const n = parseFloat(str);
+      return isFinite(n) ? n : 0;
     }
 
     function csrlin() {
@@ -2313,6 +2402,10 @@
       menuPollCounter = 0;
       pendingMenuWait = null;
       pendingMsgBox = null;
+      windowTrapMode = "off";
+      windowTrapHandler = null;
+      windowTrapKind = "gosub";
+      windowEventPending = false;
       tgDegs = 270;
       tgPen = 0;
       tgInitX = 0;
@@ -2376,6 +2469,9 @@
       menuPoll: menuPoll,
       menuFunc: menuFunc,
       onMenu: onMenu,
+      windowTrap: windowTrap,
+      onWindow: onWindow,
+      signalWindowClose: signalWindowClose,
       selectMenu: selectMenu,
       signalMenu: selectMenu,
       msgBox: msgBox,
@@ -2424,7 +2520,11 @@
       poke: poke,
       strNum: strNum,
       len: len,
+      leftStr: leftStr,
       rightStr: rightStr,
+      midStr: midStr,
+      timeStr: timeStr,
+      valNum: valNum,
       csrlin: csrlin,
       prints: prints,
       get stopped() {
