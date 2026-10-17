@@ -70,6 +70,13 @@
     "notes": "DIM / GOTO / IF"
   },
   {
+    "id": "7seg",
+    "title": "7seg",
+    "folder": "Gfx",
+    "path": "examples/Gfx/7seg.b",
+    "notes": "7-segment TIME$ seconds — Project→Quit or close gadget"
+  },
+  {
     "id": "paint",
     "title": "paint (pattern)",
     "folder": "Gfx",

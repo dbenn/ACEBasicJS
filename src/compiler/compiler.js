@@ -39,7 +39,9 @@
     HEADING: { arity: 0, rt: "heading" },
     INT: { arity: 1, rt: "int" },
     LEN: { arity: 1, rt: "len" },
+    LEFT: { arity: 2, rt: "leftStr" },
     LOG: { arity: 1, rt: "log" },
+    MID: { arity: -1, rt: "midStr" }, // 2 or 3 args
     RIGHT: { arity: 2, rt: "rightStr" },
     RND: { arity: -1, rt: "rnd" }, // 0 or 1 arg
     SGN: { arity: 1, rt: "sgn" },
@@ -48,7 +50,9 @@
     SQR: { arity: 1, rt: "sqr" },
     STR: { arity: 1, rt: "strNum" },
     TAN: { arity: 1, rt: "tan" },
+    TIME: { arity: 0, rt: "timeStr" }, // TIME$ — bare, no parens
     UCASE: { arity: 1, rt: "ucase" },
+    VAL: { arity: 1, rt: "valNum" },
     XCOR: { arity: 0, rt: "xcor" },
     YCOR: { arity: 0, rt: "ycor" },
     GADGET: { arity: 1, rt: "gadgetFunc" },
@@ -95,6 +99,15 @@
       if (c === "\r") { bump(); continue; }
       if (c === "\n") { bump(); add("EOL", "\n", startLine, startCol); continue; }
       if (c === " " || c === "\t") { bump(); continue; }
+
+      // ~ line continuation (ACE): skip ~ and the following newline
+      if (c === "~") {
+        bump();
+        while (peek() === " " || peek() === "\t") bump();
+        if (peek() === "\r") bump();
+        if (peek() === "\n") bump();
+        continue;
+      }
 
       // ' comment or REM
       if (c === "'") {
@@ -521,9 +534,10 @@
         this.expect("RPAREN");
         return { type: "Sizeof", name: id.value };
       }
-      // RND / HEADING / XCOR / YCOR without (): AmigaBASIC / ACE allow bare forms
+      // RND / HEADING / XCOR / YCOR / TIME$ without (): AmigaBASIC / ACE allow bare forms
       const bare = upper.replace(/[!%&$]+$/g, "");
-      if (builtinInfo(name) && (bare === "RND" || bare === "HEADING" || bare === "XCOR" || bare === "YCOR") &&
+      if (builtinInfo(name) &&
+          (bare === "RND" || bare === "HEADING" || bare === "XCOR" || bare === "YCOR" || bare === "TIME") &&
           !this.at("LPAREN")) {
         return { type: "Builtin", name: bare, args: [] };
       }
@@ -926,6 +940,8 @@
 
   Parser.prototype.parseDim = function () {
     this.expect("KW", "DIM");
+    // Optional element type: DIM SHORTINT digit(9,7)
+    this.parseOptionalType();
     const items = [];
     for (;;) {
       const name = this.expect("IDENT").value;
@@ -1134,25 +1150,34 @@
     };
   };
 
-  /** ON MENU GOSUB label | ON MENU GOTO label */
+  /** ON MENU|WINDOW GOSUB label | ON MENU|WINDOW GOTO label */
   Parser.prototype.parseOn = function () {
     this.expect("KW", "ON");
+    let trap = null;
     if (this.atKw("MENU")) {
       this.eat();
-      let kind = "gosub";
-      if (this.atKw("GOSUB")) {
-        this.eat();
-        kind = "gosub";
-      } else if (this.atKw("GOTO")) {
-        this.eat();
-        kind = "goto";
-      } else {
-        throw new CompileError("ON MENU expects GOSUB or GOTO", this.peek());
-      }
-      const label = this.expect("IDENT").value;
-      return { type: "OnMenu", kind: kind, label: label };
+      trap = "menu";
+    } else if (this.atKw("WINDOW")) {
+      this.eat();
+      trap = "window";
+    } else {
+      throw new CompileError("ON MENU or ON WINDOW expected (other event traps deferred)", this.peek());
     }
-    throw new CompileError("ON MENU expected (other event traps deferred)", this.peek());
+    let kind = "gosub";
+    if (this.atKw("GOSUB")) {
+      this.eat();
+      kind = "gosub";
+    } else if (this.atKw("GOTO")) {
+      this.eat();
+      kind = "goto";
+    } else {
+      throw new CompileError("ON " + trap.toUpperCase() + " expects GOSUB or GOTO", this.peek());
+    }
+    const label = this.expect("IDENT").value;
+    if (trap === "window") {
+      return { type: "OnWindow", kind: kind, label: label };
+    }
+    return { type: "OnMenu", kind: kind, label: label };
   };
 
   /** MSGBOX message,button-text — statement form (no return). */
@@ -1238,7 +1263,7 @@
   };
 
   /**
-   * WINDOW CLOSE id | WINDOW OUTPUT id |
+   * WINDOW CLOSE id | WINDOW OUTPUT id | WINDOW ON|OFF|STOP |
    * WINDOW id[,title],(x1,y1)-(x2,y2)[,type][,screen-id]
    */
   Parser.prototype.parseWindow = function () {
@@ -1250,6 +1275,10 @@
     if (this.atKw("OUTPUT")) {
       this.eat();
       return { type: "WindowOutput", id: this.parseExpr() };
+    }
+    if (this.atKw("ON") || this.atKw("OFF") || this.atKw("STOP")) {
+      const mode = this.eat().value.toLowerCase();
+      return { type: "WindowTrap", mode: mode };
     }
     const id = this.parseExpr();
     this.expect("COMMA");
@@ -1757,6 +1786,10 @@
       this.eat();
       return { type: "End" };
     }
+    if (this.atKw("STOP")) {
+      this.eat();
+      return { type: "End" };
+    }
     // Named label: ident:  (must precede bare CallStmt)
     if (this.at("IDENT") && this.tokens[this.pos + 1] && this.tokens[this.pos + 1].type === "COLON") {
       const name = this.eat().value;
@@ -2125,6 +2158,11 @@
           (stmt.cmdKey ? this.expr(stmt.cmdKey) : "null") + ");";
       case "OnMenu":
         return ind + "rt.onMenu(" + JSON.stringify(stmt.kind) + ", __label_" +
+          String(stmt.label).toLowerCase().replace(/[^a-z0-9]+/g, "_") + ");";
+      case "WindowTrap":
+        return ind + "rt.windowTrap(" + JSON.stringify(stmt.mode) + ");";
+      case "OnWindow":
+        return ind + "rt.onWindow(" + JSON.stringify(stmt.kind) + ", __label_" +
           String(stmt.label).toLowerCase().replace(/[^a-z0-9]+/g, "_") + ");";
       case "MsgBoxStmt":
         return ind + "await rt.msgBox(" + this.expr(stmt.message) + ", " + this.expr(stmt.button) + ");";
