@@ -16,7 +16,7 @@
     NEXT: 1, NOT: 1, OFF: 1, ON: 1, OR: 1,
     OUTPUT: 1, PAINT: 1, PALETTE: 1, PATTERN: 1, PENDOWN: 1, PENUP: 1, PRINT: 1, PRINTS: 1,
     PSET: 1, RANDOMIZE: 1, READ: 1, REM: 1, REPEAT: 1, RESTORE: 1, RETURN: 1, SCREEN: 1,
-    SETHEADING: 1, SETXY: 1, SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, SOUND: 1,
+    SAY: 1, SETHEADING: 1, SETXY: 1, SHARED: 1, SINGLE: 1, SHORTINT: 1, SLEEP: 1, SOUND: 1,
     LONGINT: 1, STEP: 1, STOP: 1, STRING: 1, STRUCT: 1, SUB: 1, THEN: 1, TO: 1, TURN: 1,
     TURNLEFT: 1, TURNRIGHT: 1, UNTIL: 1, WAIT: 1, WAVE: 1, WEND: 1, WHILE: 1, WINDOW: 1,
     XOR: 1,
@@ -51,6 +51,7 @@
     STR: { arity: 1, rt: "strNum" },
     TAN: { arity: 1, rt: "tan" },
     TIME: { arity: 0, rt: "timeStr" }, // TIME$ — bare, no parens
+    TRANSLATE: { arity: 1, rt: "translateStr" }, // TRANSLATE$ — phonemes; browser: pass-through
     UCASE: { arity: 1, rt: "ucase" },
     VAL: { arity: 1, rt: "valNum" },
     XCOR: { arity: 0, rt: "xcor" },
@@ -106,6 +107,13 @@
         while (peek() === " " || peek() === "\t") bump();
         if (peek() === "\r") bump();
         if (peek() === "\n") bump();
+        continue;
+      }
+
+      // ? — AmigaBASIC / ACE abbreviation for PRINT
+      if (c === "?") {
+        bump();
+        add("KW", "PRINT", startLine, startCol);
         continue;
       }
 
@@ -1363,6 +1371,21 @@
   };
 
   /**
+   * SAY phoneme-string[, mode-array]
+   * mode-array is a 9-element SHORTINT array (pitch, inflection, rate, …).
+   */
+  Parser.prototype.parseSay = function () {
+    this.expect("KW", "SAY");
+    const text = this.parseExpr();
+    let voiceArr = null;
+    if (this.at("COMMA")) {
+      this.eat();
+      voiceArr = this.expect("IDENT").value;
+    }
+    return { type: "Say", text: text, voiceArr: voiceArr };
+  };
+
+  /**
    * SOUND period,duration[,volume][,voice]
    * Period is Paula AUDxPER (124..32767); duration 18.2 ≈ 1s; volume 0..64; voice 0..3.
    */
@@ -1728,6 +1751,7 @@
     if (this.atKw("SCREEN")) return this.parseScreen();
     if (this.atKw("SLEEP")) return this.parseSleep();
     if (this.atKw("BEEP")) return this.parseBeep();
+    if (this.atKw("SAY")) return this.parseSay();
     if (this.atKw("SOUND")) return this.parseSound();
     if (this.atKw("WAVE")) return this.parseWave();
     if (this.atKw("CLS")) return this.parseCls();
@@ -2080,6 +2104,9 @@
         return ind + "await rt.sleep();";
       case "Beep":
         return ind + "await rt.beep();";
+      case "Say":
+        return ind + "await rt.say(" + this.expr(stmt.text) + ", " +
+          (stmt.voiceArr ? jsName(stmt.voiceArr) : "null") + ");";
       case "Sound": {
         const vol = stmt.volume ? this.expr(stmt.volume) : "null";
         const voice = stmt.voice ? this.expr(stmt.voice) : "null";

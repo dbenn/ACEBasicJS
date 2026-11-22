@@ -16,9 +16,9 @@ expectations below (observable results in the host output / runtime).
 |---|---|---|
 | `ACEBasicJS/` | This project | `hello`, `input`, `window`, `window-input`, `graphics` |
 | `BenchMarks/` | David Benn — original ACE `prgs/BenchMarks/` | `Ackermann`, `Ahl`, `lines`, `loops`, `sieve` |
-| `Gfx/` | David Benn — original ACE `prgs/Gfx/` | `7seg`, `paint` (from `pattern.b`), `pattern2`, `shuttle` |
+| `Gfx/` | David Benn — original ACE `prgs/Gfx/` | `7seg`, `paint` (from `pattern.b`), `pattern2`, `shuttle`, `tri` |
 | `Misc/` | David Benn — original ACE `prgs/Misc/` | `fact` |
-| `prgs` (group) | David Benn — original ACE `prgs/*.b` | `hi` (`examples/hi.b`), `ifs` (`examples/ifs.b`) |
+| `prgs` (group) | David Benn — original ACE `prgs/*.b` | `hi`, `ifs`, `welcome` (`examples/*.b`) |
 | `Sound/` | David Benn — original ACE `prgs/Sound/` | `sound` |
 | `Turtle/` | David Benn — original ACE `prgs/Turtle/` | **all** TG demos: `boxit`, `bst`, `dragon`, `flower`, `snowflake`, `spiro`, `torus`, `tree` |
 
@@ -40,9 +40,11 @@ expectations below (observable results in the host output / runtime).
 | `paint` | `Gfx/paint.b` | Patterned triangle, flood-filled circle, solid boxes. |
 | `pattern2` | `Gfx/pattern2.b` | Dithered window fill; close gadget quits (`GADGET WAIT 0`). |
 | `shuttle` | `Gfx/shuttle.b` | Wireframe shuttle; enter 3 angles (try 40/80/120), then **C** redraw / **Q** quit. |
+| `tri` | `Gfx/tri.b` | Solid triangle fills + palette cycling; any key at intro, **ESC** to quit. |
 | `fact` | `Misc/fact.b` | Factorials until `-1`. |
 | `hi` | `hi.b` | Coloured "Hi There!" spray; press `q`. |
 | `ifs` | `ifs.b` | IFS fractals via **Project** + **Colour** menus; **Special → Quit** (or Stop while drawing). |
+| `welcome` | `welcome.b` | Speaks welcome via `SAY TRANSLATE$` (Web Speech). |
 | `sound` | `Sound/sound.b` | Tones / period sweep (unmute tab). |
 | `boxit` | `Turtle/boxit.b` | Recursive boxed edges; press `q`. |
 | `bst` | `Turtle/bst.b` | Binary search tree menu; Insert nodes then height/count/graph. |
@@ -57,8 +59,8 @@ expectations below (observable results in the host output / runtime).
 
 | Program | Reason |
 |---|---|
-| ACE `prgs/Gfx/*` (beyond `7seg` / `paint` / `pattern2` / `shuttle`) | Next e.g. `tri.b`; defer IFF/EHB/HAM |
-| ACE `prgs/welcome.b` | Needs `SAY` / `TRANSLATE$` |
+| ACE `prgs/Gfx/*` (beyond `7seg` / `paint` / `pattern2` / `shuttle` / `tri`) | Next e.g. `screenprint` / `stun`; defer IFF/EHB/HAM |
+| ACE `prgs/Speech/SpeechTool.b` | Needs full `GADGET` create / requesters |
 | ACE `prgs/Library/hello.b` | `LIBRARY` selective shims later |
 | ACE `prgs/IO/seq.b` | File I/O demoted |
 

@@ -2222,6 +2222,79 @@
       return sound(300, 2, 64, 0);
     }
 
+    const sayLog = []; // test/observability: {text, pitch, rate, volume, gender}
+
+    /**
+     * TRANSLATE$(words$) — Amiga narrator phoneme string.
+     * Browser SpeechSynthesis wants natural language, so return words unchanged.
+     */
+    function translateStr(s) {
+      return String(s == null ? "" : s);
+    }
+
+    /**
+     * SAY phoneme-string[, mode-array] — Web Speech API.
+     * mode-array[0]=pitch 65..320, [2]=rate 40..400, [3]=gender 0|1, [5]=volume 0..64.
+     */
+    function say(text, voiceArr) {
+      const spoken = String(text == null ? "" : text);
+      let pitch = 110;
+      let rate = 150;
+      let gender = 0;
+      let volume = 64;
+      if (voiceArr && typeof voiceArr.length === "number") {
+        if (voiceArr[0] != null) pitch = Number(voiceArr[0]) || pitch;
+        if (voiceArr[2] != null) rate = Number(voiceArr[2]) || rate;
+        if (voiceArr[3] != null) gender = Number(voiceArr[3]) | 0;
+        if (voiceArr[5] != null) volume = Number(voiceArr[5]);
+      }
+      sayLog.push({
+        text: spoken,
+        pitch: pitch,
+        rate: rate,
+        volume: volume,
+        gender: gender,
+      });
+      if (stopped) return Promise.resolve();
+      if (typeof speechSynthesis === "undefined" || typeof SpeechSynthesisUtterance === "undefined") {
+        return Promise.resolve();
+      }
+      return new Promise(function (resolve) {
+        try {
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(spoken);
+          // Map Amiga narrator ranges → Web Speech (pitch 0..2, rate 0.1..10, vol 0..1).
+          u.pitch = Math.max(0, Math.min(2, pitch / 110));
+          u.rate = Math.max(0.1, Math.min(10, rate / 150));
+          u.volume = Math.max(0, Math.min(1, (isFinite(volume) ? volume : 64) / 64));
+          try {
+            const voices = speechSynthesis.getVoices() || [];
+            const wantFemale = (gender | 0) === 1;
+            for (let i = 0; i < voices.length; i++) {
+              const name = String(voices[i].name || "").toLowerCase();
+              const isF = /female|woman|zira|samantha|karen|moira|fiona/.test(name);
+              const isM = /male|man|david|daniel|alex|fred|thomas/.test(name);
+              if (wantFemale && isF) { u.voice = voices[i]; break; }
+              if (!wantFemale && isM) { u.voice = voices[i]; break; }
+            }
+          } catch (e) { /* ignore voice pick */ }
+          let done = false;
+          function finish() {
+            if (done) return;
+            done = true;
+            resolve();
+          }
+          u.onend = finish;
+          u.onerror = finish;
+          speechSynthesis.speak(u);
+          // Safety: don't hang forever if the engine never fires onend.
+          setTimeout(finish, Math.max(2000, spoken.length * 120));
+        } catch (e) {
+          resolve();
+        }
+      });
+    }
+
     /**
      * GADGET WAIT id — sleep until gadget id is selected.
      * id=0 waits for any gadget; close gadget reports as 256 (Language Reference).
@@ -2483,6 +2556,9 @@
       waveSin: waveSin,
       waveMem: waveMem,
       soundLog: soundLog,
+      sayLog: sayLog,
+      say: say,
+      translateStr: translateStr,
       periodToHz: periodToHz,
       inkey: inkey,
       pushKey: pushKey,

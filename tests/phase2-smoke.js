@@ -1028,6 +1028,63 @@ async function main() {
     if (!(n > 0 && n < 100)) throw new Error("expected early stop, got " + text);
   });
 
+  await check("PRINT ? abbreviation", async function () {
+    const r = await runSource(ACE, 'PRINT "a":?\nPRINT "b"\n');
+    if (r.error) throw r.error;
+    if (r.lines[0] !== "a" || r.lines[1] !== "" || r.lines[2] !== "b") {
+      throw new Error("? PRINT: " + JSON.stringify(r.lines));
+    }
+  });
+
+  await check("SAY / TRANSLATE$ + welcome.b", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/welcome.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    if (!/translateStr/.test(compiled.js)) throw new Error("missing TRANSLATE$");
+    if (!/rt\.say\(/.test(compiled.js)) throw new Error("missing SAY");
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    await ACE.run(compiled, rt);
+    if (!rt.sayLog || !rt.sayLog.length) throw new Error("no sayLog");
+    const entry = rt.sayLog[0];
+    if (!/Welcome to ACE/.test(entry.text)) throw new Error("say text: " + entry.text);
+    if (entry.pitch !== 80) throw new Error("pitch " + entry.pitch);
+    if (entry.rate !== 160) throw new Error("rate " + entry.rate);
+    if (entry.volume !== 64) throw new Error("volume " + entry.volume);
+  });
+
+  await check("examples/Gfx/tri.b fills triangles then ESC", async function () {
+    const src = fs.readFileSync(path.join(root, "examples/Gfx/tri.b"), "utf8");
+    const compiled = ACE.compile(src);
+    if (!compiled.ok) throw compiled.diagnostics;
+    const sink = { textContent: "" };
+    const rt = ACE.createRuntime({ output: sink });
+    const runPromise = ACE.run(compiled, rt);
+    await new Promise(function (r) { setTimeout(r, 40); });
+    rt.pushKey(" "); // dismiss intro
+    await new Promise(function (r) { setTimeout(r, 1200); });
+    let ink = 0;
+    const seen = Object.create(null);
+    for (let y = 20; y < 180; y += 2) {
+      for (let x = 0; x < 510; x += 3) {
+        const v = rt.windowPixel(2, x, y);
+        if (v > 1) {
+          ink++;
+          seen[v] = 1;
+        }
+      }
+    }
+    if (ink < 20) throw new Error("too few triangle pixels: " + ink);
+    if (Object.keys(seen).length < 2) throw new Error("expected multiple pens: " + JSON.stringify(seen));
+    rt.pushKey(String.fromCharCode(27)); // ESC
+    await Promise.race([
+      runPromise,
+      new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error("tri did not quit on ESC")); }, 5000);
+      }),
+    ]);
+  });
+
   await check("examples/Gfx/7seg.b draws seconds then Quit", async function () {
     const src = fs.readFileSync(path.join(root, "examples/Gfx/7seg.b"), "utf8");
     const compiled = ACE.compile(src);

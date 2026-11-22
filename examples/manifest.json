@@ -98,6 +98,13 @@
     "notes": "Wireframe shuttle — DATA/READ + 2D DIM; angles then C/Q"
   },
   {
+    "id": "tri",
+    "title": "tri",
+    "folder": "Gfx",
+    "path": "examples/Gfx/tri.b",
+    "notes": "Triangle fills + palette cycle; any key then ESC to quit"
+  },
+  {
     "id": "fact",
     "title": "fact",
     "folder": "Misc",
@@ -117,6 +124,13 @@
     "folder": "prgs",
     "path": "examples/ifs.b",
     "notes": "IFS fractals — menus: Project + Colour, then Special/Quit"
+  },
+  {
+    "id": "welcome",
+    "title": "welcome",
+    "folder": "prgs",
+    "path": "examples/welcome.b",
+    "notes": "SAY TRANSLATE$ — Web Speech welcome"
   },
   {
     "id": "sound",
